@@ -385,5 +385,5 @@
   }
   MG.erase = erase;
 
-  MG.tools = { use, need, auto, disable, pick: select, current: () => current };
+  MG.tools = { use, need, auto, disable, pick: select, current: () => current, icon: (id) => ICONS[id] || '' };
 })();

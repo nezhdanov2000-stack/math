@@ -33,8 +33,28 @@
     br: document.getElementById('mode-br'),
   };
 
+  let curMode = null;
+  /* сколько задач решено в каждом режиме — для значков на карте */
+  const solvedEl = document.getElementById('solved');
+  if (solvedEl && window.MutationObserver) {
+    new MutationObserver(() => {
+      const n = parseInt(solvedEl.textContent, 10) || 0;
+      if (!curMode || !n) return;
+      try { const k = `mg.solved.${curMode}`; if (n > (+localStorage.getItem(k) || 0)) localStorage.setItem(k, String(n)); } catch (e) { /* нет хранилища */ }
+    }).observe(solvedEl, { childList: true, characterData: true, subtree: true });
+  }
+
+  function showHome() {
+    curMode = null;
+    Object.values(sections).forEach((s) => { s.hidden = true; });
+    MG.home.show();
+    try { history.replaceState(null, '', '#home'); } catch (e) { /* file:// */ }
+  }
+
   function activate(name) {
     if (!sections[name]) name = 'cancel';
+    curMode = name;
+    MG.home.hide();
     tabs.forEach((t) => {
       const on = t.dataset.mode === name;
       t.classList.toggle('active', on);
@@ -54,5 +74,8 @@
   groups.forEach((b) => b.addEventListener('click', () => openGroup(b.classList.contains('open') ? null : b.dataset.group)));
   document.getElementById('skip').addEventListener('click', () => MG.active && MG.active.skip());
 
-  activate(location.hash.slice(1));
+  MG.go = activate;
+  document.getElementById('home-btn').addEventListener('click', showHome);
+  const h0 = location.hash.slice(1);
+  if (sections[h0]) activate(h0); else showHome();
 })();

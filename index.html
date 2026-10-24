@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="css/style.css?v=40">
 </head>
 <body>
+  <main id="home" hidden></main>
+
   <header class="top">
     <nav class="menu" aria-label="Разделы">
       <div class="groups" role="tablist">
@@ -54,6 +56,7 @@
       <span>Уровень <b id="level">1</b></span>
       <span>Решено <b id="solved">0</b></span>
       <button id="skip" class="ghost" type="button">Другая задача</button>
+      <button id="home-btn" class="ghost" type="button" aria-label="Главное меню">🗺 Карта</button>
     </div>
   </header>
 
@@ -308,7 +311,7 @@
   <script src="js/teeth.js?v=7"></script>
   <script src="js/conveyor.js?v=3"></script>
   <script src="js/cups.js?v=2"></script>
-  <script src="js/tools.js?v=42"></script>
+  <script src="js/tools.js?v=43"></script>
   <script src="js/fractions.js?v=24"></script>
   <script src="js/mul.js?v=10"></script>
   <script src="js/div.js?v=5"></script>
@@ -321,7 +324,8 @@
   <script src="js/common.js?v=30"></script>
   <script src="js/borrow.js?v=30"></script>
   <script src="js/mixed.js?v=23"></script>
-  <script src="js/app.js?v=91"></script>
+  <script src="js/home.js?v=4"></script>
+  <script src="js/app.js?v=92"></script>
   <script>
     /* на телефоне меню прокручивается: активную вкладку подводим в центр */
     document.addEventListener('click', (e) => {
