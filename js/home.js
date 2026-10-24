@@ -9,8 +9,8 @@
 
   const LEVELS = [
     { n: 'I', title: 'Сокращение дробей', cls: 'l1', modes: [
-      { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 27, y: 74 },
-      { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 70, y: 56 } ] },
+      { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 68, y: 72 },
+      { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 64, y: 16 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
       { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 13, y: 68 },
       { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 33, y: 47 },
@@ -53,8 +53,11 @@
       <path d="M40 232 Q70 214 110 224 Q106 244 70 246 Q42 246 40 232Z" fill="#43a3e8" stroke="#2468a8" stroke-width="3"/>
       ${mountain(205, 228, 170, 190)}
       <path d="M184 228 Q184 196 205 196 Q226 196 226 228Z" fill="#2a2024" stroke="#17100f" stroke-width="2.5"/>
-      ${pine(96, 226, .95)}${pine(124, 232, .8, '#3aa05a')}${palm(150, 232, .9)}${pine(300, 228, .85)}${pine(328, 224, 1.05, '#2a8248')}${pine(352, 226, .7)}
-      ${cloud(110, 78, .8, .9)}${cloud(300, 96, .7, .85)}</svg>`,
+      <g class="shk">${pine(96, 226, .95)}${pine(124, 232, .8, '#3aa05a')}</g>${palm(150, 232, .9)}${pine(300, 228, .85)}${pine(328, 224, 1.05, '#2a8248')}${pine(352, 226, .7)}
+      ${cloud(110, 78, .8, .9)}
+      <g class="zapc"><g transform="translate(330 78) scale(.85)"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="#6a739f" stroke="#3c4470" stroke-width="2.6" stroke-linejoin="round"/></g></g>
+      <g class="zap" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="268" cy="156" r="18" fill="#fff6b0" stroke="none" opacity=".75"/>
+        <polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#ffd23d" stroke-width="9" opacity=".55"/><polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#fffbe0" stroke-width="3.6"/></g></svg>`,
     l2: () => `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}${under(200, 170)}${grass(200, 170)}
       ${mountain(215, 230, 175, 215)}
       ${cloud(150, 150, 1.25, .92)}${cloud(280, 176, 1.1, .9)}${cloud(90, 210, .9, .95)}${cloud(322, 112, .8, .9)}
@@ -128,16 +131,26 @@
     .pin .st[hidden] { display: none; }
     .hm-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
     .deco { position: absolute; z-index: 3; width: clamp(28px, 8vw, 46px); pointer-events: none; animation: hmBob 3.4s ease-in-out infinite alternate; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
+    .deco.orbit { animation: none; transform: translate(-50%, -50%); filter: drop-shadow(0 6px 5px rgba(0, 0, 0, .35)); width: clamp(38px, 11vw, 60px); }
+    .isle-art > svg { z-index: 1; }
+    .deco.chop { animation: hmChop 1.9s ease-in-out infinite; transform-origin: 14% 90%; }
+    @keyframes hmChop { 0% { transform: rotate(-4deg); } 55% { transform: rotate(-30deg); } 66% { transform: rotate(16deg); } 72% { transform: rotate(10deg); } 78% { transform: rotate(14deg); } 100% { transform: rotate(-4deg); } }
+    .shk { transform-box: fill-box; transform-origin: 50% 100%; animation: hmShk 1.9s linear infinite; }
+    @keyframes hmShk { 0%, 64% { transform: none; } 67% { transform: translateX(-2.5px) rotate(-1.6deg); } 71% { transform: translateX(2px) rotate(1.1deg); } 76% { transform: translateX(-1px) rotate(-.5deg); } 82%, 100% { transform: none; } }
+    .zap { opacity: 0; animation: hmZap 7s linear infinite; }
+    .zapc { animation: hmZapC 7s linear infinite; }
+    @keyframes hmZap { 0%, 86% { opacity: 0; } 87% { opacity: 1; } 89% { opacity: .15; } 90% { opacity: 1; } 94% { opacity: .8; } 97%, 100% { opacity: 0; } }
+    @keyframes hmZapC { 0%, 86% { filter: none; } 87%, 94% { filter: brightness(1.7); } 97%, 100% { filter: none; } }
     .deco svg { width: 100%; display: block; overflow: visible; }
     @keyframes hmBob { from { transform: translateY(-5px) rotate(-4deg); } to { transform: translateY(6px) rotate(4deg); } }
     .hm-foot { text-align: center; color: #5a3512; font-weight: 800; font-size: .85rem; opacity: .75; margin-top: 4px; }
-    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .hm-stars { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .hm-stars { animation: none; } }
   `;
   document.head.append(css);
 
   /* значки вокруг островов: [иконка, x%, y%] */
   const DECO = {
-    l1: [['rocket', 62, 5], ['bolt', 88, 10], ['heli', 86, 34], ['glove', 3, 50], ['axe', 50, 92]],
+    l1: [['axe', 12, 62, 'chop'], ['heli', 50, 40, 'orbit']],
     l2: [['rain', 24, 6], ['heli', 80, 30], ['box', 72, 70], ['joker', 3, 36]],
     l3: [['fan', 6, 72], ['rocket', 80, 12]],
     l4: [['conveyor', 10, 26], ['cups', 82, 38]],
@@ -155,11 +168,11 @@
       const sec = document.createElement('section');
       sec.className = `isle ${side}`;
       const pts = lv.modes.map((m) => `${m.x * 4},${m.y * 3}`);
-      const path = lv.modes.length > 1 ? `<svg class="hm-path" viewBox="0 0 400 300" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" fill="none" stroke="#fff6d8" stroke-width="5" stroke-dasharray="2 11" stroke-linecap="round" opacity=".85"/></svg>` : '';
+      const path = false && lv.modes.length > 1 ? `<svg class="hm-path" viewBox="0 0 400 300" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" fill="none" stroke="#fff6d8" stroke-width="5" stroke-dasharray="2 11" stroke-linecap="round" opacity=".85"/></svg>` : '';
       sec.innerHTML = `
         <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
         <div class="isle-art">${ART[lv.cls]()}${path}
-          ${DECO[lv.cls].map(([ic, x, y], k) => `<div class="deco" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
+          ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
           ${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" style="left:${m.x}%;top:${m.y}%" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}
         </div>`;
       col.append(sec);
@@ -177,12 +190,34 @@
     });
   }
 
+  /* вертолёт облетает гору: эллипс, сзади горы он меньше и прячется за ней */
+  let orbitAnim = null;
+  function startOrbit() {
+    const el = root.querySelector('.deco.orbit');
+    if (!el || !el.parentElement || root.hidden) return;
+    if (orbitAnim) orbitAnim.cancel();
+    const W = el.parentElement.clientWidth, H = el.parentElement.clientHeight;
+    const rx = W * 0.36, ry = H * 0.075, N = 72;
+    const kf = [];
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const x = Math.cos(a) * rx, y = Math.sin(a) * ry;     // sin > 0 — перед горой
+      const front = Math.sin(a) > 0;
+      const dir = -Math.sin(a) > 0 ? -1 : 1;              // иконка смотрит носом влево: при полёте вправо отражаем
+      const sc = front ? 1 : 0.78;
+      kf.push({ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${dir * sc}, ${sc})`, zIndex: front ? 3 : 0 });
+    }
+    orbitAnim = el.animate(kf, { duration: 16000, iterations: Infinity, easing: 'linear' });
+  }
+  window.addEventListener('resize', () => { if (!root.hidden) startOrbit(); });
+
   let built = false;
   function show() {
     if (!built) { build(); built = true; } else refresh();
     root.hidden = false;
     document.body.classList.add('is-home');
     root.scrollTop = 0;
+    startOrbit();
   }
   function hide() { root.hidden = true; document.body.classList.remove('is-home'); }
 

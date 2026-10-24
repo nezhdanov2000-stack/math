@@ -15,12 +15,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=40">
+  <link rel="stylesheet" href="css/style.css?v=41">
 </head>
 <body>
   <main id="home" hidden></main>
 
   <header class="top">
+    <button id="home-btn" class="home-btn" type="button" aria-label="Выйти в главное меню"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 L7 10 L12.5 15.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Меню</button>
     <nav class="menu" aria-label="Разделы">
       <div class="groups" role="tablist">
         <button class="group" data-group="reduce" aria-expanded="false" type="button">Сокращение дробей <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -56,7 +57,6 @@
       <span>Уровень <b id="level">1</b></span>
       <span>Решено <b id="solved">0</b></span>
       <button id="skip" class="ghost" type="button">Другая задача</button>
-      <button id="home-btn" class="ghost" type="button" aria-label="Главное меню">🗺 Карта</button>
     </div>
   </header>
 
@@ -324,7 +324,7 @@
   <script src="js/common.js?v=30"></script>
   <script src="js/borrow.js?v=30"></script>
   <script src="js/mixed.js?v=23"></script>
-  <script src="js/home.js?v=4"></script>
+  <script src="js/home.js?v=7"></script>
   <script src="js/app.js?v=92"></script>
   <script>
     /* на телефоне меню прокручивается: активную вкладку подводим в центр */

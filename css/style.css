@@ -678,3 +678,10 @@ body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none
 @media (pointer: coarse) {
   .stage, .stage * { touch-action: none; }
 }
+
+/* режимы открываются с карты: меню разделов скрыто, остаётся кнопка выхода */
+.menu { display: none; }
+.home-btn { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-weight: 900; font-size: 1rem; color: var(--ink); background: rgba(255, 255, 255, .85); border: 2px solid var(--ink); border-radius: 99px; padding: 7px 16px 7px 10px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+.home-btn svg { width: 18px; height: 18px; }
+.home-btn:hover { background: #fff; }
+.home-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
