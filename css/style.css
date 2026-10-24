@@ -578,7 +578,8 @@ body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none
   .stage, .stage * { touch-action: none; }
 }
 
-/* кнопка выхода на карту островов */
+/* кнопка выхода на карту островов. Старое меню-вкладки удалено из index.html; правило ниже — страховка, если оно вернётся */
+.menu { display: none !important; }
 .home-btn { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-weight: 900; font-size: 1rem; color: var(--ink); background: rgba(255, 255, 255, .85); border: 2px solid var(--ink); border-radius: 99px; padding: 7px 16px 7px 10px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
 .home-btn svg { width: 18px; height: 18px; }
 .home-btn:hover { background: #fff; }

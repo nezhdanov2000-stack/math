@@ -15,44 +15,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=41">
+  <link rel="stylesheet" href="css/style.css?v=100">
 </head>
 <body>
   <main id="home" hidden></main>
 
   <header class="top">
     <button id="home-btn" class="home-btn" type="button" aria-label="Выйти в главное меню"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 L7 10 L12.5 15.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Меню</button>
-    <nav class="menu" aria-label="Разделы">
-      <div class="groups" role="tablist">
-        <button class="group" data-group="reduce" aria-expanded="false" type="button">Сокращение дробей <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="group" data-group="addsub" aria-expanded="false" type="button">Сложение и вычитание <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="group" data-group="muldiv" aria-expanded="false" type="button">Умножение и деление <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="group" data-group="equations" aria-expanded="false" type="button">Уравнения <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      </div>
-      <div class="subs">
-        <div class="sub" data-group="reduce"><div class="sub-in">
-          <button class="tab" data-mode="cancel" role="tab" aria-selected="false" type="button">Сокращение чисел</button>
-          <button class="tab" data-mode="factor" role="tab" aria-selected="false" type="button">Вынесение за скобки</button>
-        </div></div>
-        <div class="sub" data-group="addsub"><div class="sub-in">
-          <button class="tab" data-mode="common" role="tab" aria-selected="false" type="button">Общий знаменатель</button>
-          <button class="tab" data-mode="big" role="tab" aria-selected="false" type="button">Большие знаменатели</button>
-          <button class="tab" data-mode="borrow" role="tab" aria-selected="false" type="button">Занять единицу</button>
-          <button class="tab" data-mode="mixed" role="tab" aria-selected="false" type="button">Смешанные числа</button>
-          <button class="tab" data-mode="br" role="tab" aria-selected="false" type="button">Дроби с переменными</button>
-        </div></div>
-        <div class="sub" data-group="muldiv"><div class="sub-in">
-          <button class="tab" data-mode="mul" role="tab" aria-selected="false" type="button">Умножение дробей</button>
-          <button class="tab" data-mode="div" role="tab" aria-selected="false" type="button">Деление дробей</button>
-          <button class="tab" data-mode="whole" role="tab" aria-selected="false" type="button">Целое × дробь</button>
-          <button class="tab" data-mode="mixmd" role="tab" aria-selected="false" type="button">Смешанные × ÷</button>
-        </div></div>
-        <div class="sub" data-group="equations"><div class="sub-in">
-          <button class="tab" data-mode="prop" role="tab" aria-selected="false" type="button">Пропорции</button>
-          <button class="tab" data-mode="shift" role="tab" aria-selected="false" type="button">Перенос через «=»</button>
-        </div></div>
-      </div>
-    </nav>
     <div class="stats">
       <span>Уровень <b id="level">1</b></span>
       <span>Решено <b id="solved">0</b></span>
@@ -295,44 +264,37 @@
     </div>
   </main>
 
-  <script src="js/core.js?v=24"></script>
-  <script src="js/lightning.js?v=24"></script>
-  <script src="js/rocket-fx.js?v=24"></script>
-  <script src="js/ice.js?v=24"></script>
-  <script src="js/press.js?v=24"></script>
-  <script src="js/cloud.js?v=24"></script>
-  <script src="js/axe.js?v=24"></script>
-  <script src="js/heli.js?v=4"></script>
-  <script src="js/tread.js?v=9"></script>
-  <script src="js/joker.js?v=6"></script>
-  <script src="js/bridge.js?v=22"></script>
-  <script src="js/fan.js?v=1"></script>
-  <script src="js/rain.js?v=3"></script>
-  <script src="js/teeth.js?v=7"></script>
-  <script src="js/conveyor.js?v=3"></script>
-  <script src="js/cups.js?v=2"></script>
-  <script src="js/tools.js?v=43"></script>
-  <script src="js/fractions.js?v=24"></script>
-  <script src="js/mul.js?v=10"></script>
-  <script src="js/div.js?v=5"></script>
-  <script src="js/wf.js?v=4"></script>
-  <script src="js/mq.js?v=3"></script>
-  <script src="js/pp.js?v=8"></script>
-  <script src="js/sh.js?v=12"></script>
-  <script src="js/br.js?v=18"></script>
-  <script src="js/factor.js?v=25"></script>
-  <script src="js/common.js?v=30"></script>
-  <script src="js/borrow.js?v=30"></script>
-  <script src="js/mixed.js?v=23"></script>
-  <script src="js/home.js?v=14"></script>
-  <script src="js/app.js?v=92"></script>
-  <script>
-    /* на телефоне меню прокручивается: активную вкладку подводим в центр */
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.tab, .group')) return;
-      setTimeout(() => document.querySelectorAll('.group.active, .group.open, .sub.open .tab.active, .tab.active').forEach((el) => { try { el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {} }), 60);
-    });
-  </script>
+  <!-- Версия ?v= одна на все файлы: при релизе меняй её здесь (замена по файлу) и CACHE в sw.js. -->
+  <script src="js/core.js?v=100"></script>
+  <script src="js/lightning.js?v=100"></script>
+  <script src="js/rocket-fx.js?v=100"></script>
+  <script src="js/ice.js?v=100"></script>
+  <script src="js/press.js?v=100"></script>
+  <script src="js/axe.js?v=100"></script>
+  <script src="js/heli.js?v=100"></script>
+  <script src="js/tread.js?v=100"></script>
+  <script src="js/joker.js?v=100"></script>
+  <script src="js/bridge.js?v=100"></script>
+  <script src="js/fan.js?v=100"></script>
+  <script src="js/rain.js?v=100"></script>
+  <script src="js/teeth.js?v=100"></script>
+  <script src="js/conveyor.js?v=100"></script>
+  <script src="js/cups.js?v=100"></script>
+  <script src="js/tools.js?v=100"></script>
+  <script src="js/fractions.js?v=100"></script>
+  <script src="js/mul.js?v=100"></script>
+  <script src="js/div.js?v=100"></script>
+  <script src="js/wf.js?v=100"></script>
+  <script src="js/mq.js?v=100"></script>
+  <script src="js/pp.js?v=100"></script>
+  <script src="js/sh.js?v=100"></script>
+  <script src="js/br.js?v=100"></script>
+  <script src="js/factor.js?v=100"></script>
+  <script src="js/common.js?v=100"></script>
+  <script src="js/borrow.js?v=100"></script>
+  <script src="js/mixed.js?v=100"></script>
+  <script src="js/home.js?v=100"></script>
+  <script src="js/app.js?v=100"></script>
   <script>
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

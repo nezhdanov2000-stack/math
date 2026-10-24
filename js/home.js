@@ -10,18 +10,18 @@
   const LEVELS = [
     { n: 'I', title: 'Сокращение дробей', cls: 'l1', modes: [
       { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 68, y: 72 },
-      { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 64, y: 16 } ] },
+      { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 66, y: 10 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
-      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 36, y: 58 },
+      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 32, y: 56 },
       { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 9, y: 76 },
-      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 64, y: 50, lab: 'r' },
-      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 40, y: 28, lab: 'r' },
+      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 60, y: 42, lab: 'r' },
+      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 38, y: 24, lab: 'r' },
       { id: 'br', name: 'Дроби с переменными', icon: 'box', x: 84, y: 71 } ] },
     { n: 'III', title: 'Умножение и деление', cls: 'l3', modes: [
-      { id: 'mul', name: 'Умножение дробей', icon: 'bridge', x: 14, y: 76 },
-      { id: 'div', name: 'Деление дробей', icon: 'fan', x: 38, y: 54 },
-      { id: 'whole', name: 'Целое × дробь', icon: 'rain', x: 66, y: 84 },
-      { id: 'mixmd', name: 'Смешанные × ÷', icon: 'teeth', x: 84, y: 54 } ] },
+      { id: 'mul', name: 'Умножение дробей', icon: 'gear1', x: 56, y: 56 },
+      { id: 'div', name: 'Деление дробей', icon: 'fan', x: 65, y: 21 },
+      { id: 'whole', name: 'Целое × дробь', icon: 'rain', x: 14, y: 41 },
+      { id: 'mixmd', name: 'Смешанные × ÷', icon: 'teeth', x: 88, y: 66 } ] },
     { n: 'IV', title: 'Уравнения', cls: 'l4', modes: [
       { id: 'prop', name: 'Пропорции', icon: 'cups', x: 28, y: 72 },
       { id: 'shift', name: 'Перенос через «=»', icon: 'conveyor', x: 72, y: 72 } ] },
@@ -97,12 +97,27 @@
       <path d="M164 62 L190 120 L198 150 L200 228 L168 228 L168 110Z" fill="#3b2f35" opacity=".3"/>
       <path d="M252 228 L254 110 L286 28 L322 110 L344 228Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="3" stroke-linejoin="round"/>
       <path d="M286 28 L322 110 L344 228 L290 228 L294 120Z" fill="#3b2f35" opacity=".3"/>
+      <path d="M174 104 L192 104 L192 114 L186 124 L178 114Z" fill="#7a6a5e" stroke="#4a4140" stroke-width="2.2" stroke-linejoin="round"/><path d="M252 104 L296 104 L296 116 L262 120 L252 114Z" fill="#7a6a5e" stroke="#4a4140" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M292 112 L350 112 L347 126 L338 142 L333 164 L312 164 L316 132Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="2.4" stroke-linejoin="round"/><path d="M336 118 L330 146 L326 164 L333 164 L338 142 L347 126Z" fill="#3b2f35" opacity=".3"/>
+      <g class="castle" stroke="#4a3a33" stroke-width="2" stroke-linejoin="round">
+        <path d="M286 100 L346 100 L350 112 L296 118Z" fill="#7a6a5e"/>
+        <path d="M294 100 L338 100 L342 90 L290 90Z" fill="#9a8a7c"/>
+        <rect x="296" y="72" width="40" height="19" fill="#d9c9a8"/>
+        <rect x="302" y="38" width="22" height="53" fill="#e6d7b6"/>
+        <path d="M299 40 L313 14 L327 40Z" fill="#c4553b"/>
+        <path d="M313 14 v-8" stroke-width="2.2"/><path d="M313 6 l8 3 l-8 3z" fill="#f2c94c" stroke-width="1.4"/>
+        <rect x="299" y="38" width="28" height="4" fill="#cdbb95"/>
+        <path d="M307 60 v-9 a3 3 0 0 1 6 0 v9z M315 60 v-9 a3 3 0 0 1 6 0 v9z" fill="#5b4a6e" stroke-width="1.4"/>
+        <path d="M298 91 v-9 a5 5 0 0 1 10 0 v9z" fill="#3a2a14" stroke-width="1.6"/><path d="M311 84 v-6 a2.5 2.5 0 0 1 5 0 v6z M318 84 v-6 a2.5 2.5 0 0 1 5 0 v6z M327 84 v-6 a2.5 2.5 0 0 1 5 0 v6z" fill="#5b4a6e" stroke-width="1.2"/>
+        <rect x="330" y="52" width="12" height="39" fill="#d9c9a8"/><path d="M328 54 L336 36 L344 54Z" fill="#c4553b"/>
+        <rect x="334" y="64" width="4" height="9" rx="2" fill="#5b4a6e" stroke-width="1.2"/>
+      </g>
       <g fill="#8a7d77" stroke="#4a4140" stroke-width="2"><path d="M104 232 l8 -9 l12 5 l-2 10z"/></g>
-      ${gear(218, 196, 14, '#b79cf0')}${gear(240, 176, 10, '#9f7ee8')}${gear(210, 168, 7, '#c9b4f5')}
+      ${gear(224, 64, 11, '#b79cf0')}
       <g stroke="#3a2a14" stroke-width="2.6" stroke-linejoin="round">
-        <path d="M190 150 L190 124 L198 114 L206 124 L206 150Z" fill="#8f6a3a"/><path d="M244 150 L244 124 L252 114 L260 124 L260 150Z" fill="#8f6a3a"/>
-        <g class="leaf lf-l" style="transform-origin:200px 150px"><rect x="200" y="143" width="27" height="9" rx="2" fill="#c98f4a"/><path d="M208 143 v9 M216 143 v9 M224 143 v9" stroke-width="1.6" fill="none"/></g>
-        <g class="leaf lf-r" style="transform-origin:250px 150px"><rect x="223" y="143" width="27" height="9" rx="2" fill="#c98f4a"/><path d="M226 143 v9 M234 143 v9 M242 143 v9" stroke-width="1.6" fill="none"/></g>
+        
+        <g class="leaf lf-l" style="transform-origin:190px 104px"><rect x="190" y="98" width="36" height="9" rx="2" fill="#c98f4a"/><path d="M199 98 v9 M208 98 v9 M217 98 v9" stroke-width="1.6" fill="none"/></g>
+        <g class="leaf lf-r" style="transform-origin:258px 104px"><rect x="222" y="98" width="36" height="9" rx="2" fill="#c98f4a"/><path d="M231 98 v9 M240 98 v9 M249 98 v9" stroke-width="1.6" fill="none"/></g>
       </g>
       ${pine(52, 236, .6, '#4a9a52')}${pine(352, 238, .65, '#3a8a4c')}
       <path d="M0 196 q30 -10 70 0 t80 0" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".22"/></svg>`,
@@ -131,8 +146,11 @@
     .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
     .hm-title { text-align: center; font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.2rem); color: #fff4d6; letter-spacing: .02em; -webkit-text-stroke: 1px rgba(40, 24, 8, .0); text-shadow: 0 3px 0 #7a4a14, 0 6px 14px rgba(0, 0, 0, .35); margin: 6px 0 2px; }
     .hm-sub { text-align: center; color: #cfe0ff; font-weight: 800; font-size: .95rem; margin: 0 0 6px; }
-    .isle { position: relative; margin: 6px 0 18px; }
-    .isle-art { position: relative; aspect-ratio: 4 / 3; width: 100%; }
+    .isle { position: relative; margin: 12% 0 0; }
+    .hm-sub + .isle { margin-top: 10%; }
+    .hm-foot { margin-top: 12%; }
+    .isle-art { position: relative; aspect-ratio: 4 / 3; width: 78%; }
+    .isle.r .isle-art { margin-left: auto; } .isle.l .isle-art { margin-right: auto; }
     .isle-art > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 14px rgba(0, 0, 0, .28)); animation: hmFloat 6s ease-in-out infinite; }
     .isle:nth-child(odd) .isle-art > svg { animation-delay: -2.5s; }
     @keyframes hmFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
@@ -171,15 +189,14 @@
     .lv .num { font-weight: 900; font-size: clamp(2.6rem, 11vw, 4rem); line-height: 1; color: #fff1cf; -webkit-text-stroke: 7px #5a3512; paint-order: stroke fill; text-shadow: 0 5px 0 #5a3512; letter-spacing: .02em; }
     .lv .txt { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 5px #5a3512; paint-order: stroke fill; font-size: clamp(1rem, 4.4vw, 1.5rem); line-height: 1.05; text-shadow: 0 3px 0 #5a3512; text-transform: uppercase; max-width: 9em; }
     .pin { position: absolute; z-index: 4; transform: translate(-50%, -50%); border: 0; background: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font: inherit; -webkit-tap-highlight-color: transparent; }
-    .pin .dot { width: clamp(46px, 13vw, 64px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fffdf5, #ffe9ab 70%, #f6c860); border: 4px solid #5a3512; box-shadow: 0 5px 0 #5a3512, 0 10px 14px rgba(0, 0, 0, .3); transition: transform .18s cubic-bezier(.3, 1.6, .5, 1); }
+    .pin .dot { width: clamp(36px, 10vw, 52px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fffdf5, #ffe9ab 70%, #f6c860); border: 4px solid #5a3512; box-shadow: 0 5px 0 #5a3512, 0 10px 14px rgba(0, 0, 0, .3); transition: transform .18s cubic-bezier(.3, 1.6, .5, 1); }
     .pin:hover .dot, .pin:focus-visible .dot { transform: translateY(-3px) scale(1.08); }
     .pin:active .dot { transform: translateY(3px) scale(.96); box-shadow: 0 1px 0 #5a3512; }
     .pin .dot svg { width: 62%; height: 62%; overflow: visible; }
-    .pin .nm { margin-top: 9px; padding: 2px 9px; border-radius: 99px; background: rgba(24, 16, 40, .72); color: #fff; font-weight: 800; font-size: clamp(.62rem, 2.5vw, .78rem); white-space: normal; text-align: center; line-height: 1.12; max-width: 7.6em; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+    .pin .nm { margin-top: 9px; padding: 2px 7px; border-radius: 99px; background: rgba(24, 16, 40, .72); color: #fff; font-weight: 800; font-size: clamp(.56rem, 2.2vw, .72rem); white-space: normal; text-align: center; line-height: 1.12; max-width: 7.6em; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
     .pin.sr .nm { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin: 0 0 0 8px; }
     .pin .st { position: absolute; top: -6px; right: -8px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 99px; background: #3fbf6d; color: #fff; font-weight: 900; font-size: .72rem; display: grid; place-items: center; border: 2.5px solid #17653a; box-shadow: 0 2px 0 #17653a; }
     .pin .st[hidden] { display: none; }
-    .hm-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
     .deco { position: absolute; z-index: 3; width: clamp(28px, 8vw, 46px); pointer-events: none; animation: hmBob 3.4s ease-in-out infinite alternate; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)); }
     .deco.orbit { animation: none; transform: translate(-50%, -50%); filter: drop-shadow(0 6px 5px rgba(0, 0, 0, .35)); width: clamp(38px, 11vw, 60px); }
     .isle-art > svg { z-index: 1; }
@@ -191,6 +208,13 @@
     .zapc { animation: hmZapC 7s linear infinite; }
     @keyframes hmZap { 0%, 86% { opacity: 0; } 87% { opacity: 1; } 89% { opacity: .15; } 90% { opacity: 1; } 94% { opacity: .8; } 97%, 100% { opacity: 0; } }
     @keyframes hmZapC { 0%, 86% { filter: none; } 87%, 94% { filter: brightness(1.7); } 97%, 100% { filter: none; } }
+    .deco.bigcloud { width: clamp(52px, 16vw, 80px); animation: hmDrift 7s ease-in-out infinite alternate; }
+    .deco.bigcloud .cfx-r { animation: hmRain .9s linear infinite; }
+    @keyframes hmDrift { from { transform: translateX(-6px); } to { transform: translateX(10px); } }
+    @keyframes hmRain { 0% { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+    .deco.jaw { width: clamp(24px, 6.5vw, 34px); animation: none; z-index: 2; filter: drop-shadow(0 0 2px #fff) drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+    .deco.jaw svg { transform-origin: 50% 60%; animation: hmChomp .26s ease-in-out infinite alternate; }
+    @keyframes hmChomp { from { transform: scaleY(1.05); } to { transform: scaleY(.28); } }
     .deco svg { width: 100%; display: block; overflow: visible; }
     @keyframes hmBob { from { transform: translateY(-5px) rotate(-4deg); } to { transform: translateY(6px) rotate(4deg); } }
     .hm-foot { text-align: center; color: #5a3512; font-weight: 800; font-size: .85rem; opacity: .75; margin-top: 4px; }
@@ -202,10 +226,13 @@
   const DECO = {
     l1: [['axe', 12, 62, 'chop'], ['heli', 50, 40, 'orbit']],
     l2: [],
-    l3: [['fan', 4, 42], ['rocket', 80, 12]],
+    l3: [['cloudfx', 2, 18, 'bigcloud'], ['teeth', 24, 66, 'jaw'], ['teeth', 24, 74, 'jaw'], ['teeth', 24, 70, 'jaw'], ['teeth', 24, 68, 'jaw'], ['teeth', 24, 72, 'jaw']],
     l4: [['conveyor', 10, 26], ['cups', 82, 38]],
   };
-  const icon = (id) => (MG.tools && MG.tools.icon ? MG.tools.icon(id) : '') || '';
+  const GEAR1 = (() => { let d = ''; for (let i = 0; i < 8; i++) d += `<rect x="-4" y="-21" width="8" height="10" rx="2" transform="rotate(${i * 45})"/>`; return `<svg viewBox="-24 -24 48 48"><g fill="#a98cf0" stroke="#4b3a7a" stroke-width="2.4" stroke-linejoin="round">${d}<circle r="15"/></g><circle r="6" fill="#fff4d6" stroke="#4b3a7a" stroke-width="2.4"/></svg>`; })();
+  const CLOUDFX = `<svg viewBox="0 0 120 90"><g class="cfx-r" stroke="#6f8be8" stroke-width="3.4" stroke-linecap="round"><path d="M34 52 l-4 12"/><path d="M52 54 l-4 12"/><path d="M70 52 l-4 12"/><path d="M88 54 l-4 12"/></g><path d="M22 48 Q6 48 10 34 Q14 22 28 26 Q32 8 54 12 Q66 -2 84 12 Q104 8 106 28 Q122 30 116 44 Q114 50 102 50Z" fill="#fff" stroke="#b9c7ea" stroke-width="3" stroke-linejoin="round"/></svg>`;
+  const LOCAL = { gear1: GEAR1, cloudfx: CLOUDFX };
+  const icon = (id) => LOCAL[id] || (MG.tools && MG.tools.icon ? MG.tools.icon(id) : '') || '';
 
   const getSolved = (id) => { try { return +localStorage.getItem(`mg.solved.${id}`) || 0; } catch (e) { return 0; } };
 
@@ -217,11 +244,9 @@
       const side = i % 2 ? 'l' : 'r';
       const sec = document.createElement('section');
       sec.className = `isle ${side}`;
-      const pts = lv.modes.map((m) => `${m.x * 4},${m.y * 3}`);
-      const path = false && lv.modes.length > 1 ? `<svg class="hm-path" viewBox="0 0 400 300" preserveAspectRatio="none"><polyline points="${pts.join(' ')}" fill="none" stroke="#fff6d8" stroke-width="5" stroke-dasharray="2 11" stroke-linecap="round" opacity=".85"/></svg>` : '';
       sec.innerHTML = `
         <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
-        <div class="isle-art">${ART[lv.cls]()}${path}
+        <div class="isle-art">${ART[lv.cls]()}
           ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
           ${lv.modes.map((m) => `<button class="pin${m.lab ? ' s' + m.lab : ''}" type="button" data-mode="${m.id}" style="left:${m.x}%;top:${m.y}%" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}
         </div>`;
@@ -259,7 +284,29 @@
     }
     orbitAnim = el.animate(kf, { duration: 16000, iterations: Infinity, easing: 'linear' });
   }
-  window.addEventListener('resize', () => { if (!root.hidden) startOrbit(); });
+  const jawAnims = [];
+  function startJaws() {
+    jawAnims.splice(0).forEach((a) => a.cancel());
+    if (root.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    root.querySelectorAll('.deco.jaw').forEach((el, i) => {
+      const W = el.parentElement.clientWidth, D = W * 0.46;
+      const dur = [7000, 9500, 5800, 8200, 6600][i % 5], ph = [-3500, 0, -2000, -5500, -1200][i % 5];
+      const n = Math.max(3, Math.round(D / 34)), h = Math.max(9, W * 0.05), per = 8, kf = [];
+      for (let leg = 0; leg < 2; leg++) {
+        const f = leg ? 1 : -1;
+        for (let k = 0; k <= n * per; k++) {
+          if (leg && !k) continue;
+          const u = k / (n * per), ph = (k % per) / per, air = Math.sin(Math.PI * ph);
+          const x = D * (leg ? 1 - u : u), y = -h * air;
+          const sq = ph === 0 ? 0.78 : 1 + 0.12 * air;            // приземление — сплющивается
+          kf.push({ transform: `translate(${x}px, ${y}px) scale(${f * (2 - sq)}, ${sq})`, offset: (leg * 0.5) + u * 0.5 - (leg ? 0 : 0) });
+        }
+      }
+      kf[0].offset = 0; kf[kf.length - 1].offset = 1;
+      jawAnims.push(el.animate(kf, { duration: dur * 1.6, delay: ph, iterations: Infinity, easing: 'linear' }));
+    });
+  }
+  window.addEventListener('resize', () => { if (!root.hidden) { startOrbit(); startJaws(); } });
 
   let built = false;
   function show() {
@@ -267,7 +314,7 @@
     root.hidden = false;
     document.body.classList.add('is-home');
     root.scrollTop = 0;
-    startOrbit();
+    startOrbit(); startJaws();
   }
   function hide() { root.hidden = true; document.body.classList.remove('is-home'); }
 
