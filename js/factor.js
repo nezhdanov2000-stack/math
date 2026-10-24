@@ -16,7 +16,7 @@
 
   const {
     gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, ghost, burst, popIn, indivisible, rocket, explode, smash, crumble, snap,
+    snapshot, play, ghost, burst, popIn, indivisible, rocket, explode, smash, crumble,
   } = window.MG;
 
   /* ============================================================
@@ -56,7 +56,7 @@
     x: '#8b5cf6', y: '#ec4899', a: '#0ea5e9', b: '#84cc16',
     t: '#14b8a6', n: '#e11d48', m: '#a855f7', k: '#f97316',
   };
-  const levelOf = (s) => Math.min(5, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 5);   // уровень: +1 за каждые 3 задачи, не выше 5
   const pick = (arr) => arr[ri(0, arr.length - 1)];
   const shuffled = (arr) => arr.slice().sort(() => Math.random() - 0.5);
 
@@ -397,15 +397,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.chop) return 'В знаменателе осталась единица. Возьми топор и срубай её — числитель упадёт';
@@ -435,7 +428,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
     updateLaunchUI();
   }
@@ -472,7 +465,7 @@
     [...rows.num.children, ...rows.den.children].forEach((el, i) => popIn(el, i * 60));
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -678,6 +671,7 @@
     fresh.filter((el) => !hold.includes(el)).forEach((el) => popIn(el, 150));
 
     await Promise.all(flights);
+    if (state !== st) return;                 // раунд сменился во время полёта
 
     // взрыв: ракеты объединились в множители за скобкой
     hold.forEach((el) => { el.style.opacity = ''; el.style.pointerEvents = ''; });
@@ -725,8 +719,8 @@
     if (a.side !== b.side && a.role === 'pair' && b.role === 'pair' && atomKey(a) && atomKey(a) === atomKey(b)) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
   }
 
   /* ---------- сокращение пары ---------- */

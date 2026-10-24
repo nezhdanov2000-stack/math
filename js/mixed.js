@@ -16,7 +16,7 @@
   'use strict';
 
   const MG = window.MG;
-  const { gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, burst, popIn, indivisible, shake, ghost } = MG;
+  const { gcd, spf, isPrime, $, T, sleep, EASE, ri, colorOf, setStats, mf, burst, popIn, indivisible, shake, ghost } = MG;
 
   const expr = $('#x-expr');
   const hintEl = $('#x-hint');
@@ -36,14 +36,6 @@
     .mx-term { position: relative; display: inline-flex; align-items: center; padding: .08em .1em; border-radius: .3em;
       user-select: none; touch-action: none; transition: background-color .2s, opacity .2s; }
     .mx-term.lifted, .mx-op.lifted { opacity: .25; }
-    .mx-cage { position: absolute; pointer-events: none; animation: mxCage .24s cubic-bezier(.3,1.5,.5,1); }
-    @keyframes mxCage { from { transform: translateY(-34px) scaleY(.55); opacity: 0; } to { transform: none; opacity: 1; } }
-    .mx-cage .cgb { position: absolute; top: 0; bottom: 0; width: 6px; margin-left: -3px; box-sizing: border-box; border-radius: 3px;
-      border: 1.5px solid #374151; background: linear-gradient(90deg, #6b7280, #f3f4f6 42%, #9ca3af 70%, #4b5563); }
-    .mx-cage .rail { position: absolute; left: -5px; right: -5px; height: 9px; box-sizing: border-box; border-radius: 4px;
-      border: 1.5px solid #374151; background: linear-gradient(#f3f4f6, #9ca3af 60%, #4b5563); }
-    .mx-cage .rail.t { top: -4px; } .mx-cage .rail.b { bottom: -4px; }
-    .mx-cage .lock { position: absolute; right: -9px; top: 50%; width: 18px; height: 22px; margin-top: -9px; }
     .mx-burn { filter: url(#mx-fire); }
     .mx-burn.lifted { filter: none; }
     .mx-op.mx-burn { position: relative; }
@@ -91,7 +83,7 @@
 
   const lcm = (a, b) => (a / gcd(a, b)) * b;
   const prod = (a) => a.reduce((x, y) => x * y, 1);
-  const levelOf = (s) => Math.min(4, 1 + Math.floor(s / 3));
+  const levelOf = (s) => MG.levelOf(s, 4);   // уровень: +1 за каждые 3 задачи, не выше 4
 
   const mkWhole = (w, sign = 1) => ({ id: ++uid, kind: 'whole', sign, w });
   const mkFrac = (n, d, sign = 1) => ({ id: ++uid, kind: 'frac', sign, num: [{ s: 1, f: [n] }], den: [d] });
@@ -203,7 +195,7 @@
     if (solved === 0 && !lastKey) return { w1: 2, n1: 1, d1: 2, op: 1, w2: 3, n2: 1, d2: 4, ...result(2, 1, 2, 1, 3, 1, 4) };
     const lvl = levelOf(solved);
     for (let i = 0; i < 800; i++) {
-      let [d1, d2] = PAIRS[Math.min(lvl, PAIRS.length) - 1 + (Math.random() < 0.3 ? 0 : 0)][ri(0, 6)] || [2, 3];
+      let [d1, d2] = MG.pick(PAIRS[Math.min(lvl, PAIRS.length) - 1]);
       if (Math.random() < 0.5) [d1, d2] = [d2, d1];
       const op = solved >= 2 && Math.random() < 0.4 ? -1 : 1;
       const w1 = ri(op < 0 ? 2 : 1, 4 + lvl * 2);
@@ -235,7 +227,7 @@
   const finalHTML = (w, n, d) => (n ? mixedHTML(w, n, d) : `${w}`);
 
   function newRound() {
-    document.querySelectorAll('.heli-fx, .mx-caret').forEach((e) => e.remove());
+    stop();
     const spec = genSpec();
     lastKey = JSON.stringify([spec.w1, spec.n1, spec.d1, spec.op, spec.w2, spec.n2, spec.d2]);
     state = {
@@ -248,19 +240,17 @@
     render();
     expr.querySelectorAll('.mx-term, .mx-op').forEach((e, i) => popIn(e, i * 70));
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
   /* ============================================================
    * Подсказки и автоподбор инструмента
    * ============================================================ */
-  let shownHint = '';
+  const hints = MG.hinter(hintEl);               // подсказка с анимацией смены текста
   function setHint(text) {
-    if (text === shownHint) return;
-    shownHint = text;
-    hintEl.classList.add('swap');
-    setTimeout(() => { hintEl.textContent = text; hintEl.classList.remove('swap'); }, T(150));
+    if (text === hints.text) return;
+    hints.set(text);
   }
 
   const runs = (pred) => {
@@ -299,7 +289,7 @@
     has.hammer = T0.some((t) => t.kind === 'frac' && (t.den.some((v) => v > 3 && !isPrime(v)) || t.num.some((g) => g.f.some((v) => v > 3 && !isPrime(v)))));
 
     let hint = '';
-    if (mixed) hint = 'Нажми вертолётом на число — оно в клетке. Нажми ещё раз — оторвёшь целое, или зажми и неси';
+    if (mixed) hint = 'Нажми вертолётом на число — вертолёт прилетит к нему. Нажми ещё раз — оторвёшь целое, или зажми и неси';
     else if (scattered) hint = 'Целые к целым, дроби к дробям: возьми вертолёт и перетащи слагаемое магнитом на новое место';
     else if (diff) hint = 'Знаменатели разные. Возьми джокера, нажми на знаменатель — джокер станет картой с этим числом. Положи карту на другую дробь, и она получит недостающий множитель';
     else if (equal) hint = 'Знаменатели одинаковые. Поршни сожмут соседние дроби в одну';
@@ -398,7 +388,6 @@
     });
     return els;
   }
-  const extinguish = () => {};   // отрицательные числа горят всегда — гасить нечего
   /* отрицательные слагаемые (вместе со своим минусом) горят всегда: на телефоне нет наведения */
   function igniteNeg() {
     if (!state || state.finished) return;
@@ -407,55 +396,12 @@
 
 
   /* ============================================================
-   * Клетка выбора и сессия вертолёта: клик по числу сразу сажает его в клетку,
-   * вертолёт летит к нему; выбрал другое — вертолёт не улетает, а перелетает.
+   * Выбор числа и сессия вертолёта: клик по числу — вертолёт летит к нему;
+   * выбрал другое — вертолёт не улетает, а перелетает.
    * ============================================================ */
-  let cageEl = null;
   let sel = null;          // выбранное число: { id, part }
   let downWasSel = false;  // нажатие пришло на уже выбранное число — значит, это «второй клик»
-  function hideCage() { if (cageEl) { cageEl.remove(); cageEl = null; } }
-  function clearSel() { hideCage(); sel = null; }
-  function cageEl_(w, h, fs) {
-    const px = Math.max(5, fs * 0.07);
-    const c = document.createElement('div');
-    c.className = 'mx-cage';
-    Object.assign(c.style, { left: `${-px}px`, top: `${-px * 0.4}px`, width: `${w + px * 2}px`, height: `${h + px * 0.8}px` });
-    const n = Math.max(4, Math.round((w + px * 2) / 15));
-    let html = '<i class="rail t"></i><i class="rail b"></i>';
-    for (let k = 0; k < n; k++) html += `<i class="cgb" style="left:${(k + 0.5) / n * 100}%"></i>`;
-    html += '<svg class="lock" viewBox="0 0 18 22"><path d="M4.5 10 V6.5 a4.5 4.5 0 0 1 9 0 V10" fill="none" stroke="#374151" stroke-width="2.4"/><rect x="1.5" y="9.5" width="15" height="11" rx="2.5" fill="#fbbf24" stroke="#92400e" stroke-width="1.5"/><circle cx="9" cy="14.4" r="1.7" fill="#78350f"/><rect x="8.2" y="14.6" width="1.6" height="3.6" fill="#78350f"/></svg>';
-    c.innerHTML = html;
-    return c;
-  }
-  function showCage(anchor, extra) {
-    hideCage();
-    return;                                           // клетки убраны: выбор виден по вертолёту
-    let r = anchor.getBoundingClientRect();
-    if (extra) {                                      // знак вместе с числом
-      const qq = extra.getBoundingClientRect();
-      const pd = (parseFloat(getComputedStyle(expr).fontSize) || 70) * 0.24;   // поля вокруг знака в клетку не берём
-      const q = { left: qq.left + pd, right: qq.right - pd, top: qq.top, bottom: qq.bottom };
-      const l = Math.min(r.left, q.left), tp = Math.min(r.top, q.top), rt = Math.max(r.right, q.right), bt = Math.max(r.bottom, q.bottom);
-      r = { left: l, top: tp, width: rt - l, height: bt - tp };
-    }
-    const fs = parseFloat(getComputedStyle(expr).fontSize) || 70;
-    const c = cageEl_(r.width, r.height, fs);
-    const box = document.createElement('div');       // клетка в своей фиксированной рамке
-    Object.assign(box.style, { position: 'fixed', left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, zIndex: 55, pointerEvents: 'none' });
-    box.append(c);
-    document.body.append(box);
-    cageEl = box;
-  }
-  /* клетка внутри «призрака»: едет и качается вместе с числом на магните */
-  function cageInto(g, w, h) {
-    return;
-    const fs = parseFloat(getComputedStyle(expr).fontSize) || 70;
-    const c = cageEl_(w, h, fs);
-    c.style.animation = 'none';
-    c.style.position = 'absolute';
-    g.append(c);
-  }
-
+  function clearSel() { sel = null; }
   let hs = null;   // сессия вертолёта: { h, fresh, seq, idle, flying }
   function takeHeli(r) {
     if (!hs) {
@@ -522,10 +468,7 @@
     render();
     const fresh = new Set(info.fresh || []);
     flip(first, fresh);
-    if (info.carry) {
-      const bx = igniteEls(info.carry.map((k) => expr.querySelector(`[data-k="${k}"]`)));
-      setTimeout(() => extinguish(bx), 1400);
-    }
+    if (info.carry) igniteEls(info.carry.map((k) => expr.querySelector(`[data-k="${k}"]`)));
     (info.pop || []).forEach((k) => { const e = expr.querySelector(`[data-k="${k}"]`); if (e) popIn(e); });
     const follow = expr.querySelector(`[data-k="${info.follow}"]`);
     if (follow) {
@@ -548,7 +491,7 @@
     if (!termE) return;
     const i = idxOf(Number(termE.dataset.id));
     const t = state.terms[i];
-    if (!downWasSel) { scheduleIdle(); return; }      // первый клик только выбирает (клетка + вертолёт), действие — вторым кликом или перетаскиванием
+    if (!downWasSel) { scheduleIdle(); return; }      // первый клик только выбирает (вертолёт прилетает), действие — вторым кликом или перетаскиванием
     downWasSel = false;
     if (t.kind === 'mixed') { splitMixed(t, termE); return; }
     clearSel(); scheduleIdle(2500);
@@ -637,15 +580,12 @@
     e.preventDefault();
     const t = state.terms[idxOf(Number(termE.dataset.id))];
     const d = {
-      t, termE, sx: e.clientX, sy: e.clientY, px: e.clientX, py: e.clientY,
+      t, termE, st: state, sx: e.clientX, sy: e.clientY, px: e.clientX, py: e.clientY,
       started: false, attached: false, cancelled: false, g: null, h: null, caret: null, timer: 0,
       part: e.target.closest('.mx-w') ? 'w' : e.target.closest('.mx-frac') ? 'f' : null,   // за какую часть смешанного числа схватили
     };
-    // клетка — сразу, чтобы было видно, что выбрано; вертолёт уже летит к этому числу
     const anchor0 = (t.kind === 'mixed' && d.part) ? termE.querySelector(d.part === 'w' ? '.mx-w' : '.mx-frac') : termE;
     downWasSel = !!(sel && sel.id === t.id && sel.part === d.part);
-    const op0 = (t.sign < 0 && d.part !== 'f') ? opOf(t) : null;   // минус едет вместе с числом, плюс — нет
-    showCage(anchor0, op0);
     sel = { id: t.id, part: d.part };
     const ar0 = anchor0.getBoundingClientRect();
     const s0 = takeHeli(ar0);
@@ -723,7 +663,7 @@
     }
     // число поднимается вместе со своим знаком и висит под вертолётом
     d.opE = opOf(d.t);                                // знак на старом месте бледнеет
-    const withOp = !!(d.opE && d.t.sign < 0);         // в клетку и на магнит с числом уходит только минус
+    const withOp = !!(d.opE && d.t.sign < 0);         // на магнит с числом уходит только минус
     const rt = d.termE.getBoundingClientRect();
     const ro = withOp ? d.opE.getBoundingClientRect() : null;
     const r0 = ro ? { left: Math.min(ro.left, rt.left), top: Math.min(ro.top, rt.top), width: Math.max(ro.right, rt.right) - Math.min(ro.left, rt.left), height: Math.max(ro.bottom, rt.bottom) - Math.min(ro.top, rt.top) } : rt;
@@ -737,7 +677,6 @@
     g.append(d.gTerm);
     document.body.append(g);
     d.g = g;
-    cageInto(g, r0.width, r0.height);
     if (d.t.sign < 0) { d.gTerm.classList.add('mx-burn'); if (d.gOp) d.gOp.classList.add('mx-burn'); }
     d.termE.classList.add('lifted');
     if (d.opE) d.opE.classList.add('lifted');
@@ -862,6 +801,12 @@
     }
     hdrag = null;
     d.stopLoop();
+    if (state !== d.st) {                                 // раунд сменился, пока число висело на магните
+      if (d.g) d.g.remove();
+      if (d.caret) d.caret.remove();
+      leaveHeli();
+      return;
+    }
     d.px = e.clientX;
     d.py = e.clientY;
 
@@ -887,7 +832,7 @@
       render();
       flip(first0, new Set([`t${m.id}`]), 460);
       const me = elOf(m);
-      if (d.burn && me) { const bm = igniteEls([me, opOf(m)]); setTimeout(() => extinguish(bm), 1100); }
+      if (d.burn && me) igniteEls([me, opOf(m)]);
       if (me) {
         popIn(me);
         burst(me, '#f97316', 12);
@@ -926,7 +871,7 @@
     st.terms.splice(idx, 0, d.t);
     render();
     flip(first, new Set(), 520);
-    if (d.burn) { const bb = igniteEls(d.burn.flatMap((x) => [elOf(x), opOf(x)])); setTimeout(() => extinguish(bb), 1100); }
+    if (d.burn) igniteEls(d.burn.flatMap((x) => [elOf(x), opOf(x)]));
     const el = elOf(d.t);
     if (el) {
       const nr = el.getBoundingClientRect();
@@ -987,17 +932,9 @@
    * ============================================================ */
   let cdrag = null;
   const fracTermsEls = () => state.terms.filter((t) => t.kind === 'frac').map((t) => ({ t, el: elOf(t) }));
-  const primeCount = (n) => { const m = new Map(); factorize(n).forEach((p) => m.set(p, (m.get(p) || 0) + 1)); return m; };
-  const denCount = (t) => { const m = new Map(); t.den.forEach((v) => primeCount(v).forEach((c, p) => m.set(p, (m.get(p) || 0) + c))); return m; };
-  /* сколько из схваченного множителя v не хватает дроби tgt (по сравнению со знаменателем src) */
-  const kFor = (v, src, tgt) => {
-    const A = denCount(src);
-    const B = denCount(tgt);
-    let k = 1;
-    primeCount(v).forEach((c, p) => { k *= p ** Math.min(c, Math.max(0, (A.get(p) || 0) - (B.get(p) || 0))); });
-    return k;
-  };
-  const validTarget = (v, src, tgt) => tgt !== src && tgt.num.length === 1;   // карта несёт ровно то число, которое выбрал игрок
+  /* домножать можно любую другую дробь с посчитанным числителем: карта несёт ровно то число, которое выбрал игрок,
+   * а нужно ли оно — игрок решает сам (неудачный выбор ничем не блокируется) */
+  const validTarget = (v, src, tgt) => tgt !== src && tgt.num.length === 1;
 
   function cloudDown(e) {
     const nE = e.target.closest('.mx-denrow .mx-n');
@@ -1102,8 +1039,8 @@
     if (a.t === b.t && a.isDen !== b.isDen && a.v === b.v && a.v > 1 && a.t.num.length === 1) { cancelPair(a, b); return; }
     [a.el, b.el].forEach((el) => shake(el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, MG.PENALTY.hint);
+    MG.tools.disable('glove', MG.PENALTY.tool);
   }
 
   async function cancelPair(a, b) {
@@ -1268,8 +1205,9 @@
 
     if (stage === 'den') t.den = [prod(t.den)];
     else if (stage === 'sum') {
-      const v = numVal(t);
-      t.num = [{ s: v < 0 ? -1 : 1, f: [Math.abs(v)] }];
+      let v = numVal(t);
+      if (v < 0) { t.sign = -t.sign; v = -v; }        // минус уходит в знак слагаемого, а не в числитель: «− −1/3» — тупик
+      t.num = [{ s: 1, f: [v] }];
     } else {
       t.num = t.num.map((g) => ({ s: g.s, f: [prod(g.f)] }));
     }
@@ -1341,11 +1279,20 @@
 
   nextBtn.addEventListener('click', newRound);
 
+  /* уход из режима или новая задача: снять выбор, убрать вертолёт и указатель вставки */
+  function stop() {
+    clearSel();
+    clearGsel();
+    if (hs) { clearTimeout(hs.idle); hs.h.remove(); hs = null; }
+    document.querySelectorAll('.heli-fx, .mx-caret').forEach((e) => e.remove());
+  }
+
   MG.modes.mixed = {
     start() {
       if (!state) newRound();
       else { setStats(levelOf(solved), solved); updateHint(); }
     },
     skip: newRound,
+    stop,
   };
 })();

@@ -20,7 +20,7 @@
   let solved = 0;
   let lastKey = '';
   let uid = 0;
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
   const MINUS = '−';
   const fmt = (n) => (n < 0 ? `${MINUS}${-n}` : String(n));
 
@@ -164,15 +164,8 @@
     return 'C';
   }
 
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!st || st.finished) return '';
     switch (st.phase) {
@@ -190,7 +183,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
   function flashHint(text, ms = 3600) {
@@ -217,7 +210,7 @@
     [...stage.querySelectorAll('.sh-t, .sh-op:not(.hid)')].forEach((e, i) => popIn(e, i * 50));
     st.phase = computePhase();
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -436,7 +429,12 @@
       alive = false;
       await arrival;
       const barrier = await barrierP;
-      if (st !== me) { ghostEl.remove(); heli.remove(); return; }
+      if (st !== me) {                                   // раунд сменился, пока слагаемое висело на магните
+        ghostEl.remove();
+        heli.remove();
+        await barrier.close();                           // иначе поле барьера останется на экране
+        return;
+      }
       if (!flipped) await cancelDrag(); else await commitDrag();
 
       async function cancelDrag() {
@@ -567,13 +565,18 @@
     let ang = Math.atan2(dest.y - c0.y, dest.x - c0.x);
     ang = Math.sign(ang || 1) * Math.max(40, Math.min(65, Math.abs(ang) * 180 / Math.PI)) * Math.PI / 180;
     const belt = await window.MG.conveyor.open({ fs, cx: er.left + er.width / 2, cy: er.top + er.height / 2, eqW: er.width, ang, eqEl });
+    const abort = () => { g.remove(); belt.destroy(); };    // раунд сменился посреди полёта
+    if (st !== me) { abort(); return; }
     co.style.visibility = 'hidden';
     const fly = (pts, ms, ease) => g.animate(pts.map((p) => ({ transform: `translate(${p.x - c0.x}px, ${p.y - c0.y}px)` })), { duration: T(ms), easing: ease, fill: 'forwards' }).finished.catch(() => {});
     const arc = (p, q, h) => ({ x: (p.x + q.x) / 2, y: Math.min(p.y, q.y) - h });
     await fly([c0, arc(c0, belt.start, fs * 0.5), belt.start], 520, 'cubic-bezier(.3,.7,.4,1)');
+    if (st !== me) { abort(); return; }
     await fly([belt.start, belt.end], 1000, 'linear');
+    if (st !== me) { abort(); return; }
     const tc = dest;
     await fly([belt.end, arc(belt.end, tc, fs * 0.6), tc], 600, 'cubic-bezier(.3,.7,.4,1)');
+    if (st !== me) { abort(); return; }
     g.remove();
     const k = Math.abs(t.v);
     reflow(() => {
@@ -635,6 +638,5 @@
       else setStats(levelOf(solved), solved);
     },
     skip: newRound,
-    setSolved(n) { solved = n; lastKey = 'x'; },
   };
 })();

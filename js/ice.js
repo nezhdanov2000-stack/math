@@ -6,7 +6,7 @@
   'use strict';
   const MG = window.MG;
   const NS = 'http://www.w3.org/2000/svg';
-  const rnd = (a, b) => a + Math.random() * (b - a);
+  const rnd = MG.rnd;
 
   const style = document.createElement('style');
   style.textContent = `

@@ -14,7 +14,7 @@
 
   const {
     gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, burst, popIn, indivisible, smash, crumble, snap,
+    snapshot, play, burst, popIn, indivisible, smash, crumble,
   } = window.MG;
 
   /* ============================================================
@@ -36,7 +36,7 @@
   let lastPair = '';
   let uid = 0;
 
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
 
   /* ---------- генерация дроби ---------- */
   function pickFraction() {
@@ -136,15 +136,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     const anyPair = ['num', 'den'].some((k) =>
@@ -163,7 +156,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -194,7 +187,7 @@
     popIn(st.sides.den.toks[0].el, 110);
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -292,8 +285,9 @@
     if (a.side !== b.side && a.value === b.value && isPrime(a.value) && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
+    autoTool();                               // не оставаться с бесполезным инструментом в руках
   }
 
   /* ---------- сокращение пары ---------- */
@@ -343,6 +337,7 @@
 
   async function collapse(side) {
     if (side.toks.length < 2) return;
+    const st = state;
     const row = rows[side.key];
     const product = side.toks.reduce((x, t) => x * t.value, 1);
     const rr = row.getBoundingClientRect();
@@ -357,6 +352,7 @@
       ], { duration: T(480), easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
     });
     await Promise.all(outs.map((a) => a.finished.catch(() => {})));
+    if (state !== st) return;                 // раунд сменился во время анимации
 
     side.toks.forEach((t) => t.el.remove());
     const merged = makeTok(product, side.key);

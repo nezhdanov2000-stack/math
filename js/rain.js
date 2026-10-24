@@ -1,9 +1,16 @@
 /* Дождевое облако: иконка инструмента и анимация «дождь поливает целое — под ним вырастает единица».
  *   MG.rain.icon
- *   MG.rain.play({ fs, cx, cloudY, soilX, soilY, endY, onRise, onReveal }) → Promise
- *     cx, cloudY — центр облака (над целым); soilX, soilY — где в знаменателе вырастает росток (низ цифры)
- *     onRise()   — целое поднимается в числитель, появляется дробная черта
- *     onReveal() — росток превращается в цифру 1
+ *   MG.rain.play(o) → Promise, где o = {
+ *     fs                     — размер шрифта сцены
+ *     cx, cloudY             — центр облака (над целым); rainX — откуда идут капли
+ *     digitEl, digitRect     — цифра «1» в знаменателе (пока скрыта) и её прямоугольник
+ *     soilX, soilTop, endY   — где в знаменателе вырастает росток и докуда он тянется
+ *     lift                   — на сколько целое и черта стоят ниже своего места (см. wf.js)
+ *     onStart()              — дождь пошёл: появляется дробная черта
+ *     setLift(rem, ms)       — росток растёт: целое и черта поднимаются на своё место
+ *     endLift()              — подъём закончен
+ *     onReveal()             — росток превращается в цифру 1
+ *   }
  */
 (() => {
   'use strict';
@@ -68,7 +75,7 @@
         { transform: `translateY(${dist}px)`, opacity: 0 },
       ], { duration: T(750 + Math.random() * 250), delay: T(Math.random() * 700), iterations: Infinity, easing: 'linear' }));
     }
-    await sleep(T(1300));
+    await sleep(1300);
 
     // целое садится на черту у земли; в знаменателе появляется земля
     const dg = o.digitRect, cs = getComputedStyle(o.digitEl);
@@ -88,7 +95,7 @@
     fx.append(soil);
     soil.animate([{ scale: '1 0', opacity: 0 }, { scale: '1 1.15', opacity: 1, offset: .7 }, { scale: '1 1' }],
       { duration: T(600), easing: 'cubic-bezier(.3,1.2,.5,1)', fill: 'both' });
-    await sleep(T(950));
+    await sleep(950);
 
     // единица рывками вылезает из земли и поднимает черту вместе с целым
     const N = 6;
@@ -102,10 +109,10 @@
       soil.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${fs * 0.03}px) scale(1.04, .94)`, offset: .3 }, { transform: `translateX(${-fs * 0.03}px)`, offset: .6 }, { transform: 'none' }],
         { duration: T(260) });
       cur = rem;
-      await sleep(T(190 + 300));
+      await sleep(190 + 300);
     }
     o.endLift();
-    await sleep(T(150));
+    await sleep(150);
 
     // росток становится цифрой 1
     o.onReveal();
@@ -117,7 +124,7 @@
     const away = cloud.animate([{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: `${fs * 0.5}px ${-fs * 0.5}px`, scale: '.7' }],
       { duration: T(800), delay: T(250), easing: 'ease-in', fill: 'forwards' });
     await away.finished.catch(() => {});
-    await sleep(T(300));
+    await sleep(300);
     fx.remove();
   }
 

@@ -17,7 +17,6 @@
    * DOM
    * ============================================================ */
   const stage = $('#pp-stage');
-  const eqn = $('#pp-eqn');
   const lf = $('#pp-lf');
   const lrows = { num: $('#pp-lnum'), den: $('#pp-lden') };
   const lbar = $('#pp-lbar');
@@ -33,14 +32,16 @@
   let state = null;
   let solved = 0;
   let lastKey = '';
+  let rounds = 0;       // сколько задач показано (включая пропущенные)
   let uid = 0;
 
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
   const isNum = (v) => typeof v === 'number';
 
   /* ---------- генерация примера ---------- */
   function pickSpec() {
-    const type = solved < 6 ? ['B', 'A', 'D'][solved % 3] : ['A', 'B', 'D'][ri(0, 2)];
+    // тип задачи чередуется по номеру раунда (а не по числу решённых — иначе «Другая задача» даёт один и тот же тип)
+    const type = rounds < 6 ? ['B', 'A', 'D'][rounds % 3] : ['A', 'B', 'D'][ri(0, 2)];
     if (solved === 0 && lastKey === '') return { type: 'B', a: 5, b: 7, c: 20, d: 49, N: 7 * 20, D: 5 * 49 };   // первая задача — со стаканчиками (20/49 = 5x/7)
     const lvl = levelOf(solved);
     const maxV = [9, 14, 24, 40, 60, 90][lvl - 1];
@@ -207,15 +208,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.phase === 'S') return 'x оказался справа. Возьми стаканчики — они накроют обе части и поменяют их местами';
@@ -249,7 +243,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -300,6 +294,7 @@
     lbar.style.opacity = '';
     lf.style.translate = ''; fractionEl.style.translate = '';
     const spec = pickSpec();
+    rounds++;
     lastKey = specKey(spec);
     const { type, a, b, c, d, p } = spec;
     const mk = (v) => ({ v });
@@ -326,7 +321,7 @@
     state.phase = computePhase();
     [...lf.querySelectorAll('.token'), ...fractionEl.querySelectorAll('.token')].forEach((el, i) => popIn(el, i * 60));
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -336,6 +331,7 @@
   function leftClick(part, it) {
     const st = state;
     if (!st || st.finished || st.busy) return;
+    if (st.phase === 'S' && window.MG.tools.current() === 'cups') return;   // клик всплывёт до cupsClick — там и обработается
     if (it.v === 'x') {
       indivisible(it.el, st.phase === 'S' || st.phase === 'E' && !xOnLeftNum()
         ? 'x нужно собрать слева, в числителе' : 'x — это неизвестное, его не переносим');
@@ -349,7 +345,6 @@
       setTimeout(() => { if (state === st) updateHint(); }, 3200);
     }
   }
-  const sameEl = (a, b) => a === b;
 
   /* ============================================================
    * Топор: срубаем единицу под x
@@ -490,7 +485,7 @@
         fade(300);
         setHint(wantUp ? 'Число из знаменателя уезжает в числитель — тяни стрелку выше дробной черты'
           : 'Число из числителя уезжает в знаменатель — тяни стрелку ниже дробной черты');
-        setTimeout(() => { if (state === st) updateHint(); }, 3800);
+        setTimeout(() => { if (state === st) updateHint(); }, window.MG.PENALTY.hint);
         return;
       }
       fade(200);
@@ -553,7 +548,7 @@
     const belt = await window.MG.conveyor.open({
       fs, cx: er.left + er.width / 2, cy: er.top + er.height / 2, eqW: er.width, ang, eqEl,
     });
-    const abort = () => { g.remove(); if (gr) gr.el.remove(); };
+    const abort = () => { g.remove(); if (gr) gr.el.remove(); belt.destroy(); };   // иначе лента останется поверх нового раунда
     if (state !== st) { abort(); return; }
 
     // 3. число запрыгивает на ленту; на его месте — единица (если часть опустела) или пустота
@@ -561,12 +556,15 @@
     lp.items.splice(lp.items.indexOf(it), 1);
     const last = lp.items.length === 0;
     if (last) {
-      src.textContent = '1';
-      src.className = 'token lead one new1';
-      lp.ph = src;
-      src.addEventListener('click', () => chopOne());
-      popIn(src);
-      burst(src, '#16a34a', 12);
+      // часть опустела — на месте числа появляется «1» (новый элемент: у старого остались слушатели перетаскивания)
+      const ph = leftTok('1', 'one new1');
+      ph.style.minWidth = src.style.minWidth;
+      ph.style.textAlign = 'center';
+      ph.addEventListener('click', () => chopOne());
+      src.replaceWith(ph);
+      lp.ph = ph;
+      popIn(ph);
+      burst(ph, '#16a34a', 12);
     } else {
       src.style.visibility = 'hidden';
     }
@@ -579,6 +577,7 @@
     // 4. число спрыгивает на своё место, шестерёнка становится знаком ×
     const tc = centerOf(R(fresh.el));
     await fly(g, c0, [belt.end, arc(belt.end, tc, fs * 0.6), tc], 620, 'cubic-bezier(.3,.7,.4,1)');
+    if (state !== st) { abort(); return; }
     fresh.el.style.visibility = '';
     g.remove();
     bump(fresh.el);
@@ -590,14 +589,12 @@
         .then(() => { gr.spin.cancel(); gr.el.remove(); }, () => gr.el.remove());
       await sleep(380);
     }
-    if (state !== st) return;
+    if (state !== st) { belt.destroy(); return; }
 
     // 5. левая часть перестраивается, лента сворачивается обратно в «=»
     st.moved = true;
     const fin = reflow(() => {
-      src.style.minWidth = '';
-      src.style.textAlign = '';
-      if (!last) src.remove();
+      if (last) { lp.ph.style.minWidth = ''; lp.ph.style.textAlign = ''; } else src.remove();
       markLeft();
       fitBars();
     });
@@ -677,6 +674,7 @@
 
   function onTokenClick(tok) {
     if (!state || state.finished || tok.gone || tok.value === 1) return;
+    if (state.phase === 'S' && window.MG.tools.current() === 'cups') return;   // клик всплывёт до cupsClick — там и обработается
     if (state.phase !== 'B') {
       if (!isNum(tok.value)) { if (!state.busy && state.phase === 'S') indivisible(tok.el, 'x нужно собрать слева — возьми стаканчики'); return; }
       if (!state.busy) setHint(state.phase === 'X' ? 'Сначала сруби единицу слева топором' : state.phase === 'S' ? 'Сначала поменяй части местами стаканчиками' : 'Сначала перенеси числа через «=» конвейером');
@@ -709,8 +707,8 @@
     if (a.side !== b.side && a.value === b.value && a.value > 1 && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
   }
 
   async function cancelPair(tok, given) {

@@ -116,6 +116,11 @@
         if (eqEl) eqEl.style.visibility = '';
         root.remove();
       },
+      /* прервать без анимации (раунд сменился): лента исчезает, «=» возвращается */
+      destroy() {
+        root.remove();
+        if (eqEl) eqEl.style.visibility = '';
+      },
     };
     return api;
   }

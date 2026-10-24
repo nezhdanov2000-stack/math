@@ -1,12 +1,13 @@
 /* Режим «Целое × дробь»: дождевое облако превращает целое в дробь (под ним вырастает единица),
  * мост соединяет дроби, дальше — сокращение крест-накрест.
+ * См. замечание в mul.js: четыре режима умножения/деления — почти одинаковые копии.
  */
 (() => {
   'use strict';
 
   const {
     gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, burst, popIn, indivisible, smash, crumble, snap,
+    snapshot, play, burst, popIn, indivisible, smash, crumble,
   } = window.MG;
 
   /* ============================================================
@@ -31,7 +32,7 @@
   let lastPair = '';
   let uid = 0;
 
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
 
   /* ---------- генерация примера: n · c/d ---------- */
   function pickPair() {
@@ -140,15 +141,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.phase === 'C') return 'Возьми облако и нажми на целое число — под ним вырастет единица, и целое станет дробью';
@@ -171,7 +165,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -194,6 +188,8 @@
     pairEl.style.display = '';
     pairEl.classList.remove('armed');
     dotEl.style.opacity = '';
+    bar.style.opacity = '';
+    bar.classList.remove('instant');
         const A = [...pairEl.querySelectorAll('.mulf')].map((f, i) => {
       const num = f.querySelector('.rn');
       const den = f.querySelector('.rd');
@@ -228,10 +224,11 @@
     popIn(A[1].del, 230);
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
     // целое стоит посередине, дробная черта и единица ещё не появились
     A[0].bar.style.transform = 'scaleX(0)';
+    A[0].bar.style.translate = '';
     A[0].del.style.visibility = 'hidden';
     placeWhole();
     pairEl.classList.toggle('armed', window.MG.tools.current() === 'rain');
@@ -363,8 +360,9 @@
     if (a.side !== b.side && a.value === b.value && a.value > 1 && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
+    autoTool();                               // не оставаться с бесполезным инструментом в руках
   }
 
   /* ---------- сокращение пары ---------- */
@@ -440,6 +438,7 @@
       area: { left: b1.left - fs * 0.1, right: b2.right + fs * 0.1, top: R(f1.num).top, bottom: R(f1.den).bottom },
       sun: { x: mid('num').x, y: fy - hh }, ref: { x: mid('den').x, y: fy + hh },
       onSwap() {
+        if (state !== st) return;             // мост доиграл уже после «Пропустить»
         pairEl.querySelectorAll('.token').forEach((t) => { t.style.visibility = 'hidden'; });   // черты дробей остаются
         fractionEl.classList.remove('hidden');
         bar.style.opacity = '0';
@@ -452,6 +451,7 @@
         });
       },
       onBar() {
+        if (state !== st) return;
         bar.style.opacity = '';
         bar.classList.remove('instant');
         fitBar();                       // чёрта плавно подстраивается под дробь
@@ -496,15 +496,17 @@
       soilX: dr.left + dr.width / 2, soilTop, lift,
       endY: soilTop - fs * 0.1,
       onStart() {
+        if (state !== st) return;                 // дождь доиграл уже после «Пропустить»
         move(f1.nel, lift, T(700));
         f1.bar.style.translate = `0 ${lift}px`;
         f1.bar.style.transform = '';
         f1.bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
           { duration: T(700), easing: 'cubic-bezier(.3,0,.2,1)', fill: 'backwards' });
       },
-      setLift(rem, ms) { lifted.forEach((el) => move(el, rem, ms)); },
-      endLift() { lifted.forEach((el) => { el.style.translate = ''; }); },
+      setLift(rem, ms) { if (state === st) lifted.forEach((el) => move(el, rem, ms)); },
+      endLift() { if (state === st) lifted.forEach((el) => { el.style.translate = ''; }); },
       onReveal() {
+        if (state !== st) return;
         f1.del.style.visibility = '';
         popIn(f1.del);
         burst(f1.del, '#16a34a', 10);
@@ -545,6 +547,7 @@
 
   async function collapse(side) {
     if (side.toks.length < 2) return;
+    const st = state;
     const row = rows[side.key];
     const product = side.toks.reduce((x, t) => x * t.value, 1);
     const rr = row.getBoundingClientRect();
@@ -559,6 +562,7 @@
       ], { duration: T(480), easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
     });
     await Promise.all(outs.map((a) => a.finished.catch(() => {})));
+    if (state !== st) return;                 // раунд сменился во время анимации
 
     side.toks.forEach((t) => t.el.remove());
     const merged = makeTok(product, side.key);
@@ -599,7 +603,7 @@
    * ============================================================ */
   nextBtn.addEventListener('click', newRound);
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => { if (state && state.aligned && state.phase === 'A') { alignCols(); fitPairBars(); } });
+    document.fonts.ready.then(() => { if (state && state.aligned && state.phase !== 'B') { alignCols(); fitPairBars(); } });
   }
 
   window.MG.modes.whole = {

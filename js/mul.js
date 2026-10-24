@@ -1,20 +1,17 @@
 /* Режим «Умножение дробей»: мост соединяет две дроби в одну, дальше — сокращение крест-накрест.
  *
- * Поток игры:
- *   1. Клик по составному числу → оно делится на ДВА множителя (наименьший простой × остаток).
- *   2. Клик по множителю можно повторять: составной делится дальше,
- *      простой проигрывает анимацию «неделимое».
- *   3. Как только в числителе и знаменателе есть одинаковые простые множители,
- *      они подсвечиваются одним цветом (цвет = простое число).
- *   4. Клик по цветному множителю → он и его пара исчезают.
- *   5. Общих множителей не осталось → остатки «схлопываются» в числа, показывается результат.
+ * Фазы: 'A' — пара дробей, нужен мост; 'B' — одна дробь, сокращение кувалдой и ластиком
+ * (та же механика, что в fractions.js: кувалда делит число на два множителя, ластик стирает пару).
+ *
+ * ВНИМАНИЕ: mul.js, div.js, wf.js и mq.js — почти одинаковые копии (различаются стартовой фазой и
+ * генератором). Исправление в одном из них, скорее всего, нужно и в остальных трёх.
  */
 (() => {
   'use strict';
 
   const {
     gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, burst, popIn, indivisible, smash, crumble, snap,
+    snapshot, play, burst, popIn, indivisible, smash, crumble,
   } = window.MG;
 
   /* ============================================================
@@ -39,7 +36,7 @@
   let lastPair = '';
   let uid = 0;
 
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
 
   /* ---------- генерация примера: a/b · c/d ---------- */
   function pickPair() {
@@ -147,15 +144,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.phase === 'A') return 'Возьми мост и нажми на крестик между дробями — они соединятся в одну дробь';
@@ -176,7 +166,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -198,6 +188,8 @@
     pairEl.style.display = '';
     pairEl.classList.remove('armed');
     dotEl.style.opacity = '';
+    bar.style.opacity = '';
+    bar.classList.remove('instant');
     const A = [...pairEl.querySelectorAll('.mulf')].map((f, i) => {
       const num = f.querySelector('.rn');
       const den = f.querySelector('.rd');
@@ -232,7 +224,7 @@
     popIn(A[1].del, 230);
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
     pairEl.classList.toggle('armed', window.MG.tools.current() === 'bridge');
   }
@@ -350,8 +342,9 @@
     if (a.side !== b.side && a.value === b.value && a.value > 1 && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
+    autoTool();                               // не оставаться с бесполезным инструментом в руках
   }
 
   /* ---------- сокращение пары ---------- */
@@ -427,6 +420,7 @@
       area: { left: b1.left - fs * 0.1, right: b2.right + fs * 0.1, top: R(f1.num).top, bottom: R(f1.den).bottom },
       sun: { x: mid('num').x, y: fy - hh }, ref: { x: mid('den').x, y: fy + hh },
       onSwap() {
+        if (state !== st) return;             // мост доиграл уже после «Пропустить»
         pairEl.querySelectorAll('.token').forEach((t) => { t.style.visibility = 'hidden'; });   // черты дробей остаются
         fractionEl.classList.remove('hidden');
         bar.style.opacity = '0';
@@ -439,6 +433,7 @@
         });
       },
       onBar() {
+        if (state !== st) return;
         bar.style.opacity = '';
         bar.classList.remove('instant');
         fitBar();                       // чёрта плавно подстраивается под дробь
@@ -475,6 +470,7 @@
 
   async function collapse(side) {
     if (side.toks.length < 2) return;
+    const st = state;
     const row = rows[side.key];
     const product = side.toks.reduce((x, t) => x * t.value, 1);
     const rr = row.getBoundingClientRect();
@@ -489,6 +485,7 @@
       ], { duration: T(480), easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
     });
     await Promise.all(outs.map((a) => a.finished.catch(() => {})));
+    if (state !== st) return;                 // раунд сменился во время анимации
 
     side.toks.forEach((t) => t.el.remove());
     const merged = makeTok(product, side.key);
@@ -529,7 +526,7 @@
    * ============================================================ */
   nextBtn.addEventListener('click', newRound);
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => { if (state && state.aligned && state.phase === 'A') { alignCols(); fitPairBars(); } });
+    document.fonts.ready.then(() => { if (state && state.aligned && state.phase !== 'B') { alignCols(); fitPairBars(); } });
   }
 
   window.MG.modes.mul = {

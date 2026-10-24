@@ -29,7 +29,50 @@
   const T = (ms) => (REDUCED ? 1 : ms);
   const sleep = (ms) => new Promise((r) => setTimeout(r, T(ms)));
   const EASE = 'cubic-bezier(.3,.7,.2,1)';
-  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));   // случайное целое из [a, b]
+  const rnd = (a, b) => a + Math.random() * (b - a);                   // случайное дробное из [a, b)
+  const pick = (arr) => arr[ri(0, arr.length - 1)];                   // случайный элемент массива
+
+  /* центр элемента или DOMRect в экранных координатах */
+  function center(x) {
+    const r = x instanceof Element ? x.getBoundingClientRect() : x;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  /* дождаться конца Web Animation; отменённая анимация — не ошибка */
+  const wait = (anim) => (anim && anim.finished ? anim.finished.catch(() => {}) : Promise.resolve());
+
+  /* уровень по числу решённых задач: +1 за каждые 3, не выше cap */
+  const levelOf = (solved, cap = 6) => Math.min(cap, 1 + Math.floor(solved / 3));
+
+  /* штраф за ошибку инструментом: на сколько исчезает инструмент и когда вернуть подсказку */
+  const PENALTY = { tool: 4000, hint: 3800 };
+
+  /* подсказка под сценой с анимацией смены текста.
+   *   const hint = MG.hinter(el);  hint.set('…');  hint.text — что показано сейчас;  hint.reset() — забыть текст */
+  function hinter(el) {
+    let shown = '';
+    return {
+      get text() { return shown; },
+      reset() { shown = ''; },
+      set(text) {
+        shown = text;
+        el.classList.add('swap');
+        setTimeout(() => {
+          if (shown === text) el.textContent = text;
+          el.classList.remove('swap');
+        }, T(150));
+      },
+    };
+  }
+
+  /* эффекты рисуются прямо в <body> (position: fixed). При выходе из режима всё,
+   * что не относится к каркасу страницы, убираем — иначе зависшие ленты, вертолёты
+   * и призраки остаются поверх следующего экрана. */
+  const KEEP = '#home, .top, .stage, .toolbar, .jk-follow, script, style, link';
+  function sweepFx() {
+    [...document.body.children].forEach((el) => { if (!el.matches(KEEP)) el.remove(); });
+  }
 
   const COLORS = {
     2: '#3b82f6', 3: '#ef4444', 5: '#10b981', 7: '#f59e0b',
@@ -442,115 +485,11 @@
     ], { duration: T(640), easing: spring });
   }
 
-  /* ============================================================
-   * Щелчок Таноса: число рассыпается пылью и разлетается
-   * ============================================================ */
-  function glyphPoints(el, max) {
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    const w = Math.max(1, Math.ceil(r.width));
-    const h = Math.max(1, Math.ceil(r.height));
-    const cv = document.createElement('canvas');
-    cv.width = w;
-    cv.height = h;
-    const ctx = cv.getContext('2d', { willReadFrequently: true });
-    const fs = parseFloat(cs.fontSize);
-    const font = (size) => `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
-
-    const parts = [];
-    el.childNodes.forEach((n) => {
-      if (n.nodeType === 3) parts.push({ t: n.textContent, sup: false });
-      else if (n.nodeName === 'SUP') parts.push({ t: n.textContent, sup: true });
-    });
-    if (!parts.length) parts.push({ t: el.textContent, sup: false });
-
-    let total = 0;
-    parts.forEach((p) => {
-      ctx.font = font(p.sup ? fs * 0.52 : fs);
-      p.w = ctx.measureText(p.t).width;
-      total += p.w;
-    });
-    ctx.font = font(fs);
-    const asc = ctx.measureText('0').actualBoundingBoxAscent || fs * 0.7;
-    const baseY = h / 2 + asc / 2;
-    ctx.fillStyle = '#000';
-    let x = (w - total) / 2;
-    parts.forEach((p) => {
-      ctx.font = font(p.sup ? fs * 0.52 : fs);
-      ctx.fillText(p.t, x, p.sup ? baseY - fs * 0.45 : baseY);
-      x += p.w;
-    });
-
-    const data = ctx.getImageData(0, 0, w, h).data;
-    const pts = [];
-    for (let y = 0; y < h; y += 2) {
-      for (let xx = 0; xx < w; xx += 2) if (data[(y * w + xx) * 4 + 3] > 110) pts.push([xx, y]);
-    }
-    pts.sort(() => Math.random() - 0.5);
-    return { pts: pts.slice(0, max), w, left: r.left, top: r.top };
-  }
-
-  /* Promise завершается, когда элемент исчез (пыль ещё летит) */
-  function snap(el, delay = 0) {
-    return new Promise((resolve) => {
-      const start = () => {
-        const cs = getComputedStyle(el);
-        const color = cs.color;
-        const fs = parseFloat(cs.fontSize);
-        const g = glyphPoints(el, 150);
-
-        // секундное свечение «камня», потом распад
-        const glow = el.animate([
-          { filter: 'drop-shadow(0 0 0 rgba(251,191,36,0))', scale: '1' },
-          { filter: 'drop-shadow(0 0 .32em rgba(251,191,36,.95))', scale: '1.08' },
-        ], { duration: T(140), easing: 'ease-out', fill: 'forwards' });
-
-        glow.onfinish = () => {
-          const sweep = T(560);
-          const grad = 'linear-gradient(90deg, transparent 0%, transparent 40%, #000 60%, #000 100%)';
-          el.style.webkitMaskImage = grad;
-          el.style.maskImage = grad;
-          el.style.webkitMaskSize = '300% 100%';
-          el.style.maskSize = '300% 100%';
-          const a = el.animate([
-            { maskPosition: '100% 0', webkitMaskPosition: '100% 0' },
-            { maskPosition: '0% 0', webkitMaskPosition: '0% 0' },
-          ], { duration: sweep, easing: 'ease-in', fill: 'forwards' });
-
-          const ps = Math.max(2.5, fs / 17);
-          g.pts.forEach(([px, py]) => {
-            const d = document.createElement('i');
-            d.className = 'dust';
-            Object.assign(d.style, {
-              left: `${g.left + px}px`, top: `${g.top + py}px`,
-              width: `${ps}px`, height: `${ps}px`, background: color,
-            });
-            document.body.append(d);
-            const dx = 50 + Math.random() * 150;
-            const dy = -100 + Math.random() * 130;
-            const rot = (Math.random() - 0.5) * 540;
-            d.animate([
-              { transform: 'translate(0,0) rotate(0deg) scale(1)', opacity: 1 },
-              { transform: `translate(${dx * 0.4}px, ${dy * 0.4}px) rotate(${rot * 0.4}deg) scale(1)`, opacity: 0.9, offset: 0.35 },
-              { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(0)`, opacity: 0 },
-            ], {
-              duration: T(800 + Math.random() * 700),
-              delay: (px / g.w) * sweep * 0.8 + Math.random() * 60,
-              easing: 'ease-out',
-              fill: 'backwards',
-            }).onfinish = () => d.remove();
-          });
-          a.onfinish = () => resolve();
-        };
-      };
-      if (delay) setTimeout(start, T(delay)); else start();
-    });
-  }
-
   Object.assign(MG, {
     gcd, spf, isPrime, factorize,
-    $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
+    $, T, sleep, EASE, ri, rnd, pick, center, wait, levelOf, PENALTY, hinter, sweepFx,
+    colorOf, setStats, mf, rowWidth,
     snapshot, play, ghost, burst, popIn, bump, shake, indivisible, rocket, explode,
-    smash, crumble, snap,
+    smash, crumble,
   });
 })();

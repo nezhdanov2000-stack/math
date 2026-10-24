@@ -95,7 +95,7 @@
       f.className = 'tm-sweat';
       Object.assign(f.style, { left: `${br.left + br.width / 2 - 14}px`, top: `${br.top}px`, width: '28px', height: '28px', borderRadius: '50%', background: '#f97316' });
       document.body.append(f);
-      f.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 1 }, { transform: `translate(${(r0.width / 2 + bw / 2 - 40) * 0.0 + (bw / 2 - 40)}px, ${beltTop - 54 - br.top}px) scale(.3)`, opacity: 0.2 }], { duration: T(380), easing: 'ease-in' }).finished.then(() => f.remove()).catch(() => f.remove());
+      f.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 1 }, { transform: `translate(${bw / 2 - 40}px, ${beltTop - 54 - br.top}px) scale(.3)`, opacity: 0.2 }], { duration: T(380), easing: 'ease-in' }).finished.then(() => f.remove()).catch(() => f.remove());
     }
     await sleep(420);
     clearInterval(sweat);
@@ -103,7 +103,7 @@
     const bRect = badge.getBoundingClientRect();
     burst(badge, '#f97316', 10);
     shoes.forEach((s) => s.remove());
-    belt.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(260), fill: 'forwards' }).finished.then(() => belt.remove());
+    belt.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(260), fill: 'forwards' }).finished.then(() => belt.remove(), () => belt.remove());
     badge.remove();
     return { badge: bRect };
   }

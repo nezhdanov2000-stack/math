@@ -38,7 +38,6 @@ body {
   gap: 12px;
   padding: 16px 24px;
 }
-.brand { font-weight: 900; font-size: 1.15rem; letter-spacing: .01em; }
 .stats { display: flex; align-items: center; gap: 18px; font-weight: 700; color: var(--muted); }
 .stats b { color: var(--ink); }
 
@@ -174,27 +173,6 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
 .btn:hover { background: var(--accent); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79, 107, 237, .35); }
 .btn:active { transform: translateY(1px); }
 
-/* ---------- вкладки режимов ---------- */
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: rgba(255, 255, 255, .7);
-  border: 2px solid var(--grid);
-  border-radius: 28px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.tab {
-  font: inherit; font-weight: 800; font-size: .92rem;
-  color: var(--muted); background: transparent;
-  border: 0; border-radius: 999px;
-  padding: 7px 16px; cursor: pointer;
-  transition: color .2s, background-color .2s;
-}
-.tab:hover { color: var(--ink); }
-.tab.active { background: var(--ink); color: #fff; }
-
 /* ---------- режим 2: выражения со скобками ---------- */
 #mode-factor .fraction { width: min(94vw, 940px); }
 #mode-factor .row { gap: 0; }
@@ -258,7 +236,7 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
 
 .token.dcol { color: var(--c); }
 .token.drag { cursor: grab; touch-action: none; }
-.ghost.dragging { cursor: grabbing; }
+.ghost.dragging { cursor: grabbing !important; }
 
 /* подсветка дробей во время перетаскивания */
 .fr.ok, .fr.over { opacity: 1; }
@@ -416,7 +394,6 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
   border-radius: 3px; background: var(--accent); transform-origin: left; animation: wait var(--dur, 4s) linear forwards;
 }
 .tool.back svg { animation: appear .6s var(--ease); }
-@keyframes vanish { to { opacity: 0; scale: .2; rotate: 30deg; filter: blur(3px); } }
 @keyframes wait { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 @keyframes appear { 0% { opacity: 0; scale: .2; rotate: -30deg; } 60% { opacity: 1; scale: 1.25; } 100% { scale: 1; rotate: 0deg; } }
 .tool.swap svg { animation: swapIn .5s var(--ease); }
@@ -450,9 +427,6 @@ body[data-tool="rocket"] .stage, body[data-tool="rocket"] .stage .token { cursor
 body[data-tool="claw"] .stage, body[data-tool="claw"] .stage .token { cursor: var(--cur-claw, pointer) !important; }
 body[data-tool="press"] .stage, body[data-tool="press"] .stage .token { cursor: var(--cur-press, pointer) !important; }
 body[data-tool="bolt"] .stage, body[data-tool="bolt"] .stage .token { cursor: var(--cur-bolt, pointer) !important; }
-body[data-tool="cloud"] .stage, body[data-tool="cloud"] .stage .token { cursor: var(--cur-cloud, pointer) !important; }
-body[data-tool="cloud"] .ghost.dragging { cursor: var(--cur-cloud, grabbing) !important; }
-.ghost.dragging { cursor: grabbing !important; }
 
 @media (max-width: 900px) {
   .toolbar { left: 50%; top: auto; bottom: 10px; translate: -50% 0; flex-direction: row; }
@@ -474,7 +448,10 @@ body[data-tool="cloud"] .ghost.dragging { cursor: var(--cur-cloud, grabbing) !im
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* JS-анимации уже сжаты через MG.T; CSS-анимации тоже, кроме полоски ожидания инструмента */
   * { transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .tool.gone::after { animation-duration: var(--dur, 4s) !important; }
 }
 
 /* ---------- ракета: выбор множителей и кнопка «Запуск» ---------- */
@@ -515,104 +492,31 @@ body[data-tool="cloud"] .ghost.dragging { cursor: var(--cur-cloud, grabbing) !im
 
 body[data-tool="joker"] .stage, body[data-tool="joker"] .stage .token, body[data-tool="joker"] .ghost.dragging { cursor: none !important; }
 
-/* ---------- двухуровневое меню: разделы → подтемы ---------- */
-.menu { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; max-width: 100%; }
-.groups {
-  display: flex; gap: 4px; padding: 4px; flex-wrap: wrap;
-  background: rgba(255, 255, 255, .7); border: 2px solid var(--grid); border-radius: 28px;
-}
-.group {
-  font: inherit; font-weight: 900; font-size: .95rem; color: var(--muted);
-  background: transparent; border: 0; border-radius: 999px; padding: 8px 14px 8px 18px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 8px; transition: color .2s, background-color .2s;
-}
-.group:hover { color: var(--ink); }
-.group .chev { width: 12px; height: 12px; flex: none; transition: transform .25s; }
-.group.open { color: var(--ink); background: rgba(79, 107, 237, .12); }
-.group.open .chev { transform: rotate(180deg); }
-.group.current::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
-.subs { width: 100%; }
-.sub {
-  display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
-  transition: grid-template-rows .28s ease, opacity .2s ease, visibility 0s .28s;
-}
-.sub.open { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition: grid-template-rows .28s ease, opacity .25s ease .05s, visibility 0s; }
-.sub-in { min-height: 0; overflow: hidden; display: flex; flex-wrap: wrap; gap: 4px; padding: 0 2px; }
-.sub.open .sub-in { padding: 2px; }
-.sub .tab { background: rgba(255, 255, 255, .7); border: 2px solid var(--grid); padding: 5px 14px; }
-.sub .tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-.soon { font-weight: 700; font-size: .9rem; color: var(--muted); padding: 7px 4px; }
-@media (max-width: 520px) {
-  .groups { border-radius: 22px; }
-  .group { padding: 7px 10px 7px 12px; font-size: .88rem; }
-}
-
-/* ---------- умножение дробей (мост) ---------- */
-body[data-tool="bridge"] .stage, body[data-tool="bridge"] .stage .token { cursor: var(--cur-bridge, pointer) !important; }
-#mode-mul .mul-stage { display: grid; place-items: center; font-size: 60px; font-weight: 900; max-width: 100%; }
-#mode-mul .mul-stage > * { grid-area: 1 / 1; }
-#mode-mul .fraction { font-size: inherit; }
-#mode-mul .fraction.hidden { visibility: hidden; }
-#mode-mul .fraction.hidden .token { pointer-events: none; }
-#mode-mul .fraction.nodots .token::before { opacity: 0 !important; }
-#mode-mul .mul-pair { display: flex; align-items: center; gap: .42em; }
-#mode-mul .mulf { display: flex; flex-direction: column; align-items: center; }
-#mode-mul .mulf .row { width: auto; gap: 0; }
-#mode-mul .mulf .bar { transition: none; }
-#mode-mul .mulf .token::before { content: none; }
-#mode-mul .mul-dot { padding: .1em .12em; display: grid; place-items: center; transition: opacity .15s; }
-#mode-mul .mul-dot svg { width: .4em; height: .4em; display: block; color: var(--ink); overflow: visible; }
-#mode-mul .mul-pair.armed { cursor: var(--cur-bridge, pointer); }
-
-/* ---------- деление дробей (вентилятор) ---------- */
-body[data-tool="fan"] .stage, body[data-tool="fan"] .stage .token { cursor: var(--cur-fan, pointer) !important; }
-#mode-div .mul-stage { display: grid; place-items: center; font-size: 60px; font-weight: 900; max-width: 100%; }
-#mode-div .mul-stage > * { grid-area: 1 / 1; }
-#mode-div .fraction { font-size: inherit; }
-#mode-div .fraction.hidden { visibility: hidden; }
-#mode-div .fraction.hidden .token { pointer-events: none; }
-#mode-div .fraction.nodots .token::before { opacity: 0 !important; }
-#mode-div .mul-pair { display: flex; align-items: center; gap: .42em; }
-#mode-div .mulf { display: flex; flex-direction: column; align-items: center; }
-#mode-div .mulf .row { width: auto; gap: 0; }
-#mode-div .mulf .bar { transition: none; }
-#mode-div .mulf .token::before { content: none; }
-#mode-div .mul-dot { padding: .1em .12em; display: grid; place-items: center; transition: opacity .15s; }
-#mode-div .mul-dot svg { width: .4em; height: .4em; display: block; color: var(--ink); overflow: visible; }
-
-#mode-whole .mul-stage { display: grid; place-items: center; font-size: 60px; font-weight: 900; max-width: 100%; }
-#mode-whole .mul-stage > * { grid-area: 1 / 1; }
-#mode-whole .fraction { font-size: inherit; }
-#mode-whole .fraction.hidden { visibility: hidden; }
-#mode-whole .fraction.hidden .token { pointer-events: none; }
-#mode-whole .fraction.nodots .token::before { opacity: 0 !important; }
-#mode-whole .mul-pair { display: flex; align-items: center; gap: .42em; }
-#mode-whole .mulf { display: flex; flex-direction: column; align-items: center; }
-#mode-whole .mulf .row { width: auto; gap: 0; }
-#mode-whole .mulf .bar { transition: none; }
-#mode-whole .mulf .token::before { content: none; }
-#mode-whole .mul-dot { padding: .1em .12em; display: grid; place-items: center; transition: opacity .15s; }
-#mode-whole .mul-dot svg { width: .4em; height: .4em; display: block; color: var(--ink); overflow: visible; }
-body[data-tool="rain"] .stage, body[data-tool="rain"] .stage .token { cursor: var(--cur-rain, pointer) !important; }
-
-#mode-mixmd .mul-stage { display: grid; place-items: center; font-size: 60px; font-weight: 900; max-width: 100%; }
-#mode-mixmd .mul-stage > * { grid-area: 1 / 1; }
-#mode-mixmd .fraction { font-size: inherit; }
-#mode-mixmd .fraction.hidden { visibility: hidden; }
-#mode-mixmd .fraction.hidden .token { pointer-events: none; }
-#mode-mixmd .fraction.nodots .token::before { opacity: 0 !important; }
-#mode-mixmd .mul-pair { display: flex; align-items: center; gap: .42em; }
-#mode-mixmd .mulf { display: flex; flex-direction: column; align-items: center; }
-#mode-mixmd .mulf .row { width: auto; gap: 0; }
-#mode-mixmd .mulf .bar { transition: none; }
-#mode-mixmd .mulf .token::before { content: none; }
-#mode-mixmd .mul-dot { padding: .1em .12em; display: grid; place-items: center; transition: opacity .15s; }
-#mode-mixmd .mul-dot svg { width: .4em; height: .4em; display: block; color: var(--ink); overflow: visible; }
-#mode-mixmd .opnd { display: flex; align-items: center; gap: .14em; }
-#mode-mixmd .opnd > .token { pointer-events: none; }
-#mode-mixmd .opnd > .token::before { content: none; }
-body[data-tool="teeth"] .stage, body[data-tool="teeth"] .stage .token { cursor: var(--cur-teeth, pointer) !important; }
+/* ---------- умножение и деление: мост, вентилятор, дождь, зубы ----------
+ * Сцена «пара дробей → итоговая дробь» общая для режимов mul / div / whole / mixmd */
+.mul-stage { display: grid; place-items: center; font-size: 60px; font-weight: 900; max-width: 100%; }
+.mul-stage > * { grid-area: 1 / 1; }
+.mul-stage .fraction { font-size: inherit; }
+.mul-stage .fraction.hidden { visibility: hidden; }
+.mul-stage .fraction.hidden .token { pointer-events: none; }
+.mul-stage .fraction.nodots .token::before { opacity: 0 !important; }
+.mul-pair { display: flex; align-items: center; gap: .42em; }
+.mulf { display: flex; flex-direction: column; align-items: center; }
+.mulf .row { width: auto; gap: 0; }
+.mulf .bar { transition: none; }
+.mulf .token::before { content: none; }
+.mul-dot { padding: .1em .12em; display: grid; place-items: center; transition: opacity .15s; }
+.mul-dot svg { width: .4em; height: .4em; display: block; color: var(--ink); overflow: visible; }
+.mul-pair.armed { cursor: var(--cur-bridge, pointer); }
+/* смешанные числа (mixmd): целое + дробь как один операнд */
+.opnd { display: flex; align-items: center; gap: .14em; }
+.opnd > .token { pointer-events: none; }
+.opnd > .token::before { content: none; }
 .mw { font-weight: 900; margin-right: .15em; }
+body[data-tool="bridge"] .stage, body[data-tool="bridge"] .stage .token { cursor: var(--cur-bridge, pointer) !important; }
+body[data-tool="fan"] .stage, body[data-tool="fan"] .stage .token { cursor: var(--cur-fan, pointer) !important; }
+body[data-tool="rain"] .stage, body[data-tool="rain"] .stage .token { cursor: var(--cur-rain, pointer) !important; }
+body[data-tool="teeth"] .stage, body[data-tool="teeth"] .stage .token { cursor: var(--cur-teeth, pointer) !important; }
 
 /* ---------- Пропорции ---------- */
 #mode-prop .pp-stage { font-size: 60px; font-weight: 900; max-width: 100%; display: flex; justify-content: center; }
@@ -667,11 +571,6 @@ body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none
 
 @media (max-width: 640px) {
   .top { padding: 8px 10px; }
-  .groups { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; border-radius: 22px; max-width: 100%; }
-  .groups::-webkit-scrollbar, .sub-in::-webkit-scrollbar { display: none; }
-  .group { flex: none; white-space: nowrap; }
-  .sub-in { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .sub .tab { flex: none; white-space: nowrap; padding: 5px 12px; }
 }
 
 /* сенсорные экраны: перетаскивание на поле не должно прокручивать страницу */
@@ -679,8 +578,7 @@ body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none
   .stage, .stage * { touch-action: none; }
 }
 
-/* режимы открываются с карты: меню разделов скрыто, остаётся кнопка выхода */
-.menu { display: none; }
+/* кнопка выхода на карту островов */
 .home-btn { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-weight: 900; font-size: 1rem; color: var(--ink); background: rgba(255, 255, 255, .85); border: 2px solid var(--ink); border-radius: 99px; padding: 7px 16px 7px 10px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
 .home-btn svg { width: 18px; height: 18px; }
 .home-btn:hover { background: #fff; }

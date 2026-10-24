@@ -1,81 +1,67 @@
-/* Переключение режимов (вкладки в шапке). */
+/* Переключение режимов: карта островов (home.js) ↔ сцена режима.
+ *   MG.go(имя)   — открыть режим (вызывает карта)
+ *   Режим — объект в MG.modes[имя]: { start(), skip(), stop()? }
+ *     start — показать режим (первый раз создаёт задачу), skip — другая задача,
+ *     stop  — (необязательно) прибраться при уходе из режима: снять выделение, убрать летающие эффекты.
+ */
 (() => {
   'use strict';
 
   const MG = window.MG;
-  const tabs = [...document.querySelectorAll('.tab')];
-  const groups = [...document.querySelectorAll('.group')];
-  const subs = [...document.querySelectorAll('.sub')];
-  const groupOf = (mode) => { const t = tabs.find((x) => x.dataset.mode === mode); return t ? t.closest('.sub').dataset.group : null; };
 
-  /* раскрыт ровно один раздел (или ни одного) */
-  function openGroup(g) {
-    groups.forEach((b) => {
-      const on = b.dataset.group === g;
-      b.classList.toggle('open', on);
-      b.setAttribute('aria-expanded', String(on));
-    });
-    subs.forEach((s) => s.classList.toggle('open', s.dataset.group === g));
-  }
-  const sections = {
-    cancel: document.getElementById('mode-cancel'),
-    factor: document.getElementById('mode-factor'),
-    common: document.getElementById('mode-common'),
-    big: document.getElementById('mode-big'),
-    borrow: document.getElementById('mode-borrow'),
-    mixed: document.getElementById('mode-mixed'),
-    mul: document.getElementById('mode-mul'),
-    div: document.getElementById('mode-div'),
-    whole: document.getElementById('mode-whole'),
-    mixmd: document.getElementById('mode-mixmd'),
-    prop: document.getElementById('mode-prop'),
-    shift: document.getElementById('mode-shift'),
-    br: document.getElementById('mode-br'),
-  };
+  /* секции режимов: <main class="stage" id="mode-…"> */
+  const sections = {};
+  document.querySelectorAll('main.stage[id^="mode-"]').forEach((s) => { sections[s.id.slice(5)] = s; });
 
   let curMode = null;
+
   /* сколько задач решено в каждом режиме — для значков на карте */
   const solvedEl = document.getElementById('solved');
   if (solvedEl && window.MutationObserver) {
     new MutationObserver(() => {
       const n = parseInt(solvedEl.textContent, 10) || 0;
       if (!curMode || !n) return;
-      try { const k = `mg.solved.${curMode}`; if (n > (+localStorage.getItem(k) || 0)) localStorage.setItem(k, String(n)); } catch (e) { /* нет хранилища */ }
+      try {
+        const k = `mg.solved.${curMode}`;
+        if (n > (+localStorage.getItem(k) || 0)) localStorage.setItem(k, String(n));
+      } catch (e) { /* нет хранилища */ }
     }).observe(solvedEl, { childList: true, characterData: true, subtree: true });
   }
 
-  function showHome() {
+  function leaveCurrent() {
+    if (MG.active && typeof MG.active.stop === 'function') MG.active.stop();
+    MG.active = null;
     curMode = null;
+    MG.sweepFx();
+  }
+
+  function setHash(h) {
+    try { history.replaceState(null, '', `#${h}`); } catch (e) { /* file:// в некоторых браузерах */ }
+  }
+
+  function showHome() {
+    leaveCurrent();
     Object.values(sections).forEach((s) => { s.hidden = true; });
     MG.home.show();
-    try { history.replaceState(null, '', '#home'); } catch (e) { /* file:// */ }
+    setHash('home');
   }
 
   function activate(name) {
-    if (!sections[name]) name = 'cancel';
+    if (!sections[name] || !MG.modes[name]) name = 'cancel';
+    leaveCurrent();
     curMode = name;
     MG.home.hide();
-    tabs.forEach((t) => {
-      const on = t.dataset.mode === name;
-      t.classList.toggle('active', on);
-      t.setAttribute('aria-selected', String(on));
-    });
     Object.entries(sections).forEach(([k, s]) => { s.hidden = k !== name; });
-    const cur = groupOf(name);
-    groups.forEach((b) => b.classList.toggle('current', b.dataset.group === cur));
-    openGroup(cur);
     MG.tools.use(name);
     MG.active = MG.modes[name];
     MG.active.start();
-    try { history.replaceState(null, '', `#${name}`); } catch (e) { /* file:// в некоторых браузерах */ }
+    setHash(name);
   }
 
-  tabs.forEach((t) => t.addEventListener('click', () => activate(t.dataset.mode)));
-  groups.forEach((b) => b.addEventListener('click', () => openGroup(b.classList.contains('open') ? null : b.dataset.group)));
   document.getElementById('skip').addEventListener('click', () => MG.active && MG.active.skip());
+  document.getElementById('home-btn').addEventListener('click', showHome);
 
   MG.go = activate;
-  document.getElementById('home-btn').addEventListener('click', showHome);
   const h0 = location.hash.slice(1);
   if (sections[h0]) activate(h0); else showHome();
 })();

@@ -1,12 +1,13 @@
 /* Режим «Смешанные числа: умножение и деление»: зубы съедают целое (смешанное → неправильная дробь),
  * вентилятор переворачивает делитель, мост соединяет дроби, дальше — сокращение.
+ * См. замечание в mul.js: четыре режима умножения/деления — почти одинаковые копии.
  */
 (() => {
   'use strict';
 
   const {
     gcd, spf, isPrime, factorize, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, burst, popIn, indivisible, smash, crumble, snap,
+    snapshot, play, burst, popIn, indivisible, smash, crumble,
   } = window.MG;
 
   /* ============================================================
@@ -36,7 +37,7 @@
   let lastPair = '';
   let uid = 0;
 
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
 
   /* ---------- генерация примера: смешанное число (· или ÷) число ---------- */
   function pickPair() {
@@ -153,15 +154,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.phase === 'T') return 'Возьми зубы и нажми на смешанное число — дробь съест целое, и в числителе станет больше';
@@ -186,7 +180,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -212,6 +206,8 @@
     pairEl.style.display = '';
     pairEl.classList.remove('armed');
     dotEl.style.opacity = '';
+    bar.style.opacity = '';
+    bar.classList.remove('instant');
     dotEl.innerHTML = op === 'mul' ? CROSS : SIGN;
 
     const mk = (v, cls = '') => { const el = document.createElement('div'); el.className = `token lead ${cls}`; el.textContent = v; return el; };
@@ -254,7 +250,7 @@
     A.forEach((a, i) => { if (a.whole) popIn(a.whole, i * 90); popIn(a.nel, 60 + i * 90); popIn(a.del, 140 + i * 90); });
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
     pairEl.classList.toggle('armed', window.MG.tools.current() === 'teeth');
   }
@@ -384,8 +380,9 @@
     if (a.side !== b.side && a.value === b.value && a.value > 1 && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
+    autoTool();                               // не оставаться с бесполезным инструментом в руках
   }
 
   /* ---------- сокращение пары ---------- */
@@ -461,6 +458,7 @@
       area: { left: b1.left - fs * 0.1, right: b2.right + fs * 0.1, top: R(f1.num).top, bottom: R(f1.den).bottom },
       sun: { x: mid('num').x, y: fy - hh }, ref: { x: mid('den').x, y: fy + hh },
       onSwap() {
+        if (state !== st) return;             // мост доиграл уже после «Пропустить»
         pairEl.querySelectorAll('.token').forEach((t) => { t.style.visibility = 'hidden'; });   // черты дробей остаются
         fractionEl.classList.remove('hidden');
         bar.style.opacity = '0';
@@ -473,6 +471,7 @@
         });
       },
       onBar() {
+        if (state !== st) return;
         bar.style.opacity = '';
         bar.classList.remove('instant');
         fitBar();                       // чёрта плавно подстраивается под дробь
@@ -550,7 +549,7 @@
     const bottom = Math.max(R(f2.den).bottom, sg.bottom);
     const fx = window.MG.fan.start({ x: (sg.left + r2.right) / 2, y: bottom + size * 0.62, fs, top: R(f2.nel).top });
 
-    await sleep(T(700));                       // вентилятор раскручивается
+    await sleep(700);                          // вентилятор раскручивается
     if (state !== st) { fx.stop(); return; }
     // переворот по вертикали: знак ÷ и делитель поворачиваются вокруг горизонтальной оси,
     // на ребре (90°) меняем содержимое — ÷ становится ×, 1/2 становится 2/1
@@ -559,16 +558,18 @@
     const parts = [dotEl, f2el];
     const P = (deg) => `perspective(${Math.round(fs * 11)}px) rotateX(${deg}deg)`;
     const half = (el, from, to, easing) => el.animate([{ transform: P(from) }, { transform: P(to) }], { duration: H, easing, fill: 'forwards' });
+    const unflip = () => parts.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));   // иначе знак и делитель останутся «ребром»
     parts.forEach((el) => half(el, 0, 90, 'ease-in'));
     await sleep(H);
-    if (state !== st) { fx.stop(); return; }
+    if (state !== st) { unflip(); fx.stop(); return; }
     const tn = f2.nel.textContent;
     f2.nel.textContent = f2.del.textContent;
     f2.del.textContent = tn;
     dotEl.innerHTML = CROSS;   // такой же ровный крестик, как в режиме умножения (без скруглений)
-    parts.forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); half(el, -90, 0, 'ease-out'); });
+    unflip();
+    parts.forEach((el) => half(el, -90, 0, 'ease-out'));
     await sleep(H);
-    parts.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    unflip();
     if (state !== st) { fx.stop(); return; }
     await fx.stop();
     if (state !== st) return;
@@ -615,6 +616,7 @@
 
   async function collapse(side) {
     if (side.toks.length < 2) return;
+    const st = state;
     const row = rows[side.key];
     const product = side.toks.reduce((x, t) => x * t.value, 1);
     const rr = row.getBoundingClientRect();
@@ -629,6 +631,7 @@
       ], { duration: T(480), easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
     });
     await Promise.all(outs.map((a) => a.finished.catch(() => {})));
+    if (state !== st) return;                 // раунд сменился во время анимации
 
     side.toks.forEach((t) => t.el.remove());
     const merged = makeTok(product, side.key);
@@ -670,7 +673,7 @@
    * ============================================================ */
   nextBtn.addEventListener('click', newRound);
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => { if (state && state.aligned && state.phase === 'A') { alignCols(); fitPairBars(); } });
+    document.fonts.ready.then(() => { if (state && state.aligned && state.phase !== 'B') { alignCols(); fitPairBars(); } });
   }
 
   window.MG.modes.mixmd = {

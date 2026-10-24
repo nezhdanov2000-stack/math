@@ -11,7 +11,7 @@
 
   const {
     gcd, $, T, sleep, EASE, ri, colorOf, setStats, mf, rowWidth,
-    snapshot, play, ghost, burst, popIn, bump, indivisible,
+    snapshot, play, ghost, burst, popIn, indivisible,
   } = window.MG;
 
   const stage = $('#mode-borrow');
@@ -29,7 +29,7 @@
   let solved = 0;
   let lastKey = '';
 
-  const levelOf = (s) => Math.min(5, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 5);   // уровень: +1 за каждые 3 задачи, не выше 5
 
   /* ---------- задачи ---------- */
   const LEVELS = [
@@ -148,15 +148,8 @@
   }
 
   /* ---------- подсказки ---------- */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function updateHint() {
     let t = '';
     if (state && !state.finished) {
@@ -166,7 +159,7 @@
         ? 'Возьми клешню и нажми на целое число — от него отщипнётся единица в виде дроби'
         : 'Знаменатели разные. Возьми джокера, схвати им знаменатель вычитаемой дроби и перетащи на дробь с единицей — она умножится на него';
     }
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     if (state && !state.finished) {
       window.MG.tools.auto('borrow', { claw: state.phase === 'start', joker: state.phase === 'borrowed' && !state.ready, press: !!state.ready, glove: window.MG.tools.current() === 'glove' });
     }
@@ -174,6 +167,7 @@
 
   /* ---------- раунд ---------- */
   function newRound() {
+    clearSel();
     const spec = pickSpec();
     lastKey = `${spec.N}-${spec.a}/${spec.b}`;
     fracsEl.innerHTML = '';
@@ -193,7 +187,7 @@
     let k = 0;
     fracsEl.querySelectorAll('.token, .glyph').forEach((el) => popIn(el, 70 * k++));
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -447,8 +441,7 @@
 
   function onPointerDown(tok, e) {
     if (!state || state.finished || state.busy || tok.role !== 'drag' || e.button > 0) return;
-    if (window.MG.tools.current() === 'glove') return;
-    if (!window.MG.tools.need('joker')) return;
+    if (window.MG.tools.current() !== 'joker') return;   // остальные инструменты обрабатывают клик сами
     e.preventDefault();
     const g = ghost(tok.el);
     window.MG.joker.style(g);                       // джокер становится картой с числом
@@ -521,8 +514,8 @@
     if (F && F === fracOf(b) && a.zone !== b.zone && a.value === b.value && a.value > 1) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
   }
 
   async function cancelPair(a, b) {
@@ -629,33 +622,6 @@
   }
 
   /* ---------- финал: числители вычитаются ---------- */
-  async function combine() {
-    const st = state;
-    const F0 = st.f1;
-    const F2 = st.f2;
-    const first = snapshot();
-
-    const dr = F0.denRow.getBoundingClientRect();
-    const tx = dr.left + dr.width / 2;
-    const ty = dr.top + dr.height / 2;
-    F2.den.forEach((t) => {
-      const g = ghost(t.el);
-      const r = t.el.getBoundingClientRect();
-      g.animate([
-        { translate: '0 0', opacity: 1, scale: '1' },
-        { translate: `${tx - (r.left + r.width / 2)}px ${ty - (r.top + r.height / 2)}px`, opacity: 0, scale: '.5' },
-      ], { duration: T(520), easing: 'ease-in' }).onfinish = () => g.remove();
-    });
-
-    const items = [...F0.num, st.op, ...F2.num];
-    renderRow(F0.numRow, items);
-    F2.el.remove();
-    F0.num = items;
-    fitBar(F0);
-    play(first);
-    await sleep(640);
-  }
-
   async function evalNumerator() {
     const st = state;
     const F0 = st.f1;

@@ -6,7 +6,7 @@
 (() => {
   'use strict';
   const MG = window.MG;
-  const rnd = (a, b) => a + Math.random() * (b - a);
+  const rnd = MG.rnd;
 
   const svg = `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
     <path d="M23 44.4 L23 12" fill="none" stroke="#4a2a10" stroke-width="5.6"/>
@@ -152,7 +152,7 @@
       cr.style.cssText = `left:${hitX - 1 + (k - 1) * 4}px;top:${cy - ch * 0.5}px;width:3px;height:${ch}px;background:#1a1a1a;opacity:.85;transform:rotate(${(k - 1) * 9}deg);border-radius:2px`;
       document.body.append(cr);
       cracks.push(cr);
-      await MG.sleep(T(k === 2 ? 120 : 90));
+      await MG.sleep(k === 2 ? 120 : 90);
     }
 
     // раскалываем единицу, топор отъезжает
@@ -163,7 +163,7 @@
       { transform: pose(20, size * 0.5, size * 0.1), opacity: 0 },
     ], { duration: T(420), easing: 'ease-in', fill: 'forwards' }).onfinish = () => ax.remove();
     chips(hitX, cy, 12);
-    await MG.sleep(T(260));
+    await MG.sleep(260);
 
     // числитель падает вправо, как срубленное дерево: ось — правый нижний угол
     // опору срубили: числитель рушится прямо вниз, на место знаменателя
@@ -203,7 +203,7 @@
     }, T(DUR * 0.55));
     await Promise.all([wait(drop), wait(barDrop)]);
     await splitting;
-    await MG.sleep(T(350));
+    await MG.sleep(350);
 
     // черта растворяется — остаётся ответ
     await wait(bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(350), fill: 'forwards' }));

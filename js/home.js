@@ -12,11 +12,11 @@
       { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 68, y: 72 },
       { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 64, y: 16 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
-      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 13, y: 68 },
-      { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 33, y: 47 },
-      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 50, y: 78 },
-      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 68, y: 46 },
-      { id: 'br', name: 'Дроби с переменными', icon: 'box', x: 87, y: 74 } ] },
+      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 37, y: 62 },
+      { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 11, y: 72 },
+      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 50, y: 48, lab: 'r' },
+      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 50, y: 35, lab: 'r' },
+      { id: 'br', name: 'Дроби с переменными', icon: 'box', x: 84, y: 71 } ] },
     { n: 'III', title: 'Умножение и деление', cls: 'l3', modes: [
       { id: 'mul', name: 'Умножение дробей', icon: 'bridge', x: 14, y: 76 },
       { id: 'div', name: 'Деление дробей', icon: 'fan', x: 38, y: 54 },
@@ -59,10 +59,38 @@
       <g class="zap" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="268" cy="156" r="18" fill="#fff6b0" stroke="none" opacity=".75"/>
         <polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#ffd23d" stroke-width="9" opacity=".55"/><polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#fffbe0" stroke-width="3.6"/></g></svg>`,
     l2: () => `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}${under(200, 170)}${grass(200, 170)}
-      ${mountain(215, 230, 175, 215)}
-      ${cloud(150, 150, 1.25, .92)}${cloud(280, 176, 1.1, .9)}${cloud(90, 210, .9, .95)}${cloud(322, 112, .8, .9)}
-      <g stroke="#2a8cd6" stroke-width="2.2" stroke-linecap="round" opacity=".9"><path d="M110 170 l-3 6 M122 176 l-3 6 M134 168 l-3 6"/></g>
-      ${pine(60, 232, .8)}${pine(342, 232, .8, '#3aa05a')}</svg>`,
+      <g stroke="#2b2f3f" stroke-width="3" stroke-linejoin="round">
+        <rect x="138" y="64" width="24" height="108" fill="#8d8478"/><rect x="138" y="64" width="24" height="9" fill="#5d564f"/><rect x="138" y="96" width="24" height="7" fill="#5d564f"/>
+        <rect x="170" y="84" width="22" height="88" fill="#8d8478"/><rect x="170" y="84" width="22" height="8" fill="#5d564f"/><rect x="170" y="112" width="22" height="7" fill="#5d564f"/>
+        <rect x="104" y="150" width="104" height="78" fill="#5f6f90"/>
+        <rect x="110" y="192" width="22" height="36" rx="3" fill="#2c3040"/><path d="M118 168 h18 v14 h-18z M146 168 h18 v14 h-18z M174 168 h18 v14 h-18z" fill="#a9d4f0" stroke-width="2.4"/>
+        <path d="M196 120 L256 78 L316 120Z" fill="#3d4766"/>
+        <rect x="198" y="118" width="116" height="110" fill="#a3abbd"/>
+        <rect x="214" y="132" width="84" height="16" fill="#cfe4f5" stroke-width="2.4"/><path d="M228 132 v16 M242 132 v16 M256 132 v16 M270 132 v16 M284 132 v16" stroke-width="2" fill="none"/>
+        <rect x="236" y="178" width="40" height="50" rx="3" fill="#586079"/><path d="M256 178 v50" stroke-width="2.4"/>
+        <path d="M314 150 L352 176 L352 228 L314 228Z" fill="#6c86ad"/><path d="M322 164 l22 15 M322 184 l22 15" stroke="#b9dcf4" stroke-width="3" fill="none"/>
+        <rect x="346" y="106" width="9" height="86" fill="#c4ccd8"/><rect x="342" y="102" width="17" height="7" rx="2" fill="#aab3c3"/>
+        <rect x="200" y="94" width="14" height="24" fill="#8d8478"/>
+      </g>
+      ${gear(224, 202, 9, '#c9d0de')}${gear(290, 202, 7, '#c9d0de')}
+      <g class="smoke"><circle class="pf p1" cx="150" cy="60" r="9"/><circle class="pf p2" cx="150" cy="60" r="9"/><circle class="pf p3" cx="150" cy="60" r="9"/><circle class="pf p1" cx="181" cy="80" r="8"/><circle class="pf p3" cx="181" cy="80" r="8"/></g>
+      <rect x="60" y="222" width="280" height="9" rx="3" fill="#3a3d4c" stroke="#23252f" stroke-width="2.4"/>
+      <g stroke="#6a4d27" stroke-width="2.4" stroke-linejoin="round">
+        <rect class="bxA" x="112.5" y="206" width="17" height="16" fill="#d9a85d"/>
+        <rect class="bxB" x="247.5" y="206" width="17" height="16" fill="#d9a85d"/>
+      </g>
+      <clipPath id="cpL"><rect x="46" y="194" width="154" height="46"/></clipPath><clipPath id="cpR"><rect x="200" y="194" width="154" height="46"/></clipPath>
+      <g stroke="#2b2f3f" stroke-width="2.6" stroke-linejoin="round">
+        <g clip-path="url(#cpL)"><g class="pst pst-l"><rect x="-32" y="210" width="122" height="10" fill="#aab3c3"/><rect x="90" y="198" width="15" height="34" rx="3" fill="#e8b923"/><path d="M92 204 l11 -3 M92 214 l11 -3 M92 224 l11 -3" stroke="#2b2f3f" stroke-width="3" fill="none"/></g></g>
+        <g clip-path="url(#cpR)"><g class="pst pst-r"><rect x="310" y="210" width="122" height="10" fill="#aab3c3"/><rect x="295" y="198" width="15" height="34" rx="3" fill="#e8b923"/><path d="M297 204 l11 -3 M297 214 l11 -3 M297 224 l11 -3" stroke="#2b2f3f" stroke-width="3" fill="none"/></g></g>
+        <rect x="44" y="198" width="34" height="36" rx="5" fill="#7b8396"/><rect x="322" y="198" width="34" height="36" rx="5" fill="#7b8396"/>
+        <circle cx="61" cy="216" r="7" fill="#5c6478"/><circle cx="339" cy="216" r="7" fill="#5c6478"/>
+      </g>
+      <g class="psp" fill="#ffe27a" stroke="none"><circle cx="200" cy="206" r="9"/><path d="M200 192 l3 8 l9 -3 l-6 8 l9 3 l-10 2 l2 9 l-7 -7 l-7 7 l1 -9 l-10 -2 l9 -3 l-6 -8 l9 3z" fill="#fff6b0"/></g>
+      ${cloud(70, 48, .75, .95)}<g class="snow" fill="#fff" opacity=".9"><circle cx="52" cy="76" r="2.2"/><circle cx="72" cy="82" r="2"/><circle cx="90" cy="74" r="2.2"/><circle cx="62" cy="90" r="1.8"/><circle cx="82" cy="94" r="1.8"/></g>
+      ${pine(52, 238, .65)}${pine(356, 238, .65, '#3aa05a')}
+      <g stroke="#6a4d27" stroke-width="2.6" stroke-linejoin="round"><g class="bxC"><rect x="187" y="198" width="26" height="24" fill="#e2b266"/><path d="M187 207 h26 M200 198 v9" fill="none" stroke-width="2"/></g></g>
+      <g transform="translate(285 62)"><g class="hel"><line x1="0" y1="14" x2="0" y2="40" stroke="#33384a" stroke-width="2.2"/><path d="M-4 40 q4 7 8 0" fill="none" stroke="#33384a" stroke-width="2.6" stroke-linecap="round"/>${(((MG.tools && MG.tools.icon && MG.tools.icon('heli')) || '').replace('<svg ', '<svg x="-21" y="-24" width="42" height="42" '))}</g></g></svg>`,
     l3: () => `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}<circle cx="120" cy="140" r="110" fill="url(#gSun)"/>${under(200, 178)}
       <ellipse cx="200" cy="226" rx="178" ry="32" fill="#a5753f" stroke="#5e3f1e" stroke-width="3"/>
       <path d="M70 228 L112 128 L136 150 L164 62 L190 120 L198 150 L200 228Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="3" stroke-linejoin="round"/>
@@ -110,6 +138,27 @@
     @keyframes hmFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
     .spin { animation: hmSpin 9s linear infinite; }
     @keyframes hmSpin { to { transform: rotate(360deg); } }
+    .pf { fill: #4a4d5a; opacity: 0; animation: hmSmoke 4.5s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    .pf.p2 { animation-delay: -1.5s; } .pf.p3 { animation-delay: -3s; }
+    @keyframes hmSmoke { 0% { transform: translate(0, 0) scale(.5); opacity: 0; } 15% { opacity: .7; } 100% { transform: translate(14px, -52px) scale(2.1); opacity: 0; } }
+    .pst-l { animation: hmPstL 12s ease-in-out infinite; } .pst-r { animation: hmPstR 12s ease-in-out infinite; }
+    @keyframes hmPstL { 0%, 42% { transform: translateX(0); } 56%, 59% { transform: translateX(80px); } 72%, 100% { transform: translateX(0); } }
+    @keyframes hmPstR { 0%, 42% { transform: translateX(0); } 56%, 59% { transform: translateX(-80px); } 72%, 100% { transform: translateX(0); } }
+    .psp { transform-box: fill-box; transform-origin: center; animation: hmPsp 12s linear infinite; opacity: 0; }
+    @keyframes hmPsp { 0%, 55% { opacity: 0; transform: scale(.4); } 57% { opacity: 1; transform: scale(1.1); } 62%, 100% { opacity: 0; transform: scale(1.5); } }
+    .bxA, .bxB, .bxC, .hel { transform-box: view-box; }
+    .bxA, .bxB { opacity: 0; animation: 12s linear infinite; }
+    .bxA { animation-name: hmBxA; transform-origin: 121px 214px; } .bxB { animation-name: hmBxB; transform-origin: 256px 214px; }
+    @keyframes hmBxA { 0% { opacity: 0; transform: translateX(0) scale(.3); } 4% { opacity: 1; transform: translateX(0) scale(1); } 40% { opacity: 1; transform: translateX(55px) scale(1); } 51% { transform: translateX(55px) scale(1); animation-timing-function: ease-in-out; } 56% { opacity: 1; transform: translateX(72.5px) scale(1); } 56.5%, 100% { opacity: 0; transform: translateX(72.5px) scale(1); } }
+    @keyframes hmBxB { 0% { opacity: 0; transform: translateX(0) scale(.3); } 4% { opacity: 1; transform: translateX(0) scale(1); } 40% { opacity: 1; transform: translateX(-32px) scale(1); } 51% { transform: translateX(-32px) scale(1); animation-timing-function: ease-in-out; } 56% { opacity: 1; transform: translateX(-49.5px) scale(1); } 56.5%, 100% { opacity: 0; transform: translateX(-49.5px) scale(1); } }
+    .bxC { opacity: 0; transform-origin: 200px 222px; animation: hmBxC 12s ease-in-out infinite; }
+    @keyframes hmBxC { 0%, 56% { opacity: 0; transform: translate(0, 0) scale(.5); } 58% { opacity: 1; transform: translate(0, 0) scale(1.15); } 60%, 72% { opacity: 1; transform: translate(0, 0) scale(1); } 78% { opacity: 1; transform: translate(85px, -96px) scale(1); } 90% { opacity: 1; transform: translate(-295px, -126px) scale(1); } 90.1%, 100% { opacity: 0; transform: translate(-295px, -126px) scale(1); } }
+    .hel { animation: hmHel 12s ease-in-out infinite; }
+    @keyframes hmHel { 0%, 54% { transform: translate(0, 0); } 66%, 72% { transform: translate(-85px, 96px); } 78% { transform: translate(0, 0); } 90% { transform: translate(-380px, -30px); } 90.1% { transform: translate(200px, -30px); } 100% { transform: translate(0, 0); } }
+    .cvb { animation: hmCv 2.2s linear infinite; }
+    @keyframes hmCv { from { transform: translateX(0); } to { transform: translateX(40px); } }
+    .snow { animation: hmSnow 2.6s linear infinite; }
+    @keyframes hmSnow { from { transform: translateY(-4px); opacity: 0; } 20% { opacity: .9; } to { transform: translateY(26px); opacity: 0; } }
     .spin { transform-box: fill-box; transform-origin: center; }
     .leaf { animation-duration: 7s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
     .lf-l { animation-name: hmLeafL; } .lf-r { animation-name: hmLeafR; }
@@ -127,6 +176,7 @@
     .pin:active .dot { transform: translateY(3px) scale(.96); box-shadow: 0 1px 0 #5a3512; }
     .pin .dot svg { width: 62%; height: 62%; overflow: visible; }
     .pin .nm { margin-top: 9px; padding: 2px 9px; border-radius: 99px; background: rgba(24, 16, 40, .72); color: #fff; font-weight: 800; font-size: clamp(.62rem, 2.5vw, .78rem); white-space: normal; text-align: center; line-height: 1.12; max-width: 7.6em; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); }
+    .pin.sr .nm { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin: 0 0 0 8px; }
     .pin .st { position: absolute; top: -6px; right: -8px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 99px; background: #3fbf6d; color: #fff; font-weight: 900; font-size: .72rem; display: grid; place-items: center; border: 2.5px solid #17653a; box-shadow: 0 2px 0 #17653a; }
     .pin .st[hidden] { display: none; }
     .hm-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
@@ -144,14 +194,14 @@
     .deco svg { width: 100%; display: block; overflow: visible; }
     @keyframes hmBob { from { transform: translateY(-5px) rotate(-4deg); } to { transform: translateY(6px) rotate(4deg); } }
     .hm-foot { text-align: center; color: #5a3512; font-weight: 800; font-size: .85rem; opacity: .75; margin-top: 4px; }
-    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .hm-stars { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .pf, .cvb, .pst, .psp, .bxA, .bxB, .bxC, .hel, .snow, .hm-stars { animation: none; } }
   `;
   document.head.append(css);
 
   /* значки вокруг островов: [иконка, x%, y%] */
   const DECO = {
     l1: [['axe', 12, 62, 'chop'], ['heli', 50, 40, 'orbit']],
-    l2: [['rain', 24, 6], ['heli', 80, 30], ['box', 72, 70], ['joker', 3, 36]],
+    l2: [],
     l3: [['fan', 6, 72], ['rocket', 80, 12]],
     l4: [['conveyor', 10, 26], ['cups', 82, 38]],
   };
@@ -173,7 +223,7 @@
         <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
         <div class="isle-art">${ART[lv.cls]()}${path}
           ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
-          ${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" style="left:${m.x}%;top:${m.y}%" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}
+          ${lv.modes.map((m) => `<button class="pin${m.lab ? ' s' + m.lab : ''}" type="button" data-mode="${m.id}" style="left:${m.x}%;top:${m.y}%" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}
         </div>`;
       col.append(sec);
     });

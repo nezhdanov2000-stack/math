@@ -32,11 +32,9 @@
     <rect x="1.8" y="20.6" width="6.4" height="6.6" fill="#e5e7eb" stroke="#6b7280" stroke-width="1"/>
     <rect x="15.8" y="20.6" width="6.4" height="6.6" fill="#e5e7eb" stroke="#6b7280" stroke-width="1"/></svg>`;
 
-  /* иконка для панели: вертолёт и магнит под ним */
+  /* иконка для панели: просто вертолёт (в игре он возит числа в прицепе) */
   const icon = `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
-    <g transform="translate(1 0) scale(.72)">${heliSvg.replace(/^<svg[^>]*>/, '').replace('</svg>', '')}</g>
-    <path d="M24.4 29 V32.6" stroke="#4b5563" stroke-width="1.4" fill="none"/>
-    <g transform="translate(17.8 32) scale(.55)">${magnetSvg.replace(/^<svg[^>]*>/, '').replace('</svg>', '')}</g></svg>`;
+    <g transform="translate(1 7) scale(.72)">${heliSvg.replace(/^<svg[^>]*>/, '').replace('</svg>', '')}</g></svg>`;
 
   const style = document.createElement('style');
   style.textContent = `

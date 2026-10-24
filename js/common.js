@@ -44,7 +44,7 @@
   let lastKey = '';
   let uid = 0;
 
-  const levelOf = (s) => Math.min(5, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 5);   // уровень: +1 за каждые 3 задачи, не выше 5
   const pick = (arr) => arr[ri(0, arr.length - 1)];
   const lcm = (a, b) => (a / gcd(a, b)) * b;
   const isComposite = (t) => t.value > 1 && !isPrime(t.value);
@@ -277,15 +277,8 @@
   /* ============================================================
    * Подсказки
    * ============================================================ */
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
     if (state.ready) return 'Знаменатели одинаковые. Возьми поршни и нажми на дроби — они сожмут их в одну дробь';
@@ -310,7 +303,7 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
 
@@ -318,6 +311,7 @@
    * Раунд
    * ============================================================ */
   function newRound() {
+    clearSel();
     const spec = pickSpec();
     lastKey = specKey(spec);
 
@@ -343,7 +337,7 @@
     fracsEl.querySelectorAll('.token, .glyph').forEach((el) => popIn(el, 70 * k++));
 
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -401,8 +395,7 @@
 
   function onPointerDown(tok, e) {
     if (!state || state.finished || state.busy || state.zapping || tok.role !== 'drag' || e.button > 0) return;
-    if (window.MG.tools.current() === 'glove') return;
-    if (!window.MG.tools.need('joker')) return;
+    if (window.MG.tools.current() !== 'joker') return;   // кувалда/ластик обрабатывают клик сами (см. onClick)
     e.preventDefault();
     const g = ghost(tok.el);
     window.MG.joker.style(g);                       // джокер становится картой с числом
@@ -484,8 +477,8 @@
     if (F && F === b.frac && a.zone !== b.zone && a.value === b.value && a.value > 1 && F[a.zone].includes(a) && F[b.zone].includes(b)) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
-    setTimeout(() => { if (state) updateHint(); }, 3800);
-    window.MG.tools.disable('glove', 4000);
+    setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
+    window.MG.tools.disable('glove', window.MG.PENALTY.tool);
   }
 
   async function cancelPair(a, b) {
@@ -596,6 +589,7 @@
     await zapProducts(F, kind);
     st.zapping = false;
     if (state !== st) return;
+    refreshRoles();                                  // новое произведение может быть перетаскиваемым
     if (!st.ready && densEqual()) ready(); else updateHint();
   }
   fracsEl.addEventListener('click', boltClick);
@@ -692,71 +686,6 @@
   /* ============================================================
    * Финал: числители → одна дробь → ответ
    * ============================================================ */
-  async function mergeAll(groups) {
-    const st = state;
-    const gs = groups.filter((g) => g.toks.length > 1);
-    if (!gs.length) return;
-
-    const outs = [];
-    gs.forEach((g) => {
-      const rects = g.toks.map((t) => t.el.getBoundingClientRect());
-      const cx = rects.reduce((s, r) => s + r.left + r.width / 2, 0) / rects.length;
-      g.toks.forEach((t, i) => {
-        const dx = cx - (rects[i].left + rects[i].width / 2);
-        outs.push(t.el.animate([
-          { transform: 'none', opacity: 1 },
-          { transform: `translateX(${dx}px) scale(.6)`, opacity: 0 },
-        ], { duration: T(480), easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' }));
-      });
-    });
-    await Promise.all(outs.map((a) => a.finished.catch(() => {})));
-    if (state !== st) return;
-
-    const first = snapshot();
-    const fresh = [];
-    gs.forEach((g) => {
-      const list = g.frac[g.zone];
-      const idx = list.indexOf(g.toks[0]);
-      const merged = makeTok(g.toks.reduce((x, t) => x * t.value, 1), g.frac, g.zone, false);
-      g.toks.forEach((t) => { list.splice(list.indexOf(t), 1); t.el.remove(); });
-      list.splice(idx, 0, merged);
-      fresh.push(merged.el);
-    });
-    render();
-    play(first, new Set(fresh));
-    fresh.forEach((el) => popIn(el));
-    await sleep(560);
-  }
-
-  /* дроби объединяются в одну: числители и знаки переезжают в общий числитель */
-  async function combine() {
-    const st = state;
-    const [F0, ...rest] = st.fracs;
-    const first = snapshot();
-
-    // знаменатели остальных дробей «втягиваются» в первый и растворяются
-    const dr = F0.denRow.getBoundingClientRect();
-    const tx = dr.left + dr.width / 2;
-    const ty = dr.top + dr.height / 2;
-    rest.forEach((F) => F.den.forEach((t) => {
-      const g = ghost(t.el);
-      const r = t.el.getBoundingClientRect();
-      g.animate([
-        { translate: '0 0', opacity: 1, scale: '1' },
-        { translate: `${tx - (r.left + r.width / 2)}px ${ty - (r.top + r.height / 2)}px`, opacity: 0, scale: '.5' },
-      ], { duration: T(520), easing: 'ease-in' }).onfinish = () => g.remove();
-    }));
-
-    const items = [...F0.num];
-    rest.forEach((F, i) => { items.push(st.ops[i], ...F.num); });
-    renderRow(F0.numRow, items);
-    rest.forEach((F) => F.el.remove());
-    F0.num = items;
-    fitBar(F0);
-    play(first);
-    await sleep(640);
-  }
-
   async function evalNumerator() {
     const st = state;
     const F0 = st.fracs[0];

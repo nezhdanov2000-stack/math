@@ -4,7 +4,7 @@
 (() => {
   'use strict';
   const MG = window.MG;
-  const rnd = (a, b) => a + Math.random() * (b - a);
+  const rnd = MG.rnd;
   const FLAME = ['#fbbf24', '#f97316', '#ffffff'];
 
   function scatter(el, { color = '#ef4444', delay = 0, duration = 1500 } = {}) {

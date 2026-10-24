@@ -108,16 +108,16 @@
 
     // черта раскрывается в пасть
     apply({ lx: 0, split: 0 }, { lx: 0, split: 1 }, T(260), 'ease-out');
-    await sleep(T(260));
+    await sleep(260);
     const a0 = mv(up, 0, OPEN, T(420), 'cubic-bezier(.3,1.4,.5,1)');
     mv(dn, 0, -OPEN, T(420), 'cubic-bezier(.3,1.4,.5,1)');
     await a0.finished.catch(() => {});
-    await sleep(T(120));
+    await sleep(120);
 
     const lunge = -fs * 0.3;
     for (let k = 1; k <= o.bites; k++) {
       apply({ lx: 0, split: 1 }, { lx: lunge, split: 1 }, T(230), 'ease-out');
-      await sleep(T(230));
+      await sleep(230);
       const c1 = mv(up, OPEN, 0, T(130), 'cubic-bezier(.6,0,1,.6)');
       mv(dn, -OPEN, 0, T(130), 'cubic-bezier(.6,0,1,.6)');
       await c1.finished.catch(() => {});                 // пасть сомкнута: зубы лежат во впадинах
@@ -127,13 +127,13 @@
         mv(up, 0, OPEN, T(240), 'ease-out');
         mv(dn, 0, -OPEN, T(240), 'ease-out');
       }
-      await sleep(T(320));
+      await sleep(320);
     }
     // зубы прячутся, полосы сливаются — снова обычная черта
     hinge.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(200), fill: 'forwards' });
     box.querySelectorAll('.tt').forEach((t) => t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(240), fill: 'forwards' }));
     apply({ lx: 0, split: 1 }, { lx: 0, split: 0 }, T(260), 'ease-in-out');
-    await sleep(T(300));
+    await sleep(300);
     o.bar.style.opacity = '';
     track.forEach((a) => a.cancel());
     heads.forEach((h) => { h.el.style.transformOrigin = ''; });

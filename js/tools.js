@@ -1,8 +1,11 @@
-/* ВАЖНО: инструмент «Рука» (hand) заменён на «Облако» (cloud) — не возвращай hand, иначе сломается домножение в common.js/borrow.js. */
-/* Панель инструментов слева: в каждом режиме свой набор.
- *   MG.tools.use(режим)        — показать набор режима (вызывает app.js при переключении вкладки)
+/* Панель инструментов: в каждом режиме свой набор (SETS), подписи и курсоры (INFO).
+ *   MG.tools.use(режим)        — показать набор режима (вызывает app.js при открытии режима)
  *   MG.tools.need(id)          — true, если выбран нужный инструмент; иначе подсвечивает его и возвращает false
  *   MG.tools.auto(режим, map)  — если у текущего инструмента не осталось целей, выбрать тот, у кого они есть
+ *   MG.tools.disable(id, ms)   — инструмент исчезает на ms миллисекунд (штраф за ошибку)
+ *   MG.tools.current()/pick(id)/icon(id)
+ * Иконки инструментов, у которых есть своя анимация, живут в их модулях (MG.axe.icon и т. п.),
+ * остальные — здесь в ICONS. Домножение дроби делает «Джокер» (joker), инструмента «рука»/«облако» нет.
  */
 (() => {
   'use strict';
@@ -39,10 +42,6 @@
     bolt: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
       <path d="M29 2 L10 27 H21 L16 46 L38 18 H26.5 Z" fill="#facc15" stroke="#a16207" stroke-width="2"/>
       <path d="M28 7 L16 25 H24 L21 37" fill="none" stroke="#fff7b2" stroke-width="2" opacity=".85"/></svg>`,
-    cloud: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
-      <path d="M13 31 C6 31 4 23 10 20 C9 13 17 9 22 14 C24 6 35 7 36.5 15 C43 14 46 23 40.5 27 C42 31 38 32 36 31 Z" fill="#f3f8ff" stroke="#5b7ea8" stroke-width="1.8"/>
-      <path d="M12 24 C10 21 12.5 18.5 15 19" fill="none" stroke="#fff" stroke-width="1.8"/>
-      <path d="M15.5 36 q1.6 2.6 0 4.2 q-1.6 -1.6 0 -4.2Z M24 38 q1.6 2.6 0 4.2 q-1.6 -1.6 0 -4.2Z M32.5 36 q1.6 2.6 0 4.2 q-1.6 -1.6 0 -4.2Z" fill="#60a5fa" stroke="#2563eb" stroke-width="1"/></svg>`,
     press: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
       <rect x="0.8" y="21" width="7" height="6" fill="#aab5c4" stroke="#3b4656" stroke-width="1.4"/>
       <rect x="7" y="10" width="8" height="28" rx="2.2" fill="#8d99ab" stroke="#3b4656" stroke-width="1.6"/>
@@ -66,25 +65,10 @@
       <circle cx="30" cy="43" r="2.2" fill="#ef4444" stroke="#3b4656" stroke-width="1"/></svg>`,
   };
 
-  ICONS.axe = (window.MG.axe && (window.MG.axe.icon || window.MG.axe.svg)) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.joker = (window.MG.joker && window.MG.joker.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.tread = (window.MG.tread && window.MG.tread.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.bridge = (window.MG.bridge && window.MG.bridge.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.fan = (window.MG.fan && window.MG.fan.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.rain = (window.MG.rain && window.MG.rain.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.teeth = (window.MG.teeth && window.MG.teeth.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.conveyor = (window.MG.conveyor && window.MG.conveyor.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.cups = (window.MG.cups && window.MG.cups.icon) || '<svg viewBox="0 0 48 48"></svg>';
-
-  ICONS.heli = (window.MG.heli && window.MG.heli.icon) || '<svg viewBox="0 0 48 48"></svg>';
+  /* иконки инструментов со своими модулями (модули подключены раньше tools.js) */
+  ['axe', 'joker', 'tread', 'bridge', 'fan', 'rain', 'teeth', 'conveyor', 'cups', 'heli'].forEach((id) => {
+    ICONS[id] = (MG[id] && MG[id].icon) || '<svg viewBox="0 0 48 48"></svg>';
+  });
 
   const INFO = {
     hammer: { label: 'Кувалда', tip: 'разбивает число на множители', hot: [21, 10] },
@@ -93,7 +77,6 @@
     glove: { label: 'Ластик', tip: 'стирает пару одинаковых чисел: сверху и снизу у одной дроби', hot: [8, 24] },
     rocket: { label: 'Ракета', tip: 'выносит общий множитель за скобки', hot: [25, 7] },
     joker: { label: 'Джокер', tip: 'нажми на множитель — джокер станет числом; положи карту на дробь, и число появится сверху и снизу', hot: [24, 24] },
-    cloud: { label: 'Облако', tip: 'схвати число и перетащи облако на дробь — числа вырастут в числителе и знаменателе', hot: [16, 16] },
     bolt: { label: 'Молния', tip: 'считает молнией: 2 · 3 → 6, 5 − 2 → 3', hot: [15, 30] },
     press: { label: 'Поршни', tip: 'сжимают дроби с одинаковыми знаменателями в одну', hot: [16, 16] },
     tread: { label: 'Беговая дорожка', tip: 'неправильная дробь бежит и сжигает лишнее — выходят целые', hot: [24, 40] },
@@ -126,7 +109,6 @@
   /* курсоры из тех же иконок */
   const root = document.documentElement;
   Object.entries(INFO).forEach(([id, inf]) => {
-    if (!inf.hot) { root.style.setProperty('--cur-hand', 'grab'); return; }
     const svg = ICONS[id].replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" ');
     root.style.setProperty(`--cur-${id}`, `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${inf.hot[0]} ${inf.hot[1]}, pointer`);
   });
@@ -138,7 +120,8 @@
 
   let mode = null;
   let current = null;
-  const offUntil = {};
+  const offUntil = {};     // id → когда инструмент вернётся (Date.now())
+  const offTimer = {};     // id → таймер возврата
   const lastByMode = {};
   let tipTimer = 0;
 
@@ -305,6 +288,7 @@
   function disable(id, ms) {
     if (!mode || !SETS[mode].includes(id)) return;
     offUntil[id] = Date.now() + ms;
+    clearTimeout(offTimer[id]);                       // повторный штраф продлевает, а не ломает таймер
     const btn = bar.querySelector(`.tool[data-id="${id}"]`);
     if (btn) {
       btn.style.setProperty('--dur', `${ms}ms`);
@@ -316,9 +300,9 @@
       const other = SETS[mode].find((x) => x !== id && !isOff(x));
       if (other) select(other);
     }
-    setTimeout(() => {
+    offTimer[id] = setTimeout(() => {
       const b = bar.querySelector(`.tool[data-id="${id}"]`);
-      if (b) {
+      if (b && !isOff(id)) {
         resetIcon(b);
         b.classList.remove('gone', 'icon-off');
         b.classList.add('back');

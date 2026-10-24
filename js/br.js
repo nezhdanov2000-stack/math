@@ -20,7 +20,7 @@
   let solved = 0;
   let lastKey = '';
   let uid = 0;
-  const levelOf = (s) => Math.min(6, 1 + Math.floor(s / 3));
+  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
   const MINUS = '−';
   const mk = (tag, cls, txt) => { const d = document.createElement(tag); d.className = cls; if (txt != null) d.textContent = txt; return d; };
   const fontPx = () => parseFloat(getComputedStyle(stage).fontSize) || 64;
@@ -262,15 +262,8 @@
     return commonG() > 1 ? 'rocket' : 'done';
   }
 
-  let shownHint = '';
-  function setHint(text) {
-    shownHint = text;
-    hint.classList.add('swap');
-    setTimeout(() => {
-      if (shownHint === text) hint.textContent = text;
-      hint.classList.remove('swap');
-    }, T(150));
-  }
+  const hints = window.MG.hinter(hint);          // подсказка с анимацией смены текста
+  const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!st || st.finished) return '';
     const op = st.sgn < 0 ? '−' : '+';
@@ -283,7 +276,7 @@
         : 'Раскрой скобки: нажми на них коробкой';
       case 'combine': return 'Приведи подобные: возьми молнию и ударь по знаку перед слагаемым, которое нужно сложить с таким же';
       case 'rocket': return `Числитель и знаменатель делятся на ${commonG()}. Возьми ракету и нажми на числитель — общий множитель вылетит за скобки`;
-      case 'hammer': return `Знаменатель ${st.F1.den.v} — это ${st.F1.num.find((n) => n.factored).k} × ${st.F1.den.v / st.F1.num.find((n) => n.factored).k}. Ударь по нему молотком, чтобы разбить на множители`;
+      case 'hammer': return `Знаменатель ${st.F1.den.v} — это ${st.F1.num.find((n) => n.factored).k} × ${st.F1.den.v / st.F1.num.find((n) => n.factored).k}. Ударь по нему кувалдой, чтобы разбить на множители`;
       case 'glove': return `Одинаковые множители сверху и снизу стирает ластик: нажми на ${st.F1.num.find((n) => n.factored).k} — в скобках или в знаменателе`;
       default: return '';
     }
@@ -295,10 +288,10 @@
   }
   function updateHint() {
     const t = defaultHint();
-    if (t !== shownHint) setHint(t);
+    if (t !== hints.text) setHint(t);
     autoTool();
   }
-  function flashHint(text, ms = 3800) {
+  function flashHint(text, ms = MG.PENALTY.hint) {
     setHint(text);
     const s = st;
     setTimeout(() => { if (st === s) updateHint(); }, ms);
@@ -322,7 +315,7 @@
     [...stage.querySelectorAll('.br-t, .br-tok, .br-op:not(.hid)')].forEach((e, i) => popIn(e, i * 50));
     st.phase = computePhase();
     setStats(levelOf(solved), solved);
-    shownHint = '';
+    hints.reset();
     updateHint();
   }
 
@@ -387,7 +380,7 @@
     if (pop) selEl.animate([{ transform: 'translateY(-14px) scale(1.12)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: T(260), easing: 'cubic-bezier(.3,1.5,.5,1)' });
   }
   function clearSel() { sel.clear(); drawSel(); }
-  window.addEventListener('resize', () => drawSel());
+  window.addEventListener('resize', () => { if (!$('#mode-br').hidden) drawSel(); });
 
   function onRawClick(t, e) {
     if (!st || st.busy || st.finished || st.phase !== 'box' || !st.raw || !st.raw.includes(t)) return;
@@ -597,6 +590,7 @@
     const lid = box.el.querySelector('.lid');
     if (lid) lid.animate([{ transform: 'none' }, { transform: 'scaleY(-1.3)' }], { duration: T(320), easing: 'ease-out', fill: 'forwards' });
     await sleep(380);
+    if (st !== me) { box.remove(); return; }
     const F = me.F1;
     const k = par.k || 1, sg = par.sgn;
     const flipped = new Set();
@@ -695,7 +689,7 @@
       const l1 = F2.numRow.querySelector(LEAF);
       F2.numRow.style.translate = `0 ${y0 - l1.getBoundingClientRect().top}px`;
     }, skip, 450);
-    await sleep(T(520));
+    await sleep(520);
     if (st !== me) return;
     const fs = fontPx();
     const R = (el) => el.getBoundingClientRect();
@@ -890,7 +884,7 @@
     }
     if (tool === 'hammer') {
       if (st.phase === 'hammer' && e.target.closest('.br-tok') && e.target.closest('.br-tok')._den) doHammer();
-      else MG.indivisible(e.target.closest('.br-t, .br-tok') || st.F1.den.el, st.phase === 'hammer' ? 'бей молотком по знаменателю' : 'разбивать пока нечего');
+      else MG.indivisible(e.target.closest('.br-t, .br-tok') || st.F1.den.el, st.phase === 'hammer' ? 'бей кувалдой по знаменателю' : 'разбивать пока нечего');
       return;
     }
     if (tool === 'glove') {
@@ -936,6 +930,6 @@
       else setStats(levelOf(solved), solved);
     },
     skip: newRound,
-    setSolved(n) { solved = n; lastKey = 'x'; },
+    stop: clearSel,          // пунктирная коробка выбора — fixed-элемент, при уходе из режима убираем
   };
 })();
