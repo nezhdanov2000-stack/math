@@ -64,7 +64,7 @@
     body[data-tool="rain"] #mode-br .br-fr, body[data-tool="rain"] #mode-br .br-par, body[data-tool="rain"] #mode-br .br-par * { cursor: var(--cur-rain, pointer) !important; }
     body[data-tool="hammer"] #mode-br .br-tok, body[data-tool="hammer"] #mode-br .br-t { cursor: var(--cur-hammer, pointer) !important; }
     body[data-tool="glove"] #mode-br .br-tok, body[data-tool="glove"] #mode-br .br-k { cursor: var(--cur-glove, pointer) !important; }
-    body[data-tool="rocket"] #mode-br .br-t, body[data-tool="rocket"] #mode-br .br-row { cursor: var(--cur-rocket, pointer) !important; }
+    body[data-tool="rocket"] #mode-br .br-t, body[data-tool="rocket"] #mode-br .br-k, body[data-tool="rocket"] #mode-br .br-row { cursor: var(--cur-rocket, pointer) !important; }
     .br-fr.over { outline: 4px dashed var(--accent, #f97316); outline-offset: 8px; background: rgba(249,115,22,.08); }
     body[data-tool="box"] #mode-br .br-t, body[data-tool="box"] #mode-br .br-par, body[data-tool="box"] #mode-br .br-par * { cursor: var(--cur-box, grab) !important; }
     body[data-tool="bolt"] #mode-br .br-t, body[data-tool="bolt"] #mode-br .br-op { cursor: var(--cur-bolt, pointer) !important; }
@@ -76,7 +76,8 @@
   function ignite(el) {
     if (el.classList.contains('mx-burn')) return;
     el.classList.add('mx-burn');
-    const n = Math.max(2, Math.round(el.getBoundingClientRect().width / 28));
+    const w = el.getBoundingClientRect().width || el.textContent.length * 22;
+    const n = Math.max(2, Math.round(w / 28));
     for (let k = 0; k < n; k++) {
       const em = document.createElement('i');
       em.className = 'mx-ember';
@@ -134,8 +135,8 @@
     const a = Math.abs(t.v);
     return t.kind === 'x' ? `<span class="co">${a === 1 ? '' : a}</span><span class="vx">x</span>` : String(a);
   };
-  function paintTerm(t, first) {
-    const neg = t.v < 0;
+  function paintTerm(t, first, noFire, m = 1) {
+    const neg = t.v * m < 0;
     t.el.innerHTML = `${first && neg ? `<span class="un">${MINUS}</span>` : ''}${bodyHTML(t)}`;
     t.el.classList.toggle('neg', neg);
     t.op.textContent = neg ? MINUS : '+';
@@ -143,22 +144,25 @@
     t.op.classList.toggle('hid', first);
     t.el.classList.remove('mx-burn'); t.op.classList.remove('mx-burn');
     t.el.querySelectorAll('.mx-ember').forEach((e) => e.remove());
-    if (neg) { ignite(t.el); if (!first) ignite(t.op); }
+    if (neg && !noFire) { ignite(t.el); if (!first) ignite(t.op); }
   }
-  function paintNode(n, first) {
+  function paintNode(n, first, outer) {
     if (!isPar(n)) { paintTerm(n, first); return; }
+    const burn = n.sgn < 0 && !outer;   // если горит вся дробь целиком, скобка отдельно не горит                    // «−(…)»: вся скобка со знаком — отрицательное число, горит целиком
     n.op.textContent = n.sgn < 0 ? MINUS : '+';
     n.op.classList.toggle('neg', n.sgn < 0);
     n.op.classList.toggle('hid', first);
+    n.op.classList.remove('mx-burn'); n.el.classList.remove('mx-burn');
     n.el.replaceChildren();
     if (n.k) { n.kEl.textContent = n.k; n.el.append(n.kEl); }
     n.el.append(n.lp);
-    n.terms.forEach((t, i) => { paintTerm(t, i === 0); if (i) n.el.append(t.op); n.el.append(t.el); });
+    n.terms.forEach((t, i) => { paintTerm(t, i === 0, n.sgn < 0); if (i) n.el.append(t.op); n.el.append(t.el); });
     n.el.append(n.rp);
+    if (burn) { ignite(n.el); if (!first) ignite(n.op); }
   }
-  function renderFrac(F) {
+  function renderFrac(F, outer) {
     F.numRow.replaceChildren();
-    F.num.forEach((n, i) => { paintNode(n, i === 0); if (i) F.numRow.append(n.op); F.numRow.append(n.el); });
+    F.num.forEach((n, i) => { paintNode(n, i === 0, outer); if (i) F.numRow.append(n.op); F.numRow.append(n.el); });
     F.denRow.replaceChildren();
     if (F.den.parts) {
       F.den.parts.forEach((pt, i) => { if (i) F.denRow.append(mk('span', 'br-x', '×')); pt.el.textContent = pt.v; F.denRow.append(pt.el); });
@@ -173,11 +177,20 @@
     renderFrac(st.F1);
     eqn.append(st.F1.el);
     if (st.merged) return;
-    st.opS.textContent = st.sgn < 0 ? MINUS : '+';
-    eqn.append(st.opS);
-    if (st.F2) { renderFrac(st.F2); eqn.append(st.F2.el); return; }
+    if (st.F2) {
+      st.opS.textContent = st.sgn < 0 ? MINUS : '+';
+      st.opS.classList.toggle('neg', st.sgn < 0);
+      st.opS.classList.remove('mx-burn');
+      eqn.append(st.opS);
+      if (st.sgn < 0) ignite(st.opS);
+      st.F2.el.classList.remove('mx-burn');
+      renderFrac(st.F2, st.sgn < 0); eqn.append(st.F2.el);
+      if (st.sgn < 0) ignite(st.F2.el);       // минус стоит перед дробью — горит вся дробь
+      return;
+    }
     st.rawEl.replaceChildren();
-    st.raw.forEach((t, i) => { paintTerm(t, i === 0); if (i) st.rawEl.append(t.op); st.rawEl.append(t.el); });
+    // до упаковки выражение записано честно: 3x/2 − x − 1 (вычитаемые слагаемые отрицательные, поэтому горят)
+    st.raw.forEach((t, i) => { paintTerm(t, false, false, st.sgn); st.rawEl.append(t.op); st.rawEl.append(t.el); });
     eqn.append(st.rawEl);
   }
 
@@ -262,7 +275,7 @@
     if (!st || st.finished) return '';
     const op = st.sgn < 0 ? '−' : '+';
     switch (st.phase) {
-      case 'box': return `Возьми коробку и нажми на слагаемые, которые нужно упаковать: всё выражение после «${op}». Они обведутся пунктиром, потом нажми «Упаковать»`;
+      case 'box': return 'Возьми коробку, выдели оба слагаемых после дроби и нажми «Упаковать»: они войдут в скобки вместе со своими знаками';
       case 'joker': return `Скобки — это одно число. Возьми джокер, нажми на ${st.F1.den.v} в знаменателе и положи карту на скобки: они станут дробью с таким же знаменателем`;
       case 'press': return 'Знаменатели одинаковые. Возьми поршни и нажми на дроби — они склеятся в одну';
       case 'open': return st.sgn < 0
@@ -362,7 +375,7 @@
     if (selEl) { selEl.remove(); selEl = null; }
     packBtn.classList.toggle('show', sel.size > 0 && !!st && !st.busy && st.phase === 'box');
     if (!sel.size) return;
-    const r = unionRect([...sel].map((t) => t.el));
+    const r = unionRect([...sel].flatMap((t) => [t.el, t.op]));   // слагаемое вместе со своим знаком: «−x», а не просто x
     const fs = fontPx();
     const p = fs * 0.1, d = Math.max(14, fs * 0.26);
     selEl = mk('div', 'br-box br-sel');
@@ -388,7 +401,7 @@
     if (sel.size < st.raw.length) {
       const hit = [...sel][0].el;
       shake(hit);
-      flashHint(`Упаковать нужно всё выражение после «${st.sgn < 0 ? '−' : '+'}»: ${st.raw.length === 2 ? 'оба слагаемых' : 'все слагаемые'}. Иначе минус достанется только части`);
+      flashHint(`Упаковать нужно всё, что идёт после дроби: ${st.raw.length === 2 ? 'оба слагаемых' : 'все слагаемые'}. Иначе в скобки попадёт только часть выражения`);
       clearSel();
       return;
     }
@@ -413,7 +426,7 @@
   function makeContainer(r) {
     const fs = fontPx();
     const d = Math.max(16, fs * 0.3);
-    const w = r.width + 2 * fs * 0.34;                 // чуть шире слагаемых
+    const w = r.width + 2 * fs * 0.2;                 // чуть шире слагаемых
     const h = Math.max(r.height * 1.65, fs * 1.5);     // табличка занимает ~2/3 высоты лицевой стенки
     const cy = r.top + r.height / 2;
     const el = mk('div', 'br-box br-cont');
@@ -429,7 +442,7 @@
     me.busy = true;
     setHint('');
     const terms = me.raw.slice();
-    const r0 = unionRect(terms.map((t) => t.el));
+    const r0 = unionRect(terms.flatMap((t) => [t.el, t.op]));   // контейнер закрывает слагаемые вместе со знаками, в том числе первым
     if (selEl) { selEl.remove(); selEl = null; }
     sel.clear();
     packBtn.classList.remove('show');
@@ -442,12 +455,17 @@
     terms.forEach((t, i) => { bump(t.el); });
     await sleep(380);
     // модель: слагаемые теперь в скобках; контейнер уезжает на их новое место и исчезает
-    const par = mkPar(me.raw, me.sgn);
+    // коробка только добавляет скобки: слагаемые входят в них со своими знаками, минус наружу не выносится
+    me.raw.forEach((t) => { t.v *= me.sgn; });
+    me.sgn = 1;
+    const par = mkPar(me.raw, 1);
     me.F2 = mkFrac([par], 1);
     me.F2.noden = true;
     me.raw = null;
     par.lp.style.opacity = '0'; par.rp.style.opacity = '0';
     reflow(() => render(), new Set([par.lp, par.rp]), 520);
+    // плюс между дробью и скобками появляется плавно, а не рывком
+    me.opS.animate([{ opacity: 0, transform: 'scale(.3) rotate(-120deg)' }, { opacity: 1, transform: 'none' }], { duration: T(600), delay: T(180), easing: 'cubic-bezier(.3,1.3,.5,1)', fill: 'backwards' });
     const r1 = unionRect(terms.map((t) => t.el));
     const mx = r1.left + r1.width / 2 - (r0.left + r0.width / 2), my = r1.top + r1.height / 2 - (r0.top + r0.height / 2);
     await cont.animate([{ transform: 'none' }, { transform: `translate(${mx}px, ${my}px)` }], { duration: T(520), easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'forwards' }).finished.catch(() => {});
@@ -483,6 +501,8 @@
     F.den.el.style.opacity = '.3';
     const d = { g, sx: e.clientX, sy: e.clientY, moved: false };
     jdrag = d;
+    F.el.classList.add('src');
+    me.F2.el.classList.add('ok');
     const over = (ev) => {
       const r = me.F2.el.getBoundingClientRect();
       return ev.clientX >= r.left - 20 && ev.clientX <= r.right + 20 && ev.clientY >= r.top - 20 && ev.clientY <= r.bottom + 20;
@@ -494,13 +514,15 @@
       me.F2.el.classList.toggle('over', over(ev));
     };
     const up = async (ev) => {
+      // клик без перетаскивания: карта остаётся в руке, следующее нажатие кладёт её на дробь (как в других режимах)
+      if (ev.type === 'pointerup' && !d.moved && !d.sticky) { d.sticky = true; d.moved = true; MG.joker.armSticky((e2) => up(e2)); return; }
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
       jdrag = null;
       if (st !== me) { g.remove(); return; }
-      const ok = ev.type === 'pointerup' && (!d.moved || over(ev));
-      me.F2.el.classList.remove('over');
+      const ok = ev.type === 'pointerup' && over(ev);
+      me.F2.el.classList.remove('over', 'ok'); me.F1.el.classList.remove('src');
       if (ok) { await doJoker(g); return; }
       await g.animate([{ transform: g.style.transform }, { transform: 'translate(0,0) scale(1)', opacity: 0.2 }], { duration: T(260), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
       g.remove();
@@ -659,44 +681,54 @@
     me.busy = true;
     setHint('');
     const F2 = me.F2;
-    const r = F2.el.getBoundingClientRect();
+    // под скобками появляется место для знаменателя: пока пустое, единица вырастет из земли
+    F2.noden = false; F2.den.v = 1;
+    F2.bar.style.opacity = '0';
+    const skip = new Set([F2.den.el]);
+    const leaf0 = F2.numRow.querySelector(LEAF);
+    const y0 = leaf0.getBoundingClientRect().top;
+    reflow(() => {
+      render();
+      F2.den.el.style.visibility = 'hidden';
+      // числитель не дёргается: остаётся на своём месте и потом сразу спускается вниз
+      F2.numRow.querySelectorAll(LEAF).forEach((e) => skip.add(e));
+      const l1 = F2.numRow.querySelector(LEAF);
+      F2.numRow.style.translate = `0 ${y0 - l1.getBoundingClientRect().top}px`;
+    }, skip, 450);
+    await sleep(T(520));
+    if (st !== me) return;
     const fs = fontPx();
-    const fx = mk('div', 'br-rain');
-    document.body.append(fx);
-    const cw = fs * 1.5;
-    const cloud = mk('div', 'cl');
-    Object.assign(cloud.style, { width: `${cw}px`, left: `${r.left + r.width / 2 - cw / 2}px`, top: `${r.top - cw * 0.62}px` });
-    cloud.innerHTML = `<svg viewBox="0 0 100 62" style="display:block;width:100%;overflow:visible;filter:drop-shadow(0 .06em .09em rgba(100,90,200,.25))" stroke-linejoin="round"><path d="M24 50 C9 50 3 34 15 27 C11 13 29 5 40 14 C46 0 71 1 75 16 C93 14 99 37 85 45 C90 52 81 55 76 50 Z" fill="#d9d0ff" stroke="#8a7be8" stroke-width="2.4"/><path d="M22 22 C26 15 33 13 38 16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/></svg>`;
-    fx.append(cloud);
-    await cloud.animate([{ scale: '.3', opacity: 0 }, { scale: '1.08', opacity: 1, offset: .6 }, { scale: '1', opacity: 1 }], { duration: T(600), easing: 'cubic-bezier(.3,1.3,.5,1)', fill: 'forwards' }).finished.catch(() => {});
-    const top = r.top - cw * 0.62 + cw * 0.3;
-    const drops = [];
-    for (let i = 0; i < 14; i++) {
-      const h = fs * (0.2 + Math.random() * 0.12);
-      const d = mk('div', 'drop');
-      Object.assign(d.style, { height: `${h}px`, left: `${r.left + r.width / 2 + (Math.random() - 0.5) * cw * 0.6}px`, top: `${top}px` });
-      fx.append(d);
-      const dist = Math.max(10, r.bottom - top - h);
-      drops.push(d.animate([{ transform: 'translateY(0)', opacity: 0 }, { opacity: 1, offset: .12 }, { transform: `translateY(${dist}px)`, opacity: 1, offset: .88 }, { transform: `translateY(${dist}px)`, opacity: 0 }],
-        { duration: T(700 + Math.random() * 250), delay: T(Math.random() * 600), iterations: Infinity, easing: 'linear' }));
-    }
-    await sleep(T(1100));
-    if (st !== me) { fx.remove(); return; }
-    F2.noden = false;
-    F2.den.v = 1;
-    F2.bar.style.transform = 'scaleX(0)'; F2.den.el.style.opacity = '0';
-    reflow(() => render(), new Set([F2.den.el]), 480);
-    F2.bar.style.transform = '';
-    F2.bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: T(420), easing: 'ease-out' });
-    await sleep(380);
-    drops.forEach((d) => d.cancel());
-    F2.den.el.style.opacity = '';
-    F2.den.el.style.color = '#2f9e44';
-    popIn(F2.den.el, 0);
-    burst(F2.den.el, '#2f9e44', 10);
-    cloud.animate([{ opacity: 1, scale: '1' }, { opacity: 0, scale: '.5' }], { duration: T(450), fill: 'forwards' }).finished.then(() => fx.remove());
-    await sleep(T(600));
-    F2.den.el.style.color = '';
+    const R = (el) => el.getBoundingClientRect();
+    const nr = R(F2.numRow), dr = R(F2.den.el);
+    const soilTop = dr.top + dr.height * 0.88;
+    const lift = soilTop - (dr.top + dr.height * 0.2);
+    const lifted = [F2.numRow, F2.bar];
+    const move = (el, rem, ms) => {
+      const from = el.style.translate || '0 0';
+      el.style.translate = `0 ${rem}px`;
+      if (ms) el.animate([{ translate: from }, { translate: `0 ${rem}px` }], { duration: ms, easing: 'cubic-bezier(.2,.9,.3,1.25)' });
+    };
+    await MG.rain.play({
+      fs, cx: nr.left + nr.width / 2, rainX: nr.left + nr.width / 2,
+      cloudY: nr.top - fs * 1.05,
+      digitEl: F2.den.el, digitRect: dr,
+      soilX: dr.left + dr.width / 2, soilTop, lift,
+      endY: soilTop - fs * 0.1,
+      onStart() {
+        move(F2.numRow, lift, T(700));
+        F2.bar.style.translate = `0 ${lift}px`;
+        F2.bar.style.opacity = '';
+        F2.bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: T(700), easing: 'cubic-bezier(.3,0,.2,1)', fill: 'backwards' });
+      },
+      setLift(rem, ms) { lifted.forEach((el) => move(el, rem, ms)); },
+      endLift() { lifted.forEach((el) => { el.style.translate = ''; }); },
+      onReveal() {
+        F2.den.el.style.visibility = '';
+        popIn(F2.den.el);
+        burst(F2.den.el, '#16a34a', 10);
+      },
+    });
+    F2.bar.style.opacity = ''; F2.bar.style.translate = ''; F2.numRow.style.translate = ''; F2.den.el.style.visibility = '';
     if (st !== me) return;
     me.busy = false;
     me.phase = computePhase();
@@ -740,6 +772,44 @@
     me.busy = false;
     me.phase = computePhase();
     updateHint();
+  }
+
+  /* ракета в обратную сторону: множитель перед скобками летит к слагаемым и сливается с ними */
+  async function doRocketBack(par) {
+    const me = st;
+    me.busy = true;
+    setHint('');
+    const F = me.F1;
+    const g = par.k;
+    const fs = fontPx();
+    const kr = par.kEl.getBoundingClientRect();
+    const rects = par.terms.map((t) => t.el.getBoundingClientRect());
+    const ghosts = rects.map(() => {
+      const el = mk('div', 'br-rg', String(g));
+      Object.assign(el.style, { left: `${kr.left + kr.width / 2 - 20}px`, top: `${kr.top + kr.height / 2 - 24}px`, width: '40px', height: '48px', fontSize: `${fs * 0.6}px` });
+      document.body.append(el);
+      return el;
+    });
+    par.kEl.style.opacity = '0';
+    bump(par.kEl);
+    await Promise.all(ghosts.map((gh, i) => MG.rocket(gh, { left: kr.left + kr.width / 2 - 20, top: kr.top + kr.height / 2 - 24, width: 40, height: 48 },
+      { left: rects[i].left + rects[i].width / 2 - 20, top: rects[i].top + rects[i].height / 2 - 24, width: 40, height: 48 }, { dir: 1, delay: i * 140, color: '#3b82f6' })));
+    if (st !== me) return;
+    // множитель слился со слагаемыми: скобки исчезают, числа умножены
+    const first = snap();
+    par.terms.forEach((t) => { t.v = t.v * g * par.sgn; });
+    F.num.splice(F.num.indexOf(par), 1, ...par.terms);
+    if (par.factored) F.den.parts = null;
+    par.kEl.style.opacity = '';
+    render();
+    playFlip(first, new Set(), 520);
+    par.terms.forEach((t) => { if (!first.has(t.op) && !t.op.classList.contains('hid')) popIn(t.op, 200); bump(t.el); burst(t.el, '#3b82f6', 10); });
+    await sleep(640);
+    if (st !== me) return;
+    me.busy = false;
+    me.phase = computePhase();
+    updateHint();
+    checkDone();
   }
 
   async function doHammer() {
@@ -811,6 +881,9 @@
       return;
     }
     if (tool === 'rocket') {
+      const kE = e.target.closest('.br-k');
+      const kp = kE && st.F1.num.find((n) => isPar(n) && n.k && n.kEl === kE);
+      if (kp) { doRocketBack(kp); return; }
       if (st.phase === 'rocket') doRocket();
       else MG.indivisible(e.target.closest('.br-t, .br-tok') || st.F1.den.el, 'ракета выносит общий множитель — он появится в конце, когда числитель и знаменатель делятся на одно число');
       return;

@@ -461,6 +461,13 @@ body[data-tool="cloud"] .ghost.dragging { cursor: var(--cur-cloud, grabbing) !im
   .stage { padding: 8px 16px 120px; }
 }
 
+@media (max-width: 640px) {
+  .toolbar { gap: 2px; padding: 6px; max-width: calc(100vw - 12px); bottom: max(8px, env(safe-area-inset-bottom)); border-radius: 20px; }
+  .tool { width: clamp(38px, calc((100vw - 40px) / 8), 56px); padding: 6px 1px 4px; font-size: .56rem; }
+  .tool svg { width: 30px; height: 30px; }
+  .tool .key { display: none; }
+  .stage { padding: 8px 10px 100px; }
+}
 @media (max-width: 520px) {
   .top { padding: 12px 16px; }
   .stats { gap: 12px; font-size: .9rem; }
@@ -653,3 +660,21 @@ body[data-tool="conveyor"] .stage, body[data-tool="conveyor"] .stage .token, bod
 body[data-tool="heli"] #mode-shift .sh-t, body[data-tool="heli"] #mode-shift .sh-t * { cursor: var(--cur-heli, grab) !important; }
 body[data-tool="bolt"] #mode-shift .sh-op, body[data-tool="bolt"] #mode-shift .sh-t { cursor: var(--cur-bolt, pointer) !important; }
 body[data-tool="conveyor"] #mode-shift .sh-t { cursor: var(--cur-conveyor, pointer) !important; }
+
+/* ---------- телефон: без выделения, лупы и зума по двойному тапу ---------- */
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; overscroll-behavior: none; padding-bottom: env(safe-area-inset-bottom); }
+
+@media (max-width: 640px) {
+  .top { padding: 8px 10px; }
+  .groups { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; border-radius: 22px; max-width: 100%; }
+  .groups::-webkit-scrollbar, .sub-in::-webkit-scrollbar { display: none; }
+  .group { flex: none; white-space: nowrap; }
+  .sub-in { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .sub .tab { flex: none; white-space: nowrap; padding: 5px 12px; }
+}
+
+/* сенсорные экраны: перетаскивание на поле не должно прокручивать страницу */
+@media (pointer: coarse) {
+  .stage, .stage * { touch-action: none; }
+}
