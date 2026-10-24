@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Математические игры</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=37">
+</head>
+<body>
+  <header class="top">
+    <nav class="menu" aria-label="Разделы">
+      <div class="groups" role="tablist">
+        <button class="group" data-group="reduce" aria-expanded="false" type="button">Сокращение дробей <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="group" data-group="addsub" aria-expanded="false" type="button">Сложение и вычитание <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="group" data-group="muldiv" aria-expanded="false" type="button">Умножение и деление <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="group" data-group="equations" aria-expanded="false" type="button">Уравнения <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div class="subs">
+        <div class="sub" data-group="reduce"><div class="sub-in">
+          <button class="tab" data-mode="cancel" role="tab" aria-selected="false" type="button">Сокращение чисел</button>
+          <button class="tab" data-mode="factor" role="tab" aria-selected="false" type="button">Вынесение за скобки</button>
+        </div></div>
+        <div class="sub" data-group="addsub"><div class="sub-in">
+          <button class="tab" data-mode="common" role="tab" aria-selected="false" type="button">Общий знаменатель</button>
+          <button class="tab" data-mode="big" role="tab" aria-selected="false" type="button">Большие знаменатели</button>
+          <button class="tab" data-mode="borrow" role="tab" aria-selected="false" type="button">Занять единицу</button>
+          <button class="tab" data-mode="mixed" role="tab" aria-selected="false" type="button">Смешанные числа</button>
+          <button class="tab" data-mode="br" role="tab" aria-selected="false" type="button">Дроби с переменными</button>
+        </div></div>
+        <div class="sub" data-group="muldiv"><div class="sub-in">
+          <button class="tab" data-mode="mul" role="tab" aria-selected="false" type="button">Умножение дробей</button>
+          <button class="tab" data-mode="div" role="tab" aria-selected="false" type="button">Деление дробей</button>
+          <button class="tab" data-mode="whole" role="tab" aria-selected="false" type="button">Целое × дробь</button>
+          <button class="tab" data-mode="mixmd" role="tab" aria-selected="false" type="button">Смешанные × ÷</button>
+        </div></div>
+        <div class="sub" data-group="equations"><div class="sub-in">
+          <button class="tab" data-mode="prop" role="tab" aria-selected="false" type="button">Пропорции</button>
+          <button class="tab" data-mode="shift" role="tab" aria-selected="false" type="button">Перенос через «=»</button>
+        </div></div>
+      </div>
+    </nav>
+    <div class="stats">
+      <span>Уровень <b id="level">1</b></span>
+      <span>Решено <b id="solved">0</b></span>
+      <button id="skip" class="ghost" type="button">Другая задача</button>
+    </div>
+  </header>
+
+  <!-- Режим 1: сокращение числовых дробей -->
+  <main class="stage" id="mode-cancel">
+    <p class="hint" id="hint"></p>
+
+    <div class="fraction" id="fraction">
+      <div class="row" id="num"></div>
+      <div class="bar" id="bar"></div>
+      <div class="row" id="den"></div>
+    </div>
+
+    <div class="after" id="after">
+      <div class="result"><span class="check">✓</span><span id="resultText"></span></div>
+      <button id="next" class="btn" type="button">Следующая дробь →</button>
+    </div>
+  </main>
+
+  <!-- Режим: умножение дробей (мост) -->
+  <main class="stage" id="mode-mul" hidden>
+    <p class="hint" id="m-hint"></p>
+
+    <div class="mul-stage" id="m-stage">
+      <div class="mul-pair" id="m-pair">
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+        <div class="mul-dot" id="m-dot"><svg viewBox="-20 -20 40 40" aria-hidden="true"><path d="M-17 17 L17 -17 M17 17 L-17 -17" stroke="currentColor" stroke-width="9" fill="none"/></svg></div>
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+      </div>
+      <div class="fraction nodots hidden" id="m-fraction">
+        <div class="row" id="m-num"></div>
+        <div class="bar" id="m-bar"></div>
+        <div class="row" id="m-den"></div>
+      </div>
+    </div>
+
+    <div class="after" id="m-after">
+      <div class="result"><span class="check">✓</span><span id="m-resultText"></span></div>
+      <button id="m-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Режим: деление дробей (вентилятор) -->
+  <main class="stage" id="mode-div" hidden>
+    <p class="hint" id="d-hint"></p>
+
+    <div class="mul-stage" id="d-stage">
+      <div class="mul-pair" id="d-pair">
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+        <div class="mul-dot" id="d-dot"></div>
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+      </div>
+      <div class="fraction nodots hidden" id="d-fraction">
+        <div class="row" id="d-num"></div>
+        <div class="bar" id="d-bar"></div>
+        <div class="row" id="d-den"></div>
+      </div>
+    </div>
+
+    <div class="after" id="d-after">
+      <div class="result"><span class="check">✓</span><span id="d-resultText"></span></div>
+      <button id="d-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Режим: смешанные числа: умножение и деление (зубы) -->
+  <main class="stage" id="mode-mixmd" hidden>
+    <p class="hint" id="mq-hint"></p>
+
+    <div class="mul-stage" id="mq-stage">
+      <div class="mul-pair" id="mq-pair">
+        <div class="mul-dot" id="mq-dot"></div>
+      </div>
+      <div class="fraction nodots hidden" id="mq-fraction">
+        <div class="row" id="mq-num"></div>
+        <div class="bar" id="mq-bar"></div>
+        <div class="row" id="mq-den"></div>
+      </div>
+    </div>
+
+    <div class="after" id="mq-after">
+      <div class="result"><span class="check">✓</span><span id="mq-resultText"></span></div>
+      <button id="mq-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Режим: целое × дробь (облако) -->
+  <main class="stage" id="mode-whole" hidden>
+    <p class="hint" id="wf-hint"></p>
+
+    <div class="mul-stage" id="wf-stage">
+      <div class="mul-pair" id="wf-pair">
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+        <div class="mul-dot" id="wf-dot"><svg viewBox="-20 -20 40 40" aria-hidden="true"><path d="M-17 17 L17 -17 M17 17 L-17 -17" stroke="currentColor" stroke-width="9" fill="none"/></svg></div>
+        <div class="mulf"><div class="row rn"></div><div class="bar"></div><div class="row rd"></div></div>
+      </div>
+      <div class="fraction nodots hidden" id="wf-fraction">
+        <div class="row" id="wf-num"></div>
+        <div class="bar" id="wf-bar"></div>
+        <div class="row" id="wf-den"></div>
+      </div>
+    </div>
+
+    <div class="after" id="wf-after">
+      <div class="result"><span class="check">✓</span><span id="wf-resultText"></span></div>
+      <button id="wf-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <main class="stage" id="mode-prop" hidden>
+    <p class="hint" id="pp-hint"></p>
+
+    <div class="pp-stage" id="pp-stage">
+      <div class="pp-eqn" id="pp-eqn">
+        <div class="fraction pp-lf" id="pp-lf">
+          <div class="row" id="pp-lnum"></div>
+          <div class="bar" id="pp-lbar"></div>
+          <div class="row" id="pp-lden"></div>
+        </div>
+        <svg class="pp-eq" id="pp-eq" viewBox="-20 -20 40 40" aria-label="равно"><path d="M-17 -8 H17 M-17 8 H17" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/></svg>
+        <div class="fraction nodots" id="pp-rf">
+          <div class="row" id="pp-num"></div>
+          <div class="bar" id="pp-bar"></div>
+          <div class="row" id="pp-den"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="after" id="pp-after">
+      <div class="result"><span class="check">✓</span><span id="pp-resultText"></span></div>
+      <button id="pp-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <main class="stage" id="mode-shift" hidden>
+    <p class="hint" id="sh-hint"></p>
+
+    <div class="sh-stage" id="sh-stage">
+      <div class="sh-eqn" id="sh-eqn">
+        <div class="sh-side" id="sh-L"></div>
+        <svg class="sh-eq" id="sh-eq" viewBox="-20 -20 40 40" aria-label="равно"><path d="M-17 -8 H17 M-17 8 H17" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/></svg>
+        <div class="sh-side" id="sh-R"></div>
+      </div>
+    </div>
+
+    <div class="after" id="sh-after">
+      <div class="result"><span class="check">✓</span><span id="sh-resultText"></span></div>
+      <button id="sh-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <main class="stage" id="mode-br" hidden>
+    <p class="hint" id="br-hint"></p>
+
+    <div class="br-stage" id="br-stage">
+      <div class="br-eqn" id="br-eqn"></div>
+    </div>
+
+    <div class="br-packrow"><button class="br-pack" id="br-pack" type="button"><svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round"><polygon points="30,17 42,9 42,33 30,41" fill="#b98b55" stroke="#6b4423" stroke-width="2"/><polygon points="6,17 18,9 42,9 30,17" fill="#e0bd8a" stroke="#6b4423" stroke-width="2"/><rect x="6" y="17" width="24" height="24" rx="1.5" fill="#d2a468" stroke="#6b4423" stroke-width="2"/><path d="M15 17 V28 L18 26 L21 28 V17" fill="#f2e4c4" stroke="#6b4423" stroke-width="1.5"/></svg><span>УПАКОВАТЬ</span></button></div>
+
+    <div class="after" id="br-after">
+      <div class="result"><span class="check">✓</span><span id="br-resultText"></span></div>
+      <button id="br-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Режим 2: вынесение общего множителя за скобки -->
+  <main class="stage" id="mode-factor" hidden>
+    <p class="hint" id="f-hint"></p>
+
+    <div class="fraction" id="f-fraction">
+      <div class="row" id="f-num"></div>
+      <div class="bar" id="f-bar"></div>
+      <div class="row" id="f-den"></div>
+    </div>
+
+    <div class="launch" id="f-launch">
+      <button class="btn go" id="f-go" type="button" disabled>
+        <svg viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(45 24 24)"><path d="M24 3 C33 12 33 27 29 37 H19 C15 27 15 12 24 3Z" fill="#fff"/><circle cx="24" cy="18" r="4.4" fill="#60a5fa"/><path d="M19.4 29 L10.5 39 L19.2 36.6Z M28.6 29 L37.5 39 L28.8 36.6Z" fill="#ef4444"/><path d="M20.5 37 H27.5 L24 46Z" fill="#f59e0b"/></g></svg>
+        <span>Запуск<b></b></span>
+      </button>
+    </div>
+
+    <div class="after" id="f-after">
+      <div class="result"><span class="check">✓</span><span id="f-resultText"></span></div>
+      <button id="f-next" class="btn" type="button">Следующая задача →</button>
+    </div>
+  </main>
+
+  <!-- Режим 3: приведение к общему знаменателю -->
+  <main class="stage" id="mode-common" hidden>
+    <p class="hint" id="c-hint"></p>
+
+    <div class="fracs" id="c-fracs"></div>
+
+    <div class="after" id="c-after">
+      <div class="result"><span class="check">✓</span><span id="c-resultText"></span></div>
+      <button id="c-next" class="btn" type="button">Следующая задача →</button>
+    </div>
+  </main>
+
+  <!-- Режим 4: большие знаменатели -->
+  <main class="stage" id="mode-big" hidden>
+    <p class="hint" id="b-hint"></p>
+
+    <div class="fracs" id="b-fracs"></div>
+
+    <div class="after" id="b-after">
+      <div class="result"><span class="check">✓</span><span id="b-resultText"></span></div>
+      <p class="note" id="b-note"></p>
+      <button id="b-next" class="btn" type="button">Следующая задача →</button>
+    </div>
+  </main>
+
+  <!-- Режим 5: целое минус дробь -->
+  <main class="stage" id="mode-borrow" hidden>
+    <p class="hint" id="w-hint"></p>
+
+    <div class="fracs" id="w-fracs"></div>
+
+    <div class="after" id="w-after">
+      <div class="result"><span class="check">✓</span><span id="w-resultText"></span></div>
+      <button id="w-next" class="btn" type="button">Следующая задача →</button>
+    </div>
+  </main>
+
+  <!-- Режим 6: смешанные числа -->
+  <main class="stage" id="mode-mixed" hidden>
+    <p class="hint" id="x-hint"></p>
+
+    <div class="mx-expr" id="x-expr"></div>
+
+    <div class="after" id="x-after">
+      <div class="result"><span class="check">✓</span><span id="x-resultText"></span></div>
+      <button id="x-next" class="btn" type="button">Следующая задача →</button>
+    </div>
+  </main>
+
+  <script src="js/core.js?v=24"></script>
+  <script src="js/lightning.js?v=24"></script>
+  <script src="js/rocket-fx.js?v=24"></script>
+  <script src="js/ice.js?v=24"></script>
+  <script src="js/press.js?v=24"></script>
+  <script src="js/cloud.js?v=24"></script>
+  <script src="js/axe.js?v=24"></script>
+  <script src="js/heli.js?v=3"></script>
+  <script src="js/tread.js?v=9"></script>
+  <script src="js/joker.js?v=6"></script>
+  <script src="js/bridge.js?v=22"></script>
+  <script src="js/fan.js?v=1"></script>
+  <script src="js/rain.js?v=3"></script>
+  <script src="js/teeth.js?v=7"></script>
+  <script src="js/conveyor.js?v=3"></script>
+  <script src="js/cups.js?v=2"></script>
+  <script src="js/tools.js?v=42"></script>
+  <script src="js/fractions.js?v=24"></script>
+  <script src="js/mul.js?v=10"></script>
+  <script src="js/div.js?v=5"></script>
+  <script src="js/wf.js?v=4"></script>
+  <script src="js/mq.js?v=3"></script>
+  <script src="js/pp.js?v=8"></script>
+  <script src="js/sh.js?v=12"></script>
+  <script src="js/br.js?v=5"></script>
+  <script src="js/factor.js?v=25"></script>
+  <script src="js/common.js?v=30"></script>
+  <script src="js/borrow.js?v=30"></script>
+  <script src="js/mixed.js?v=23"></script>
+  <script src="js/app.js?v=91"></script>
+</body>
+</html>
