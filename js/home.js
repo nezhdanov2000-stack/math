@@ -146,9 +146,9 @@
     .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
     .hm-title { text-align: center; font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.2rem); color: #fff4d6; letter-spacing: .02em; -webkit-text-stroke: 1px rgba(40, 24, 8, .0); text-shadow: 0 3px 0 #7a4a14, 0 6px 14px rgba(0, 0, 0, .35); margin: 6px 0 2px; }
     .hm-sub { text-align: center; color: #cfe0ff; font-weight: 800; font-size: .95rem; margin: 0 0 6px; }
-    .isle { position: relative; margin: 12% 0 0; }
+    .isle { position: relative; margin: 20% 0 0; }
     .hm-sub + .isle { margin-top: 10%; }
-    .hm-foot { margin-top: 12%; }
+    .hm-foot { margin-top: 18%; }
     .isle-art { position: relative; aspect-ratio: 4 / 3; width: 78%; }
     .isle.r .isle-art { margin-left: auto; } .isle.l .isle-art { margin-right: auto; }
     .isle-art > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 14px rgba(0, 0, 0, .28)); animation: hmFloat 6s ease-in-out infinite; }
