@@ -12,10 +12,10 @@
       { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 68, y: 72 },
       { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 64, y: 16 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
-      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 37, y: 62 },
-      { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 11, y: 72 },
-      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 50, y: 48, lab: 'r' },
-      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 50, y: 35, lab: 'r' },
+      { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 36, y: 58 },
+      { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 9, y: 76 },
+      { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 64, y: 50, lab: 'r' },
+      { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 40, y: 28, lab: 'r' },
       { id: 'br', name: 'Дроби с переменными', icon: 'box', x: 84, y: 71 } ] },
     { n: 'III', title: 'Умножение и деление', cls: 'l3', modes: [
       { id: 'mul', name: 'Умножение дробей', icon: 'bridge', x: 14, y: 76 },
@@ -202,7 +202,7 @@
   const DECO = {
     l1: [['axe', 12, 62, 'chop'], ['heli', 50, 40, 'orbit']],
     l2: [],
-    l3: [['fan', 6, 72], ['rocket', 80, 12]],
+    l3: [['fan', 4, 42], ['rocket', 80, 12]],
     l4: [['conveyor', 10, 26], ['cups', 82, 38]],
   };
   const icon = (id) => (MG.tools && MG.tools.icon ? MG.tools.icon(id) : '') || '';
