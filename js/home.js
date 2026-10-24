@@ -143,7 +143,7 @@
       background-image: radial-gradient(2px 2px at 12% 18%, #fff 50%, transparent 52%), radial-gradient(1.6px 1.6px at 78% 9%, #fff 50%, transparent 52%), radial-gradient(2px 2px at 44% 30%, #fff 50%, transparent 52%), radial-gradient(1.4px 1.4px at 90% 40%, #fff 50%, transparent 52%), radial-gradient(1.8px 1.8px at 25% 62%, #fff 50%, transparent 52%), radial-gradient(1.4px 1.4px at 62% 74%, #fff 50%, transparent 52%), radial-gradient(1.6px 1.6px at 5% 88%, #fff 50%, transparent 52%);
       animation: hmTw 4s ease-in-out infinite alternate; }
     @keyframes hmTw { from { opacity: .5; } to { opacity: 1; } }
-    .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
+    .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(56px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
     .hm-title { text-align: center; font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.2rem); color: #fff4d6; letter-spacing: .02em; -webkit-text-stroke: 1px rgba(40, 24, 8, .0); text-shadow: 0 3px 0 #7a4a14, 0 6px 14px rgba(0, 0, 0, .35); margin: 6px 0 2px; }
     .hm-sub { text-align: center; color: #cfe0ff; font-weight: 800; font-size: .95rem; margin: 0 0 6px; }
     .isle { position: relative; margin: 20% 0 0; }

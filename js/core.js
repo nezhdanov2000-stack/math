@@ -69,7 +69,7 @@
   /* эффекты рисуются прямо в <body> (position: fixed). При выходе из режима всё,
    * что не относится к каркасу страницы, убираем — иначе зависшие ленты, вертолёты
    * и призраки остаются поверх следующего экрана. */
-  const KEEP = '#splash, #home, .top, .stage, .toolbar, .jk-follow, script, style, link';
+  const KEEP = '#home, .snd-ctl, .top, .stage, .toolbar, .jk-follow, script, style, link';
   function sweepFx() {
     [...document.body.children].forEach((el) => { if (!el.matches(KEEP)) el.remove(); });
   }
