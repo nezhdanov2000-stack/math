@@ -146,7 +146,7 @@
     .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(56px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
     .hm-title { text-align: center; font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.2rem); color: #fff4d6; letter-spacing: .02em; -webkit-text-stroke: 1px rgba(40, 24, 8, .0); text-shadow: 0 3px 0 #7a4a14, 0 6px 14px rgba(0, 0, 0, .35); margin: 6px 0 2px; }
     .hm-sub { text-align: center; color: #cfe0ff; font-weight: 800; font-size: .95rem; margin: 0 0 6px; }
-    .isle { position: relative; margin: 20% 0 0; }
+    .isle { position: relative; margin: 11% 0 0; }
     .hm-sub + .isle { margin-top: 10%; }
     .hm-foot { margin-top: 18%; }
     .isle-art { position: relative; aspect-ratio: 4 / 3; width: 78%; }
@@ -188,6 +188,14 @@
     .isle.r .lv { left: 1%; } .isle.l .lv { right: 1%; flex-direction: row-reverse; text-align: right; }
     .lv .num { font-weight: 900; font-size: clamp(2.6rem, 11vw, 4rem); line-height: 1; color: #fff1cf; -webkit-text-stroke: 7px #5a3512; paint-order: stroke fill; text-shadow: 0 5px 0 #5a3512; letter-spacing: .02em; }
     .lv .txt { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 5px #5a3512; paint-order: stroke fill; font-size: clamp(1rem, 4.4vw, 1.5rem); line-height: 1.05; text-shadow: 0 3px 0 #5a3512; text-transform: uppercase; max-width: 9em; }
+    /* ряд режимов под островом: по порядку, с номерами */
+    .modes { display: flex; flex-wrap: wrap; gap: 10px 8px; padding: 6px 2px 0; position: relative; z-index: 5; }
+    .isle.r .modes { justify-content: flex-start; } .isle.l .modes { justify-content: flex-end; }
+    .modes .pin { position: relative; transform: none; left: auto; top: auto; width: 4.9rem; }
+    .modes .pin .dot { width: clamp(46px, 13vw, 56px); }
+    .modes .pin .nm { margin-top: 7px; font-size: clamp(.58rem, 2.3vw, .72rem); max-width: 100%; }
+    .modes .pin .no { position: absolute; top: -5px; left: calc(50% - clamp(23px, 6.5vw, 28px) - 6px); min-width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; font-weight: 900; font-size: .72rem; color: #5a3512; background: #fff1cf; border: 2px solid #5a3512; box-shadow: 0 2px 0 #5a3512; z-index: 2; }
+    .modes .pin .st { right: calc(50% - clamp(23px, 6.5vw, 28px) - 10px); }
     .pin { position: absolute; z-index: 4; transform: translate(-50%, -50%); border: 0; background: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; font: inherit; -webkit-tap-highlight-color: transparent; }
     .pin .dot { width: clamp(36px, 10vw, 52px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fffdf5, #ffe9ab 70%, #f6c860); border: 4px solid #5a3512; box-shadow: 0 5px 0 #5a3512, 0 10px 14px rgba(0, 0, 0, .3); transition: transform .18s cubic-bezier(.3, 1.6, .5, 1); }
     .pin:hover .dot, .pin:focus-visible .dot { transform: translateY(-3px) scale(1.08); }
@@ -240,6 +248,7 @@
     const col = document.createElement('div');
     col.className = 'hm-col';
     col.innerHTML = `<div class="hm-title">Математические игры</div><p class="hm-sub">Выбери остров и точку на нём</p>`;
+    let seq = 0;
     LEVELS.forEach((lv, i) => {
       const side = i % 2 ? 'l' : 'r';
       const sec = document.createElement('section');
@@ -248,8 +257,8 @@
         <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
         <div class="isle-art">${ART[lv.cls]()}
           ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
-          ${lv.modes.map((m) => `<button class="pin${m.lab ? ' s' + m.lab : ''}" type="button" data-mode="${m.id}" style="left:${m.x}%;top:${m.y}%" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}
-        </div>`;
+        </div>
+        <div class="modes">${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="no">${++seq}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}</div>`;
       col.append(sec);
     });
     col.insertAdjacentHTML('beforeend', '<p class="hm-foot">Все режимы открыты — решай в любом порядке</p>');
