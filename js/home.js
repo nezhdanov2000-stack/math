@@ -190,9 +190,10 @@
     .lv .txt { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 5px #5a3512; paint-order: stroke fill; font-size: clamp(1rem, 4.4vw, 1.5rem); line-height: 1.05; text-shadow: 0 3px 0 #5a3512; text-transform: uppercase; max-width: 9em; }
     /* ряд режимов под островом: по порядку, с номерами */
     .modes { display: flex; flex-wrap: wrap; gap: 10px 8px; padding: 6px 2px 0; position: relative; z-index: 5; }
-    .isle.r .modes { justify-content: flex-start; } .isle.l .modes { justify-content: flex-end; }
+    .modes { justify-content: center; }
+    .modes.n5 { max-width: 270px; margin: 0 auto; }
     .modes .pin { position: relative; transform: none; left: auto; top: auto; width: 4.9rem; }
-    .modes .pin .dot { width: clamp(46px, 13vw, 56px); }
+    .modes .pin .dot { width: clamp(54px, 15vw, 64px); }
     .modes .pin .nm { margin-top: 7px; font-size: clamp(.58rem, 2.3vw, .72rem); max-width: 100%; }
     .modes .pin .no { position: absolute; top: -5px; left: calc(50% - clamp(23px, 6.5vw, 28px) - 6px); min-width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; font-weight: 900; font-size: .72rem; color: #5a3512; background: #fff1cf; border: 2px solid #5a3512; box-shadow: 0 2px 0 #5a3512; z-index: 2; }
     .modes .pin .st { right: calc(50% - clamp(23px, 6.5vw, 28px) - 10px); }
@@ -227,6 +228,44 @@
     @keyframes hmBob { from { transform: translateY(-5px) rotate(-4deg); } to { transform: translateY(6px) rotate(4deg); } }
     .hm-foot { text-align: center; color: #5a3512; font-weight: 800; font-size: .85rem; opacity: .75; margin-top: 4px; }
     @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .pf, .cvb, .pst, .psp, .bxA, .bxB, .bxC, .hel, .snow, .hm-stars { animation: none; } }
+    /* --- общий вид: острова + кольцо прогресса; по тапу остров приближается --- */
+    .hm-col { padding-left: 22px; padding-right: 22px; }
+    .isle-art { width: 62%; transition: width .5s cubic-bezier(.3,.8,.3,1); }
+    .isle { transition: opacity .25s; }
+    .isle:not(.open) { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .isle.fade { opacity: 0; pointer-events: none; }
+    .isle.gone { position: absolute; left: 0; right: 0; height: 0; margin: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+    .isle.open .isle-art { width: 100%; }
+    .modes { display: none; }
+    .isle.open .modes { display: flex; animation: hmModesIn .5s .15s both; }
+    @keyframes hmModesIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    .prog { position: absolute; left: 6%; top: 30%; width: 24%; z-index: 5; text-align: center; pointer-events: none; transition: left .5s, top .5s, width .5s; color: #fff; }
+    .isle.l .prog { left: 70%; }
+    .isle.r.open .prog { left: 79%; top: 0; width: 20%; }
+    .isle.l.open .prog { left: 1%; top: 0; width: 20%; }
+    .isle.open { padding-top: 86px; }
+    .isle.open .lv { top: 6px; }
+    .prog svg { width: 100%; display: block; filter: drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
+    .prog .pc { font-weight: 900; font-size: 25px; fill: #fff; }
+    .prog .tt { margin-top: 3px; display: inline-block; padding: 1px 8px; border-radius: 99px; background: rgba(24,16,40,.72); font-weight: 800; font-size: clamp(.56rem, 2.4vw, .72rem); }
+    .isle.open .prog .tt { display: none; }
+    .hm-back { display: none; align-self: flex-start; margin: 4px 0 0; border: 0; border-radius: 99px; padding: 8px 16px; font: inherit; font-weight: 800; color: #fff1cf; background: #5a3512; box-shadow: 0 3px 0 #2d1a08; cursor: pointer; }
+    .zoomed .hm-back { display: inline-block; }
+    .zoomed .hm-sub, .zoomed .hm-foot { display: none; }
+    .zoomed.hm-col { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
+    .zoomed .isle.open { margin-top: 5%; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+        .isle.open .modes { margin: 0 auto; padding: 16px 8px 14px; border-radius: 26px; background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .22); }
+    .zoomed .isle-art { flex: none; }
+    .zoomed .hm-title { display: none; }
+    .noanim .isle-art, .noanim .prog { transition: none !important; }
+    .isle { --sx: 0px; }
+    .isle.sw { transition: opacity .2s, transform .2s; opacity: 0; transform: translateY(var(--sx)); }
+    .isle.sw-in { transition: none; opacity: 0; transform: translateY(var(--sx)); }
+    .isle.open { transition: opacity .22s, transform .22s; }
+    .hm-dots { display: none; position: fixed; right: 8px; top: 50%; transform: translateY(-50%); flex-direction: column; align-items: center; gap: 10px; z-index: 6; }
+    .zoomed .hm-dots { display: flex; }
+    .hm-dots i { width: 10px; height: 10px; flex: none; border-radius: 99px; background: rgba(255,255,255,.45); box-shadow: 0 0 0 2px rgba(90,53,18,.55); transition: height .25s, background .25s; cursor: pointer; }
+    .hm-dots i.on { height: 26px; background: #fff1cf; }
   `;
   document.head.append(css);
 
@@ -247,27 +286,93 @@
   function build() {
     const col = document.createElement('div');
     col.className = 'hm-col';
-    col.innerHTML = `<div class="hm-title">Математические игры</div><p class="hm-sub">Выбери остров и точку на нём</p>`;
+    col.innerHTML = `<div class="hm-title">Математические игры</div><p class="hm-sub">Выбери остров</p>`;
+    col.insertAdjacentHTML('beforeend', '<button class="hm-back" type="button">← Все острова</button>');
     let seq = 0;
     LEVELS.forEach((lv, i) => {
       const side = i % 2 ? 'l' : 'r';
       const sec = document.createElement('section');
       sec.className = `isle ${side}`;
       sec.innerHTML = `
+        <div class="prog"></div>
         <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
         <div class="isle-art">${ART[lv.cls]()}
           ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
         </div>
-        <div class="modes">${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="no">${++seq}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}</div>`;
+        <div class="modes${lv.modes.length > 4 ? ' n5' : ''}">${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="no">${++seq}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}</div>`;
       col.append(sec);
     });
     col.insertAdjacentHTML('beforeend', '<p class="hm-foot">Все режимы открыты — решай в любом порядке</p>');
     root.replaceChildren(Object.assign(document.createElement('div'), { className: 'hm-stars' }), col);
     root.querySelectorAll('.pin').forEach((b) => b.addEventListener('click', () => MG.go && MG.go(b.dataset.mode)));
+    const isles = [...col.querySelectorAll('.isle')];
+    isles.forEach((sec, i) => sec.addEventListener('click', (e) => { if (!sec.classList.contains('open') && !e.target.closest('.pin')) openIsle(i); }));
+    col.querySelector('.hm-back').addEventListener('click', closeIsle);
+    col.insertAdjacentHTML('beforeend', `<div class="hm-dots">${LEVELS.map(() => '<i></i>').join('')}</div>`);
+    col.querySelectorAll('.hm-dots i').forEach((d, k) => d.addEventListener('click', () => switchTo(k)));
+    let sx = 0, sy = 0, st = 0, tracking = false;
+    root.addEventListener('touchstart', (e) => { if (openI < 0 || e.touches.length !== 1) { tracking = false; return; } tracking = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      if (!tracking) return; tracking = false;
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      const atTop = root.scrollTop <= 2, atBot = root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+      if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.4 && Date.now() - st < 900) {
+        if (dy < 0 && atBot) switchTo(openI + 1); else if (dy > 0 && atTop) switchTo(openI - 1);
+      }
+    }, { passive: true });
     refresh();
   }
 
+  const GOAL = 10;
+  const RC = 2 * Math.PI * 40;
+  function ringSvg(done, total) {
+    const f = total ? done / total : 0, full = f >= 1;
+    return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="rgba(24,16,40,.78)" stroke="#5a3512" stroke-width="3"/><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="11"/><circle cx="50" cy="50" r="40" fill="none" stroke="${full ? '#ffd23f' : '#3fbf6d'}" stroke-width="11" stroke-linecap="round" stroke-dasharray="${(RC * f).toFixed(1)} ${RC.toFixed(1)}" transform="rotate(-90 50 50)"/><text class="pc" x="50" y="58" text-anchor="middle">${Math.round(f * 100)}%</text></svg><span class="tt">${done}/${total}</span>`;
+  }
+  let busy = false, openI = -1, savedScroll = 0;
+  const isleEls = () => [...root.querySelectorAll('.isle')];
+  const restart = () => setTimeout(() => { startOrbit(); startJaws(); }, 560);
+  function openIsle(i) {
+    if (busy) return; busy = true;
+    const els = isleEls(), col = root.querySelector('.hm-col');
+    savedScroll = root.scrollTop; openI = i;
+    els.forEach((s, k) => { if (k !== i) s.classList.add('fade'); });
+    setTimeout(() => {
+      els.forEach((s, k) => { if (k !== i) s.classList.add('gone'); });
+      col.classList.add('zoomed'); root.scrollTop = 0;
+      requestAnimationFrame(() => { els[i].classList.add('open'); dotsUpdate(); busy = false; restart(); });
+    }, 260);
+  }
+  function dotsUpdate() { root.querySelectorAll('.hm-dots i').forEach((d, k) => d.classList.toggle('on', k === openI)); }
+  function switchTo(k) {
+    if (busy || openI < 0 || k < 0 || k >= LEVELS.length || k === openI) return; busy = true;
+    const els = isleEls(), col = root.querySelector('.hm-col'), cur = els[openI], nxt = els[k], dir = k > openI ? 1 : -1;
+    cur.style.setProperty('--sx', `${-dir * 50}px`); cur.classList.add('sw');
+    setTimeout(() => {
+      col.classList.add('noanim');
+      cur.classList.remove('open', 'sw'); cur.classList.add('gone');
+      nxt.classList.remove('gone', 'fade'); nxt.style.setProperty('--sx', `${dir * 50}px`); nxt.classList.add('sw-in', 'open');
+      openI = k; dotsUpdate(); root.scrollTop = 0;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        nxt.classList.remove('sw-in'); nxt.style.setProperty('--sx', '0px'); col.classList.remove('noanim');
+        busy = false; restart();
+      }));
+    }, 210);
+  }
+  function closeIsle() {
+    if (busy || openI < 0) return; busy = true;
+    const els = isleEls(), col = root.querySelector('.hm-col');
+    els[openI].classList.remove('open'); col.classList.remove('zoomed');
+    els.forEach((s) => s.classList.remove('gone'));
+    root.scrollTop = savedScroll;
+    requestAnimationFrame(() => { els.forEach((s) => s.classList.remove('fade')); });
+    openI = -1; setTimeout(() => { busy = false; }, 300); restart();
+  }
   function refresh() {
+    root.querySelectorAll('.isle').forEach((sec, i) => {
+      const ms = LEVELS[i].modes, done = ms.reduce((a, m) => a + Math.min(GOAL, getSolved(m.id)), 0);
+      sec.querySelector('.prog').innerHTML = ringSvg(done, ms.length * GOAL);
+    });
     root.querySelectorAll('.pin').forEach((b) => {
       const n = getSolved(b.dataset.mode), st = b.querySelector('.st');
       st.hidden = !n; st.textContent = n ? `✓${n}` : '';
