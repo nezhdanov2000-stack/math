@@ -302,6 +302,8 @@
     .hm-sheet p { margin: 0 0 12px; font-size: .9rem; opacity: .8; font-weight: 600; }
     .hm-sheet .cards { display: grid; gap: 10px; }
     .hm-sheet .cd { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: #fff; box-shadow: 0 3px 0 #d9bb82, inset 0 0 0 2px #ecd49d; font-weight: 800; }
+    .hm-sheet .rst { display: block; width: 100%; margin-top: 14px; padding: 11px; border: 0; border-radius: 16px; background: #fff; color: #b3261e; font: 800 .9rem inherit; box-shadow: 0 3px 0 #d9bb82, inset 0 0 0 2px #ecd49d; }
+    .hm-sheet .rst.ask { background: #b3261e; color: #fff; }
     .hm-sheet .cd small { display: block; font-weight: 600; opacity: .7; font-size: .76rem; }
     .hm-sheet .cd .em { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 1.5rem; border-radius: 14px; background: #ffe9ab; }
     .hm-sheet .cd.off { opacity: .55; filter: grayscale(.6); }
@@ -408,7 +410,7 @@
     if (tab === 'trophy') {
       const full = LEVELS.filter((l) => l.modes.every((m) => sol(m) >= GOAL)).length;
       const A = [['🌱', 'Первый шаг', 'Реши первую задачу', total >= 1], ['🔥', 'Разогрев', 'Реши 10 задач', total >= 10], ['🎯', 'Полсотни', 'Реши 50 задач', total >= 50], ['🏝️', 'Остров покорён', 'Закрой любой остров на 100%', full >= 1], ['👑', 'Мастер дробей', 'Закрой все острова', full === LEVELS.length]];
-      return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div>`;
+      return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div><button class="rst" type="button">Сбросить прогресс (для теста)</button>`;
     }
     if (tab === 'friends') return '<h2>Друзья и кураторы</h2><div class="soon"><span class="em">👥</span>Скоро здесь появятся друзья, кураторы и общий рейтинг.</div>';
     const T = MG.tools || {}, INFO = T.info || {}, SETS = T.sets || {}, ids = Object.keys(INFO);
@@ -434,6 +436,12 @@
       pick(slots[0] && slots[0].dataset.t);
     }
     root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+    const rst = sh.querySelector('.rst');
+    if (rst) rst.onclick = () => {
+      if (!rst.classList.contains('ask')) { rst.classList.add('ask'); rst.textContent = 'Точно сбросить? Нажми ещё раз'; return; }
+      try { Object.keys(localStorage).filter((k) => /^mg\.(solved|tut)/.test(k)).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* нет хранилища */ }
+      location.reload();
+    };
     sh.querySelector('.bd').onclick = sh.querySelector('.x').onclick = closeSheet;
     sh.querySelectorAll('[data-act=close]').forEach((e) => { e.onclick = closeSheet; });
   }

@@ -3,10 +3,10 @@
  * и каждый раз показывает ближайший нужный шаг. После первой решённой задачи больше не появляется. */
 (() => {
   'use strict';
-  const KEY = 'mg.tut.cancel';
+  const KEY = 'mg.tut.cancel2';
   const get = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
   const put = () => { try { localStorage.setItem(KEY, '1'); } catch (e) { /* нет хранилища */ } };
-  if (get()) return;
+  const solved = () => { try { return +localStorage.getItem('mg.solved.cancel') || 0; } catch (e) { return 0; } };
 
   const css = document.createElement('style');
   css.textContent = `
@@ -17,6 +17,8 @@
     .coach .fg svg { display: block; width: 100%; height: 100%; }
         .coach .tip { position: fixed; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(78vw, 280px); padding: 8px 14px; border-radius: 16px; background: #1d1d1f; color: #fff; font-weight: 800; font-size: .95rem; text-align: center; line-height: 1.25; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
     @keyframes coTap { 0%, 100% { transform: translate(14px, 18px); } 40% { transform: translate(0, 0); } 52% { transform: scale(.88); } 64% { transform: scale(1); } }
+    .toolbar { transition: transform .5s cubic-bezier(.3,.9,.3,1); }
+    body.co-lift .toolbar { transform: translateY(-84px); }
     @keyframes coRing { 0%, 35% { transform: scale(.4); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
   `;
   document.head.append(css);
@@ -30,14 +32,15 @@
     document.body.append(el);
     return el;
   };
-  const hide = () => { if (el) el.classList.remove('on'); lastKey = ''; };
+  const lift = (on) => document.body.classList.toggle('co-lift', on);
+  const hide = () => { if (el) el.classList.remove('on'); lastKey = ''; lift(false); };
 
   function point(target, text, key) {
     const c = ensure(), r = target.getBoundingClientRect();
     if (!r.width) { hide(); return; }
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const dn = cy > innerHeight * 0.6;
-    c.classList.toggle('dn', dn);
+    const dn = !!target.closest('.toolbar');
+    lift(dn);
     c.style.left = `${Math.max(60, Math.min(innerWidth - 60, cx))}px`;
     c.style.top = `${cy}px`;
     const tip = c.querySelector('.tip'), fr = document.getElementById('fraction').getBoundingClientRect();
@@ -47,23 +50,27 @@
     c.classList.add('on');
   }
 
+  let inited = false, held = false, fin = false;
+  document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.token') && lastKey.startsWith('g2')) { fin = true; hide(); } }, true);
   function tick() {
     const mode = document.getElementById('mode-cancel');
-    if (!mode || mode.hidden) { hide(); return; }
+    if (!mode || mode.hidden) { hide(); if (held) { held = false; MG.tools.hold(false); } inited = false; return; }
     const after = document.getElementById('after');
-    if (after && after.classList.contains('show')) { put(); if (el) el.remove(); clearInterval(timer); return; }
+    if (solved() > 0 || (after && after.classList.contains('show'))) { hide(); if (held) { held = false; MG.tools.hold(false); } return; }
+    if (!inited) { inited = true; fin = false; if (window.MG && MG.tools) { MG.tools.clear(); MG.tools.hold(true); held = true; } }
     const toks = [...document.querySelectorAll('#num .token, #den .token')].filter((t) => !t.classList.contains('one'));
     const tool = document.body.dataset.tool;
     const toolBtn = (id) => document.querySelector(`.toolbar .tool[data-id="${id}"]`);
-    const big = toks.find((t) => t.classList.contains('big'));
+    const big = toks.find((t) => t.classList.contains('big') && !t.classList.contains('paired'));
     if (big) {
-      if (tool !== 'hammer' && toolBtn('hammer')) point(toolBtn('hammer'), 'Выбери кувалду', 'hb');
+      if (tool !== 'hammer' && toolBtn('hammer')) point(toolBtn('hammer'), 'Начнём с кувалды — нажми на неё', 'hb');
       else point(big, 'Ударь кувалдой по числу — оно разобьётся на множители', `h${big.textContent}`);
       return;
     }
     const paired = toks.filter((t) => t.classList.contains('paired'));
+    if (fin) { hide(); if (!paired.length) fin = false; return; }
     if (paired.length) {
-      if (tool !== 'glove' && toolBtn('glove')) { point(toolBtn('glove'), 'Теперь выбери ластик', 'gb'); return; }
+      if (tool !== 'glove' && toolBtn('glove')) { point(toolBtn('glove'), 'Теперь возьми ластик — он сокращает одинаковые множители', 'gb'); return; }
       const sel = toks.find((t) => t.classList.contains('sel'));
       if (!sel) {
         const top = paired.find((t) => t.parentElement.id === 'num') || paired[0];
@@ -77,5 +84,5 @@
     }
     hide();
   }
-  const timer = setInterval(tick, 250);
+  setInterval(tick, 250);
 })();

@@ -269,8 +269,9 @@
     return false;
   }
 
+  let hold = false;      // обучение: инструмент не подставляется сам
   function auto(name, has) {
-    if (name !== mode) return;
+    if (name !== mode || hold) return;
     if (has[current] && !isOff(current)) return;
     const next = SETS[mode].find((id) => has[id] && !isOff(id));
     if (!next) return;
@@ -370,5 +371,6 @@
   }
   MG.erase = erase;
 
-  MG.tools = { use, need, auto, disable, pick: select, current: () => current, icon: (id) => ICONS[id] || '', info: INFO, sets: SETS };
+  MG.tools = { use, need, auto, disable, pick: select, current: () => current, icon: (id) => ICONS[id] || '', info: INFO, sets: SETS,
+    clear: () => { current = null; paintSelection(); }, hold: (v) => { hold = !!v; } };
 })();

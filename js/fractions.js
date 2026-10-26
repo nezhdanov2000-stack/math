@@ -150,7 +150,7 @@
     if (!state || state.finished) return;
     const toks = [...state.sides.num.toks, ...state.sides.den.toks].filter((t) => !t.gone && t.value !== 1);
     window.MG.tools.auto('cancel', {
-      hammer: toks.some((t) => !isPrime(t.value)),
+      hammer: toks.some((t) => !isPrime(t.value) && !t.paired),
       glove: toks.some((t) => t.paired),
     });
   }
@@ -228,7 +228,7 @@
 
   function refreshPairs() {
     const live = (side) => state.sides[side].toks
-      .filter((t) => !t.gone && isPrime(t.value));
+      .filter((t) => !t.gone && t.value > 1);
     const A = live('num');
     const B = live('den');
     [...A, ...B].forEach((t) => setPaired(t, false));
@@ -259,7 +259,7 @@
     if (!state || state.finished || tok.gone || tok.value === 1) return;
     const tools = window.MG.tools;
     if (tools.current() === 'glove') { gloveClick(tok); return; }   // перчатка: выбираем пару
-    if (!isPrime(tok.value)) {                              // составное → кувалда делит
+    if (!isPrime(tok.value) && !tok.paired) {               // составное без пары → кувалда делит
       if (tools.need('hammer')) splitOnce(tok);
       return;
     }
@@ -282,7 +282,7 @@
     if (sel.length < 2) return;
     const [a, b] = sel;
     clearSel();
-    if (a.side !== b.side && a.value === b.value && isPrime(a.value) && !a.gone && !b.gone) { cancelPair(a, b); return; }
+    if (a.side !== b.side && a.value === b.value && a.value > 1 && !a.gone && !b.gone) { cancelPair(a, b); return; }
     [a, b].forEach((t) => window.MG.shake(t.el));
     setHint('Эти множители сократить нельзя — ластик исчез на несколько секунд');
     setTimeout(() => { if (state) updateHint(); }, window.MG.PENALTY.hint);
