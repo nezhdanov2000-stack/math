@@ -144,7 +144,7 @@
       state.sides[k].toks.some((t) => t.paired && !t.gone));
     return anyPair
       ? 'Возьми ластик и выбери два одинаковых цветных множителя — сверху и снизу. Ошибёшься — ластик исчезнет'
-      : 'Возьми кувалду и ударь по числу — оно разобьётся на два множителя. Простое число не делится.';
+      : (manual() ? 'Возьми кувалду, нажми на число и впиши два множителя. Простое число не делится.' : 'Возьми кувалду и ударь по числу — оно разобьётся на два множителя. Простое число не делится.');
   }
   function autoTool() {
     if (!state || state.finished) return;
@@ -204,10 +204,28 @@
     updateHint();
   }
 
+  /* после 50 % прогресса кувалда не делит сама: множители вводит пользователь */
+  const manual = () => (window.MG.clip ? window.MG.clip.isManual() : false);
+  async function askSplit(tok) {
+    if (tok.smashing || tok.asking || !window.MG.clip) return;
+    const st = state;
+    tok.asking = true;
+    const r = await window.MG.clip.ask(tok.value, tok.el);
+    tok.asking = false;
+    if (!r || state !== st || st.finished || tok.gone) return;
+    tok.smashing = true;
+    await smash(tok.el);
+    tok.smashing = false;
+    if (state !== st || st.finished || tok.gone) return;
+    splitStep(st.sides[tok.side], tok, r[0]);
+    refreshPairs();
+    updateHint();
+  }
+
   /* число рассыпается: наименьший простой множитель + остаток */
-  function splitStep(side, big) {
+  function splitStep(side, big, forced) {
     const first = snapshot();
-    const p = spf(big.value);
+    const p = forced || spf(big.value);
     const prime = makeTok(p, side.key);
     side.toks.splice(side.toks.indexOf(big), 0, prime);
     big.value /= p;
@@ -260,7 +278,7 @@
     const tools = window.MG.tools;
     if (tools.current() === 'glove') { gloveClick(tok); return; }   // перчатка: выбираем пару
     if (!isPrime(tok.value) && !tok.paired) {               // составное без пары → кувалда делит
-      if (tools.need('hammer')) splitOnce(tok);
+      if (tools.need('hammer')) { if (manual()) askSplit(tok); else splitOnce(tok); }
       return;
     }
     if (tok.paired) { tools.need('glove'); return; }        // сокращать надо перчаткой

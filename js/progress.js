@@ -2,6 +2,7 @@
  * Четыре зоны по 25 % со своим пейзажем: джунгли → деревня → город → космос. */
 (() => {
   'use strict';
+  window.MG = window.MG || {};
   const STEPS = 8;
 
   /* Свои SVG вместо эмодзи — одинаково на Windows, iPhone и Android */
@@ -44,8 +45,8 @@
 
   const css = document.createElement('style');
   css.textContent = `
-    .pgbar { position: relative; flex: 1 0 100%; display: flex; align-items: center; gap: 12px; padding: 2px 4px 5px; }
-    .pg-track { position: relative; flex: 1; height: 32px; border: 3px solid #1d1d1f; border-radius: 8px; background: #ecece6; box-shadow: 0 3px 0 #1d1d1f; overflow: hidden; transition: box-shadow .4s, border-color .4s; }
+    .pgbar { position: relative; flex: 1 0 100%; display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 2px 4px 5px; }
+    .pg-track { position: relative; height: 32px; border: 3px solid #1d1d1f; border-radius: 8px; background: #ecece6; box-shadow: 0 3px 0 #1d1d1f; overflow: hidden; transition: box-shadow .4s, border-color .4s; }
     .pg-track::before { content: ''; position: absolute; inset: 0; border-radius: 5px; box-shadow: inset 0 3px 0 rgba(0,0,0,.12); z-index: 3; pointer-events: none; }
     .pg-scene { position: absolute; inset: 0; clip-path: inset(0 100% 0 0 round 0 5px 5px 0); transition: clip-path .85s cubic-bezier(.34,1.45,.5,1); }
     .pg-scene { background: linear-gradient(135deg, var(--hs, rgba(255,255,255,.16)) 25%, transparent 25% 50%, var(--hs, rgba(255,255,255,.16)) 50% 75%, transparent 75%) 0 0 / 8px 8px, var(--hb, #2a2a2e); }
@@ -61,52 +62,51 @@
     .pg-goal { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 20px; line-height: 1; z-index: 4; filter: drop-shadow(0 2px 0 rgba(0,0,0,.2)); }
     .pg-goal.hop { animation: pgHop .65s cubic-bezier(.3,.7,.4,1); }
     .pg-goal.pop { animation: pgPop .9s ease; }
-    .pg-pct { min-width: 3.6ch; text-align: right; font-weight: 900; font-size: 1.05rem; color: #1d1d1f; font-variant-numeric: tabular-nums; transition: color .3s; }
     .pgbar.full .pg-track { border-color: #8a5a00; box-shadow: 0 3px 0 #8a5a00, 0 0 0 3px rgba(255,200,40,.45); }
-    .pgbar.full .pg-pct { color: #c47a00; }
-    .pg-crown { position: absolute; right: 34px; top: -8px; font-size: 18px; transform: rotate(14deg) scale(0); transform-origin: 50% 100%; transition: transform .5s cubic-bezier(.3,1.8,.5,1); z-index: 5; pointer-events: none; }
+    .pgbar #skip, .pg-lamp { flex: none; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: #1d1d1f; display: grid; place-items: center; cursor: pointer; box-shadow: none; transition: transform .12s, color .2s; -webkit-tap-highlight-color: transparent; }
+    .pgbar #skip:active, .pg-lamp:active { transform: scale(.86); }
+    .pgbar #skip svg, .pg-lamp svg { width: 30px; height: 30px; display: block; overflow: visible; }
+    .pg-lamp svg path:first-child { fill: transparent; transition: fill .25s, filter .25s; }
+    .pg-lamp.on svg path:first-child { fill: #ffd23f; filter: drop-shadow(0 0 5px rgba(255,200,40,.9)); }
+    .pgbar #skip svg { transition: none; }
+    .pgbar #skip.spin svg { animation: pgSpin .6s cubic-bezier(.3,.9,.3,1); }
+    @keyframes pgSpin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+    .pg-lamp.nudge { animation: pgNudge 1.8s ease-in-out infinite; }
+    .pg-tip { position: absolute; right: 0; top: 100%; margin-top: 6px; z-index: 8; max-width: 230px; padding: 8px 12px; border-radius: 14px; background: #1d1d1f; color: #fff; font-weight: 800; font-size: .85rem; line-height: 1.25; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+    @keyframes pgNudge { 0%, 70%, 100% { transform: rotate(0); } 76% { transform: rotate(-14deg) scale(1.1); } 84% { transform: rotate(12deg) scale(1.1); } 92% { transform: rotate(-6deg); } }
+    .top .stats { flex: 1 0 100%; }
+    .pg-mid { position: relative; flex: 1; min-width: 0; }
+    .pg-crown { position: absolute; right: 6px; top: -9px; font-size: 18px; transform: rotate(14deg) scale(0); transform-origin: 50% 100%; transition: transform .5s cubic-bezier(.3,1.8,.5,1); z-index: 5; pointer-events: none; }
     .pgbar.full .pg-crown { transform: rotate(14deg) scale(1); }
-    .pg-chip { position: absolute; z-index: 6; pointer-events: none; padding: 2px 8px; border-radius: 10px; background: #1d1d1f; color: #fff; font-weight: 900; font-size: .8rem; white-space: nowrap; }
     .pg-conf { position: absolute; z-index: 6; pointer-events: none; width: 8px; height: 12px; border-radius: 2px; }
 
     @keyframes pgShine { 0% { opacity: 1; left: -60px; } 100% { opacity: 1; left: 105%; } }
     @keyframes pgHop { 0% { transform: translateY(-50%); } 30% { transform: translateY(calc(-50% - 9px)) scale(1.2, .9) rotate(-8deg); } 55% { transform: translateY(-50%) scale(.92, 1.08); } 100% { transform: translateY(-50%); } }
     @keyframes pgPop { 0% { transform: translateY(-50%) scale(.2) rotate(-40deg); } 55% { transform: translateY(-50%) scale(1.7) rotate(12deg); } 100% { transform: translateY(-50%); } }
-    @media (prefers-reduced-motion: reduce) { .pg-scene { transition: none; } .pg-shine, .pg-goal { animation: none !important; } }
+    @media (prefers-reduced-motion: reduce) { .pg-scene { transition: none; } .pg-shine, .pg-goal, .pgbar #skip svg { animation: none !important; } }
   `;
   document.head.append(css);
 
   const box = document.createElement('div');
   box.className = 'pgbar';
-  box.innerHTML = '<div class="pg-track"><div class="pg-scene snap"></div><i class="pg-shine"></i><span class="pg-goal"></span></div><span class="pg-crown"></span><b class="pg-pct">0%</b>';
+  box.innerHTML = '<div class="pg-mid"><div class="pg-track"><div class="pg-scene snap"></div><i class="pg-shine"></i><span class="pg-goal"></span></div><span class="pg-crown"></span></div><button class="pg-lamp" type="button" aria-label="Подсказка"></button>';
+  const skipBtn = document.getElementById('skip');
+  if (skipBtn) {
+    skipBtn.classList.remove('ghost');
+    skipBtn.setAttribute('aria-label', 'Другая задача');
+    skipBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.300M4 12a8 8 0 0 1 14-5.300"/><path d="M19 3v4.500h-4.500M5 21v-4.500h4.500"/></svg>';
+    box.prepend(skipBtn);
+    skipBtn.addEventListener('click', () => { skipBtn.classList.remove('spin'); void skipBtn.offsetWidth; skipBtn.classList.add('spin'); });
+  }
+  const lamp = box.querySelector('.pg-lamp');
+  lamp.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6.500 6.500 0 0 0-3.800 11.800c.6.500 1 1.200 1 2V17h5.600v-.2c0-.8.400-1.500 1-2A6.500 6.500 0 0 0 12 3Z" fill="#fff8d6"/></svg>';
   top.append(box);
   box.querySelector('.pg-crown').innerHTML = ico('crown');
   const track = box.querySelector('.pg-track'), scene = box.querySelector('.pg-scene'), shine = box.querySelector('.pg-shine'),
-    goal = box.querySelector('.pg-goal'), pctEl = box.querySelector('.pg-pct');
-  let growT = 0, zone = -1, prev = 0, shown = 0, raf = 0;
+    goal = box.querySelector('.pg-goal');
+  let growT = 0, zone = -1, prev = 0;
   const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
   const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function countTo(v) {
-    cancelAnimationFrame(raf);
-    const from = shown, t0 = performance.now(), dur = calm ? 0 : 650;
-    const step = (t) => {
-      const k = dur ? Math.min(1, (t - t0) / dur) : 1;
-      shown = Math.round(from + (v - from) * (1 - Math.pow(1 - k, 3)));
-      pctEl.textContent = `${shown}%`;
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-  }
-
-  function chip(text) {
-    const r = box.getBoundingClientRect(), t = track.getBoundingClientRect(), pct = parseFloat(scene.dataset.pct || 0);
-    const c = Object.assign(document.createElement('span'), { className: 'pg-chip', textContent: text });
-    c.style.left = `${t.left - r.left + t.width * pct / 100 - 18}px`;
-    c.style.top = `${t.top - r.top - 4}px`;
-    box.append(c);
-    c.animate([{ transform: 'translateY(6px) scale(.6)', opacity: 0 }, { transform: 'translateY(-8px) scale(1.1)', opacity: 1, offset: .25 }, { transform: 'translateY(-26px) scale(1)', opacity: 0 }], { duration: 1000, easing: 'ease-out' }).onfinish = () => c.remove();
-  }
 
   function confetti(n) {
     const r = box.getBoundingClientRect(), t = goal.getBoundingClientRect();
@@ -139,11 +139,34 @@
     } else if (gain) restart(goal, 'hop');
     scene.dataset.pct = pct;
     scene.style.clipPath = `inset(0 ${100 - pct}% 0 0 round 0 5px 5px 0)`;
-    if (gain) { box.classList.add('grow'); clearTimeout(growT); growT = setTimeout(() => box.classList.remove('grow'), 1000); restart(shine, 'go'); chip(`+${pct - prev}%`); if (pct === 100) setTimeout(() => confetti(26), 450); }
+    if (gain) { box.classList.add('grow'); clearTimeout(growT); growT = setTimeout(() => box.classList.remove('grow'), 1000); restart(shine, 'go'); if (pct === 100) setTimeout(() => confetti(26), 450); }
     box.classList.toggle('full', pct === 100);
-    if (instant) { cancelAnimationFrame(raf); shown = pct; pctEl.textContent = `${pct}%`; } else countTo(pct);
     prev = pct;
   }
+  /* лампа: включает подсказки с курсором (режим «Сокращение чисел») */
+  const KEYL = 'mg.tut.lamp';
+  const used = () => { try { return !!localStorage.getItem(KEYL); } catch (e) { return true; } };
+  const inCancel = () => { const m = document.getElementById('mode-cancel'); return !!m && !m.hidden; };
+  const nudge = () => lamp.classList.toggle('nudge', !used() && inCancel() && !lamp.classList.contains('on'));
+  let tipT = 0;
+  function say(text) {
+    box.querySelector('.pg-tip') && box.querySelector('.pg-tip').remove();
+    const t = Object.assign(document.createElement('div'), { className: 'pg-tip', textContent: text });
+    box.append(t); clearTimeout(tipT); tipT = setTimeout(() => t.remove(), 2600);
+  }
+  MG.hints = { on: false };
+  lamp.addEventListener('click', () => {
+    try { localStorage.setItem(KEYL, '1'); } catch (e) { /* нет хранилища */ }
+    if (!inCancel()) { say('Для этого режима подсказок пока нет'); return; }
+    MG.hints.on = !MG.hints.on;
+    lamp.classList.toggle('on', MG.hints.on);
+    nudge();
+    window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: MG.hints.on } }));
+  });
+  setInterval(() => {
+    if (!inCancel() && MG.hints.on) { MG.hints.on = false; lamp.classList.remove('on'); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: false } })); }
+    nudge();
+  }, 500);
   if (window.MutationObserver) new MutationObserver(render).observe(solvedEl, { childList: true, characterData: true, subtree: true });
   render();
 })();

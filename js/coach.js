@@ -3,10 +3,8 @@
  * и каждый раз показывает ближайший нужный шаг. После первой решённой задачи больше не появляется. */
 (() => {
   'use strict';
-  const KEY = 'mg.tut.cancel2';
-  const get = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
-  const put = () => { try { localStorage.setItem(KEY, '1'); } catch (e) { /* нет хранилища */ } };
-  const solved = () => { try { return +localStorage.getItem('mg.solved.cancel') || 0; } catch (e) { return 0; } };
+  let active = false;
+  window.addEventListener('mg:hints', (e) => { active = !!e.detail.on; if (!active) hide(); });
 
   const css = document.createElement('style');
   css.textContent = `
@@ -50,20 +48,20 @@
     c.classList.add('on');
   }
 
-  let inited = false, held = false, fin = false;
+  let fin = false;
   document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.token') && lastKey.startsWith('g2')) { fin = true; hide(); } }, true);
   function tick() {
     const mode = document.getElementById('mode-cancel');
-    if (!mode || mode.hidden) { hide(); if (held) { held = false; MG.tools.hold(false); } inited = false; return; }
+    if (!active || !mode || mode.hidden) { hide(); fin = false; return; }
     const after = document.getElementById('after');
-    if (solved() > 0 || (after && after.classList.contains('show'))) { hide(); if (held) { held = false; MG.tools.hold(false); } return; }
-    if (!inited) { inited = true; fin = false; if (window.MG && MG.tools) { MG.tools.clear(); MG.tools.hold(true); held = true; } }
+    if (after && after.classList.contains('show')) { hide(); return; }
     const toks = [...document.querySelectorAll('#num .token, #den .token')].filter((t) => !t.classList.contains('one'));
     const tool = document.body.dataset.tool;
     const toolBtn = (id) => document.querySelector(`.toolbar .tool[data-id="${id}"]`);
     const big = toks.find((t) => t.classList.contains('big') && !t.classList.contains('paired'));
     if (big) {
       if (tool !== 'hammer' && toolBtn('hammer')) point(toolBtn('hammer'), 'Начнём с кувалды — нажми на неё', 'hb');
+      else if (MG.clip && MG.clip.isManual()) point(big, 'Нажми на число и впиши два множителя', `m${big.textContent}`);
       else point(big, 'Ударь кувалдой по числу — оно разобьётся на множители', `h${big.textContent}`);
       return;
     }
