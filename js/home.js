@@ -265,13 +265,13 @@
         .isle.open .modes { margin: 0 auto; padding: 16px 6px 14px; border-radius: 26px; background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .22); }
     .zoomed .isle-art { flex: none; }
     .zoomed .hm-title { display: none; }
-        .hm-col { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-    .hm-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 0 env(safe-area-inset-bottom);
+        .hm-col { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+    .hm-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 0 calc(env(safe-area-inset-bottom) * .45);
       background: linear-gradient(#a03804, #392013); box-shadow: 0 -3px 0 #1d1209, 0 -1px 0 3px rgba(255, 190, 110, .18), 0 -10px 26px rgba(40, 14, 2, .35), inset 0 2px 0 rgba(255, 205, 140, .28); }
     .hm-dock::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none; background: radial-gradient(ellipse 70% 120% at 50% 0, rgba(255, 190, 110, .16), transparent 70%); }
-    .hm-dock button { position: relative; border: 0; background: none; font: inherit; color: #ffe9c4; font-weight: 800; font-size: .7rem; letter-spacing: .01em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 11px 0 10px; border-radius: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; text-shadow: 0 2px 0 rgba(60, 22, 4, .6); transition: color .2s, transform .15s; }
+    .hm-dock button { position: relative; border: 0; background: none; font: inherit; color: #ffe9c4; font-weight: 800; font-size: .64rem; letter-spacing: .01em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 7px 0 6px; border-radius: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; text-shadow: 0 2px 0 rgba(60, 22, 4, .6); transition: color .2s, transform .15s; }
     .hm-dock button + button::before { content: ''; position: absolute; left: 0; top: 14%; bottom: 14%; width: 2px; background: linear-gradient(transparent, rgba(29, 18, 9, .75) 25%, rgba(29, 18, 9, .75) 75%, transparent); box-shadow: 1px 0 0 rgba(255, 190, 110, .14); }
-    .hm-dock button svg { width: 36px; height: 36px; filter: drop-shadow(0 3px 0 rgba(50, 18, 2, .55)); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+    .hm-dock button svg { width: 28px; height: 28px; filter: drop-shadow(0 3px 0 rgba(50, 18, 2, .55)); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
     .hm-dock button:active svg { transform: scale(.9); }
     .hm-dock button.on { color: #fff; }
     .hm-dock button.on svg { transform: translateY(-3px) scale(1.1); }
@@ -279,7 +279,7 @@
     .hm-sheet { position: fixed; inset: 0; z-index: 19; display: none; }
     .hm-sheet.show { display: block; }
     .hm-sheet .bd { position: absolute; inset: 0; background: rgba(10, 8, 30, .5); animation: hmFade .25s both; }
-    .hm-sheet .pn { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 520px); max-height: 82dvh; overflow-y: auto; box-sizing: border-box; padding: 14px 18px calc(104px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; background: linear-gradient(#fff6df, #f6dfae); color: #4a2a12; box-shadow: 0 -6px 0 #5a3512, 0 -12px 30px rgba(0,0,0,.4); animation: hmUp .32s cubic-bezier(.2,.9,.3,1) both; }
+    .hm-sheet .pn { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 520px); max-height: 82dvh; overflow-y: auto; box-sizing: border-box; padding: 14px 18px calc(84px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; background: linear-gradient(#fff6df, #f6dfae); color: #4a2a12; box-shadow: 0 -6px 0 #5a3512, 0 -12px 30px rgba(0,0,0,.4); animation: hmUp .32s cubic-bezier(.2,.9,.3,1) both; }
     @keyframes hmUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
     @keyframes hmFade { from { opacity: 0; } to { opacity: 1; } }
     .hm-sheet .gr { width: 44px; height: 5px; border-radius: 9px; background: #5a351255; margin: 0 auto 12px; }
