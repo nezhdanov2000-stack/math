@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=119">
+  <link rel="stylesheet" href="css/style.css?v=134">
 </head>
 <body>
   <main id="home" hidden></main>
@@ -109,6 +109,25 @@
     <div class="after" id="mq-after">
       <div class="result"><span class="check">✓</span><span id="mq-resultText"></span></div>
       <button id="mq-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Режим: выделить целую часть (пасть) -->
+  <main class="stage" id="mode-ext" hidden>
+    <p class="hint" id="ex-hint"></p>
+
+    <div class="ex-stage" id="ex-stage">
+      <div class="ex-whole" id="ex-whole"></div>
+      <div class="fraction nodots" id="ex-fraction">
+        <div class="row" id="ex-num"></div>
+        <div class="bar" id="ex-bar"></div>
+        <div class="row" id="ex-den"></div>
+      </div>
+    </div>
+
+    <div class="after" id="ex-after">
+      <div class="result"><span class="check">✓</span><span id="ex-resultText"></span></div>
+      <button id="ex-next" class="btn" type="button">Следующая задача →</button>
     </div>
   </main>
 
@@ -265,37 +284,40 @@
   </main>
 
   <!-- Версия ?v= одна на все файлы: при релизе меняй её здесь (замена по файлу) и CACHE в sw.js. -->
-  <script src="js/core.js?v=119"></script>
-  <script src="js/sound.js?v=119"></script>
-  <script src="js/lightning.js?v=119"></script>
-  <script src="js/rocket-fx.js?v=119"></script>
-  <script src="js/ice.js?v=119"></script>
-  <script src="js/press.js?v=119"></script>
-  <script src="js/axe.js?v=119"></script>
-  <script src="js/heli.js?v=119"></script>
-  <script src="js/tread.js?v=119"></script>
-  <script src="js/joker.js?v=119"></script>
-  <script src="js/bridge.js?v=119"></script>
-  <script src="js/fan.js?v=119"></script>
-  <script src="js/rain.js?v=119"></script>
-  <script src="js/teeth.js?v=119"></script>
-  <script src="js/conveyor.js?v=119"></script>
-  <script src="js/cups.js?v=119"></script>
-  <script src="js/tools.js?v=119"></script>
-  <script src="js/fractions.js?v=119"></script>
-  <script src="js/mul.js?v=119"></script>
-  <script src="js/div.js?v=119"></script>
-  <script src="js/wf.js?v=119"></script>
-  <script src="js/mq.js?v=119"></script>
-  <script src="js/pp.js?v=119"></script>
-  <script src="js/sh.js?v=119"></script>
-  <script src="js/br.js?v=119"></script>
-  <script src="js/factor.js?v=119"></script>
-  <script src="js/common.js?v=119"></script>
-  <script src="js/borrow.js?v=119"></script>
-  <script src="js/mixed.js?v=119"></script>
-  <script src="js/home.js?v=119"></script>
-  <script src="js/app.js?v=119"></script>
+  <script src="js/core.js?v=134"></script>
+  <script src="js/sound.js?v=134"></script>
+  <script src="js/lightning.js?v=134"></script>
+  <script src="js/rocket-fx.js?v=134"></script>
+  <script src="js/ice.js?v=134"></script>
+  <script src="js/press.js?v=134"></script>
+  <script src="js/axe.js?v=134"></script>
+  <script src="js/heli.js?v=134"></script>
+  <script src="js/tread.js?v=134"></script>
+  <script src="js/joker.js?v=134"></script>
+  <script src="js/bridge.js?v=134"></script>
+  <script src="js/fan.js?v=134"></script>
+  <script src="js/rain.js?v=134"></script>
+  <script src="js/teeth.js?v=134"></script>
+  <script src="js/maw.js?v=134"></script>
+  <script src="js/conveyor.js?v=134"></script>
+  <script src="js/cups.js?v=134"></script>
+  <script src="js/tools.js?v=134"></script>
+  <script src="js/fractions.js?v=134"></script>
+  <script src="js/coach.js?v=134"></script>
+  <script src="js/mul.js?v=134"></script>
+  <script src="js/div.js?v=134"></script>
+  <script src="js/wf.js?v=134"></script>
+  <script src="js/mq.js?v=134"></script>
+  <script src="js/pp.js?v=134"></script>
+  <script src="js/sh.js?v=134"></script>
+  <script src="js/br.js?v=134"></script>
+  <script src="js/factor.js?v=134"></script>
+  <script src="js/common.js?v=134"></script>
+  <script src="js/borrow.js?v=134"></script>
+  <script src="js/mixed.js?v=134"></script>
+  <script src="js/ext.js?v=134"></script>
+  <script src="js/home.js?v=134"></script>
+  <script src="js/app.js?v=134"></script>
   <script>
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

@@ -168,6 +168,13 @@
       for (let i = 0; i < 18; i++) k.tone(t + 0.6 + i * 0.075 + Math.random() * 0.04, { f: 1800 + Math.random() * 1800, dur: 0.04, type: 'sine', vol: 0.04 });
       k.tone(t + 2.2, { f: k.note(86), dur: 0.4, type: 'sine', vol: 0.1 });
     },
+    maw: (k, t) => {
+      k.tone(t + 0.02, { f: 180, f2: 420, dur: 0.16, type: 'sawtooth', vol: 0.12 });                         // раскрылась
+      k.noise(t + 0.14, { dur: 0.12, vol: 0.2, type: 'bandpass', f: 1200, q: 1.5 });                          // «пф»
+      k.tone(t + 0.2, { f: 520, f2: 880, dur: 0.12, type: 'sine', vol: 0.18 });                              // целое вылетело
+      k.tone(t + 0.62, { f: 260, f2: 120, dur: 0.07, type: 'square', vol: 0.18 });                           // клац
+      k.noise(t + 0.62, { dur: 0.06, vol: 0.22, type: 'bandpass', f: 2600, q: 2 });
+    },
     teeth: (k, t) => {
       [0.35, 0.65, 0.95].forEach((d) => {
         k.tone(t + d, { f: 260, f2: 120, dur: 0.07, type: 'square', vol: 0.18 });
@@ -375,6 +382,7 @@
     wrap(MG.fan, 'start', () => play('fan'));
     wrap(MG.rain, 'play', () => play('rain'));
     wrap(MG.teeth, 'play', () => play('teeth'));
+    wrap(MG.maw, 'spit', () => play('maw'));
     wrap(MG.tread, 'run', () => play('tread'));
     wrap(MG.conveyor, 'open', () => play('conveyor'));
     wrap(MG.heli, 'spawn', () => play('heli'));

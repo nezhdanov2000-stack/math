@@ -5,7 +5,7 @@
  *   frac   — дробь                  { num: [{ s, f: [множители] }], den: [множители] }
  *   mixed  — смешанное число        { w, n, d }
  * Инструменты:
- *   беговая дорожка — неправильная дробь бежит и выпускает целые
+ *   пасть — дробная черта раскрывается и выплёвывает целые из неправильной дроби
  *   вертолёт — отрывает целое от дроби,
  *              склеивает обратно в смешанное число и переставляет слагаемые магнитом
  *   джокер   — карта с множителем сверху и снизу ложится на дробь (знаменатели выравниваются)
@@ -282,7 +282,7 @@
       if (t.kind === 'whole' && n && n.kind === 'frac' && n.sign === t.sign && isProper(n)) glue = true;
     });
     has.heli = mixed || scattered || glue;
-    has.tread = improper;
+    has.maw = improper;
     has.joker = diff;
     has.press = equal;
     has.bolt = calc;
@@ -294,7 +294,7 @@
     else if (diff) hint = 'Знаменатели разные. Возьми джокера, нажми на знаменатель — джокер станет картой с этим числом. Положи карту на другую дробь, и она получит недостающий множитель';
     else if (equal) hint = 'Знаменатели одинаковые. Поршни сожмут соседние дроби в одну';
     else if (calc) hint = 'Молния считает: суммы целых, произведения, числитель и знаменатель — нажми ей на то, что нужно посчитать';
-    else if (improper) hint = 'Дробь неправильная: возьми беговую дорожку и нажми на неё — дробь побежит и сожжёт лишнее, выйдут целые';
+    else if (improper) hint = 'Дробь неправильная: возьми пасть и нажми на дробь — она выплюнет целые';
     else if (glue) hint = 'Осталось собрать ответ: нажми вертолётом на плюс между целым и дробью';
     return { hint, has };
   }
@@ -495,7 +495,7 @@
     downWasSel = false;
     if (t.kind === 'mixed') { splitMixed(t, termE); return; }
     clearSel(); scheduleIdle(2500);
-    if (t.kind === 'frac' && atomic(t) && t.num[0].s > 0 && prod(t.num[0].f) >= t.den[0]) { indivisible(termE, 'целое из неправильной дроби выделяет беговая дорожка'); return; }
+    if (t.kind === 'frac' && atomic(t) && t.num[0].s > 0 && prod(t.num[0].f) >= t.den[0]) { indivisible(termE, 'целое из неправильной дроби выплёвывает пасть'); return; }
     if (t.kind === 'frac' && pending(t)) { indivisible(termE, 'сначала посчитай молнией'); return; }
     indivisible(termE, 'перетащи слагаемое магнитом, чтобы поменять местами');
   }
@@ -519,20 +519,26 @@
     });
   }
 
-  /* беговая дорожка: неправильная дробь бежит и «сжигает» по знаменателю за круг — выходят целые */
+  /* пасть: дробная черта раскрывается и выплёвывает целые (по знаменателю за раз) */
   async function treadClick(e) {
     const termE = e.target.closest('.mx-term');
     if (!termE) return;
     const t = state.terms[idxOf(Number(termE.dataset.id))];
-    if (t.kind !== 'frac') { indivisible(termE, 'дорожка нужна неправильной дроби'); return; }
+    if (t.kind !== 'frac') { indivisible(termE, 'пасть нужна неправильной дроби'); return; }
     if (!atomic(t) || !(t.num[0].s > 0)) { indivisible(termE, 'сначала посчитай молнией — в числителе должно быть одно число'); return; }
     const n = prod(t.num[0].f);
     const d = t.den[0];
-    if (n < d) { indivisible(termE, 'дробь правильная — ей нечего сжигать'); return; }
+    if (n < d) { indivisible(termE, 'дробь правильная — ей нечего выплёвывать'); return; }
     const st = state;
     st.busy = true;
     const old = termE.getBoundingClientRect();
-    const res = await MG.tread.run(termE, { n, d });
+    const barEl = termE.querySelector('.mx-bar');
+    let spot = null;
+    for (let k = 0, K = Math.min(Math.floor(n / d), 3); k < K; k++) {
+      await MG.maw.spit({ bar: barEl, onSpit: (x, y) => { if (!spot) spot = new DOMRect(x - 20, y - 20, 40, 40); } });
+      if (state !== st) return;
+    }
+    const res = { badge: spot || old };
     if (state !== st) return;
     const q = Math.floor(n / d);
     const r = n - q * d;
@@ -1272,7 +1278,7 @@
     else if (tl === 'press') pressClick(e);
     else if (tl === 'bolt') boltClick(e);
     else if (tl === 'hammer') hammerClick(e);
-    else if (tl === 'tread') treadClick(e);
+    else if (tl === 'maw') treadClick(e);
     else if (tl === 'joker') { /* джокер работает перетаскиванием карты */ }
     else if (tl === 'glove') gloveClick(e);
   });

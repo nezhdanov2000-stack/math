@@ -10,6 +10,7 @@
   const LEVELS = [
     { n: 'I', title: 'Сокращение дробей', cls: 'l1', modes: [
       { id: 'cancel', name: 'Сокращение чисел', icon: 'hammer', x: 68, y: 72 },
+      { id: 'ext', name: 'Выделить целое', icon: 'maw', x: 40, y: 40 },
       { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 66, y: 10 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
       { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 32, y: 56 },
@@ -53,11 +54,18 @@
       <path d="M40 232 Q70 214 110 224 Q106 244 70 246 Q42 246 40 232Z" fill="#43a3e8" stroke="#2468a8" stroke-width="3"/>
       ${mountain(205, 228, 170, 190)}
       <path d="M184 228 Q184 196 205 196 Q226 196 226 228Z" fill="#2a2024" stroke="#17100f" stroke-width="2.5"/>
-      <g class="shk">${pine(96, 226, .95)}${pine(124, 232, .8, '#3aa05a')}</g>${palm(150, 232, .9)}${pine(300, 228, .85)}${pine(328, 224, 1.05, '#2a8248')}${pine(352, 226, .7)}
-      ${cloud(110, 78, .8, .9)}
-      <g class="zapc"><g transform="translate(330 78) scale(.85)"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="#6a739f" stroke="#3c4470" stroke-width="2.6" stroke-linejoin="round"/></g></g>
-      <g class="zap" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="268" cy="156" r="18" fill="#fff6b0" stroke="none" opacity=".75"/>
-        <polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#ffd23d" stroke-width="9" opacity=".55"/><polyline points="328,88 314,108 325,110 300,134 311,136 268,156" stroke="#fffbe0" stroke-width="3.6"/></g></svg>`,
+      <clipPath id="cvClip"><path d="M185.5 227 Q185.5 198 205 198 Q224.5 198 224.5 227Z"/></clipPath>
+      <g clip-path="url(#cvClip)"><g opacity=".6" transform="translate(205 227) scale(.44) translate(-205 -227)">
+        <ellipse cx="205" cy="224" rx="17" ry="13" fill="#7f1d1d"/><ellipse cx="205" cy="228" rx="8.5" ry="4" fill="#f472b6"/>
+        <circle class="cvb" cx="205" cy="216" r="4.4" fill="#f97316" stroke="#17100f" stroke-width="1.2"/>
+        <g class="cvu"><path d="M184 196 H226 V200 L222.500 200 L219 212 L215.500 200 L212 200 L208.500 213 L205 200 L201.500 200 L198 213 L194.500 200 L191 200 L187.500 212 L184 200Z" fill="#fff" stroke="#17100f" stroke-width="1.2" stroke-linejoin="round"/></g>
+        <g class="cvd"><path d="M184 231 H226 V227 L222.500 227 L219 216 L215.500 227 L212 227 L208.500 215 L205 227 L201.500 227 L198 215 L194.500 227 L191 227 L187.500 216 L184 227Z" fill="#fff" stroke="#17100f" stroke-width="1.2" stroke-linejoin="round"/></g>
+      </g></g>
+      <g class="shk">${pine(132, 228, .95)}${pine(154, 233, .78, '#3aa05a')}</g>${palm(171, 234, .8)}${pine(300, 228, .85)}${pine(328, 224, 1.05, '#2a8248')}${pine(352, 226, .7)}
+      ${cloud(300, 78, .8, .9)}
+      <g class="zapc"><g transform="translate(80 78) scale(.85)"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="#6a739f" stroke="#3c4470" stroke-width="2.6" stroke-linejoin="round"/></g></g>
+      <g class="zap" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="142" cy="156" r="18" fill="#fff6b0" stroke="none" opacity=".75"/>
+        <polyline points="82,88 96,108 85,110 110,134 99,136 142,156" stroke="#ffd23d" stroke-width="9" opacity=".55"/><polyline points="82,88 96,108 85,110 110,134 99,136 142,156" stroke="#fffbe0" stroke-width="3.6"/></g></svg>`,
     l2: () => `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}${under(200, 170)}${grass(200, 170)}
       <g stroke="#2b2f3f" stroke-width="3" stroke-linejoin="round">
         <rect x="138" y="64" width="24" height="108" fill="#8d8478"/><rect x="138" y="64" width="24" height="9" fill="#5d564f"/><rect x="138" y="96" width="24" height="7" fill="#5d564f"/>
@@ -190,6 +198,11 @@
     .lf-l { animation-name: hmLeafL; } .lf-r { animation-name: hmLeafR; }
     @keyframes hmLeafL { 0%, 38% { transform: rotate(0); } 52%, 82% { transform: rotate(-68deg); } 96%, 100% { transform: rotate(0); } }
     @keyframes hmLeafR { 0%, 38% { transform: rotate(0); } 52%, 82% { transform: rotate(68deg); } 96%, 100% { transform: rotate(0); } }
+    .cvu { animation: hmCvU 3s ease-in-out infinite; } .cvd { animation: hmCvD 3s ease-in-out infinite; }
+    @keyframes hmCvU { 0%, 100% { transform: translateY(-2px); } 45% { transform: translateY(-6px); } 62%, 70% { transform: translateY(5px); } 85% { transform: translateY(-2px); } }
+    @keyframes hmCvD { 0%, 100% { transform: translateY(2px); } 45% { transform: translateY(6px); } 62%, 70% { transform: translateY(-5px); } 85% { transform: translateY(2px); } }
+    .cvb { transform-box: fill-box; transform-origin: center; opacity: 0; animation: hmCvB 3s ease-out infinite; }
+    @keyframes hmCvB { 0%, 58% { opacity: 0; transform: translateY(6px) scale(.4); } 64% { opacity: 1; transform: translateY(-2px) scale(1); } 100% { opacity: 0; transform: translateY(-34px) scale(1.1); } }
     .seesaw { animation: hmSee 4s ease-in-out infinite alternate; }
     @keyframes hmSee { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
     .lv { position: absolute; top: 2%; z-index: 3; display: flex; align-items: center; gap: 10px; pointer-events: none; }
@@ -229,13 +242,15 @@
     .deco.bigcloud .cfx-r { animation: hmRain .9s linear infinite; }
     @keyframes hmDrift { from { transform: translateX(-6px); } to { transform: translateX(10px); } }
     @keyframes hmRain { 0% { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+    .deco.rocketfx { animation: none; opacity: 0; z-index: 0; width: clamp(24px, 7vw, 38px); transform: translate(-50%, -50%) rotate(-45deg); filter: drop-shadow(0 0 5px #fb923c) drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
+    .rk-puff { position: absolute; z-index: 0; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: radial-gradient(#fff, #d8dde8); pointer-events: none; opacity: 0; }
     .deco.jaw { width: clamp(24px, 6.5vw, 34px); animation: none; z-index: 2; filter: drop-shadow(0 0 2px #fff) drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
     .deco.jaw svg { transform-origin: 50% 60%; animation: hmChomp .26s ease-in-out infinite alternate; }
     @keyframes hmChomp { from { transform: scaleY(1.05); } to { transform: scaleY(.28); } }
     .deco svg { width: 100%; display: block; overflow: visible; }
     @keyframes hmBob { from { transform: translateY(-5px) rotate(-4deg); } to { transform: translateY(6px) rotate(4deg); } }
     .hm-foot { text-align: center; color: #5a3512; font-weight: 800; font-size: .85rem; opacity: .75; margin-top: 4px; }
-    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .pf, .cvb, .pst, .psp, .bxA, .bxB, .bxC, .hel, .snow, .hm-stars { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .isle-art > svg, .deco, .spin, .seesaw, .leaf, .shk, .pf, .cvb, .cvu, .cvd, .pst, .psp, .bxA, .bxB, .bxC, .hel, .snow, .hm-stars { animation: none; } }
     /* --- общий вид: острова + кольцо прогресса; по тапу остров приближается --- */
     .hm-col { padding-left: 22px; padding-right: 22px; }
     .isle-art { width: 62%; transition: width .5s cubic-bezier(.3,.8,.3,1); }
@@ -297,6 +312,20 @@
     .hm-sheet .soon { text-align: center; padding: 18px 6px 6px; font-weight: 800; }
     .hm-sheet .soon .em { font-size: 3rem; display: block; margin-bottom: 4px; }
     .hm-sheet .x { position: absolute; right: 14px; top: 12px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #5a3512; color: #ffe9bf; font-size: 1.1rem; font-weight: 900; cursor: pointer; }
+    .hm-sheet .pn.inv { background: linear-gradient(#4b2f1b, #2c190d); color: #ffe9c4; box-shadow: 0 -6px 0 #1d1209, 0 -12px 30px rgba(0,0,0,.5); }
+    .hm-sheet .pn.inv .gr { background: #ffe9c455; }
+    .inv-det { display: flex; gap: 14px; align-items: center; min-height: 92px; padding: 12px; margin-bottom: 12px; border-radius: 18px; background: rgba(0, 0, 0, .3); box-shadow: inset 0 0 0 2px rgba(255, 210, 140, .2); }
+    .inv-det .ic { width: 64px; height: 64px; flex: none; padding: 8px; box-sizing: border-box; border-radius: 16px; background: radial-gradient(circle at 50% 35%, #6a4a2c, #35200f); box-shadow: inset 0 0 0 2px #ffd27a, 0 0 14px rgba(255, 200, 100, .35); }
+    .inv-det .ic svg { width: 100%; height: 100%; display: block; }
+    .inv-det h3 { margin: 0 0 3px; font-size: 1.1rem; font-weight: 900; color: #ffd86b; }
+    .inv-det span { display: block; font-size: .8rem; font-weight: 600; line-height: 1.3; opacity: .92; }
+    .inv-det em { display: block; margin-top: 5px; font-style: normal; font-size: .72rem; font-weight: 800; color: #9fd8ff; }
+    .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    .slot { position: relative; aspect-ratio: 1; padding: 11px; border: 0; border-radius: 16px; cursor: pointer; background: radial-gradient(circle at 50% 30%, #5c3f25, #2e1b0d 80%); box-shadow: inset 0 0 0 2px #7b5532, inset 0 -5px 0 rgba(0,0,0,.35), 0 3px 0 #150c05; transition: transform .15s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+    .slot svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+    .slot b { position: absolute; right: 5px; bottom: 4px; font-size: .62rem; font-weight: 900; color: #ffe9c4; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+    .slot:active { transform: scale(.93); }
+    .slot.sel { box-shadow: inset 0 0 0 3px #ffd86b, 0 0 16px rgba(255, 210, 100, .6), 0 3px 0 #150c05; }
     .noanim .isle-art, .noanim .prog { transition: none !important; }
     .isle { --sx: 0px; }
     .isle.sw { transition: opacity .2s, transform .2s; opacity: 0; transform: translateY(var(--sx)); }
@@ -311,7 +340,7 @@
 
   /* значки вокруг островов: [иконка, x%, y%] */
   const DECO = {
-    l1: [['axe', 12, 62, 'chop'], ['heli', 50, 40, 'orbit']],
+    l1: [['axe', 21, 66, 'chop'], ['rocket', 82, 66, 'rocketfx']],
     l2: [],
     l3: [['cloudfx', 2, 18, 'bigcloud'], ['teeth', 24, 66, 'jaw'], ['teeth', 24, 74, 'jaw'], ['teeth', 24, 70, 'jaw'], ['teeth', 24, 68, 'jaw'], ['teeth', 24, 72, 'jaw']],
     l4: [['conveyor', 10, 26], ['cups', 82, 38]],
@@ -382,12 +411,28 @@
       return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div>`;
     }
     if (tab === 'friends') return '<h2>Друзья и кураторы</h2><div class="soon"><span class="em">👥</span>Скоро здесь появятся друзья, кураторы и общий рейтинг.</div>';
-    return '<h2>Инструменты</h2><div class="soon"><span class="em">🧰</span>Скоро здесь появится инвентарь с полезными помощниками.</div>';
+    const T = MG.tools || {}, INFO = T.info || {}, SETS = T.sets || {}, ids = Object.keys(INFO);
+    const usedIn = (t) => all.map((m, i) => [i + 1, m]).filter(([, m]) => (SETS[m.id] || []).includes(t));
+    return `<h2>Инвентарь</h2><p>${ids.length} инструментов. Нажми на ячейку, чтобы узнать, как работает; ×N — в скольких режимах он нужен.</p>
+      <div class="inv-det"></div>
+      <div class="inv-grid">${ids.map((t) => `<button class="slot" type="button" data-t="${t}" aria-label="${INFO[t].label}">${icon(t)}<b>×${usedIn(t).length}</b></button>`).join('')}</div>`;
   }
   function openSheet(tab) {
     const sh = root.querySelector('.hm-sheet');
     sh.innerHTML = `<div class="bd"></div><div class="pn"><div class="gr"></div><button class="x" type="button" aria-label="Закрыть">✕</button>${sheetHtml(tab)}</div>`;
     sh.classList.add('show');
+    sh.querySelector('.pn').classList.toggle('inv', tab === 'tools');
+    if (tab === 'tools') {
+      const T = MG.tools || {}, INFO = T.info || {}, SETS = T.sets || {}, all = LEVELS.flatMap((l) => l.modes);
+      const det = sh.querySelector('.inv-det'), slots = [...sh.querySelectorAll('.slot')];
+      const pick = (t) => {
+        slots.forEach((b) => b.classList.toggle('sel', b.dataset.t === t));
+        const used = all.map((m, i) => [i + 1, m]).filter(([, m]) => (SETS[m.id] || []).includes(t));
+        det.innerHTML = `<div class="ic">${icon(t)}</div><div><h3>${INFO[t].label}</h3><span>${INFO[t].tip}</span><em>Режимы: ${used.map(([n]) => '№' + n).join(', ')}</em></div>`;
+      };
+      slots.forEach((b) => { b.onclick = () => pick(b.dataset.t); });
+      pick(slots[0] && slots[0].dataset.t);
+    }
     root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     sh.querySelector('.bd').onclick = sh.querySelector('.x').onclick = closeSheet;
     sh.querySelectorAll('[data-act=close]').forEach((e) => { e.onclick = closeSheet; });
@@ -404,7 +449,7 @@
   }
   let busy = false, openI = -1, savedScroll = 0;
   const isleEls = () => [...root.querySelectorAll('.isle')];
-  const restart = () => setTimeout(() => { startOrbit(); startJaws(); }, 560);
+  const restart = () => setTimeout(() => { startOrbit(); startJaws(); startRocket(); }, 560);
   function openIsle(i) {
     if (busy) return; busy = true;
     const els = isleEls(), col = root.querySelector('.hm-col');
@@ -493,7 +538,40 @@
       jawAnims.push(el.animate(kf, { duration: dur * 1.6, delay: ph, iterations: Infinity, easing: 'linear' }));
     });
   }
-  window.addEventListener('resize', () => { if (!root.hidden) { startOrbit(); startJaws(); } });
+  /* ракета взлетает из леса справа и уходит вверх за край экрана */
+  let rocketAnim = null, rocketTimer = 0;
+  function startRocket() {
+    clearTimeout(rocketTimer);
+    if (rocketAnim) { rocketAnim.cancel(); rocketAnim = null; }
+    const el = root.querySelector('.deco.rocketfx');
+    if (!el || !el.parentElement || root.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const art = el.parentElement;
+    if (!art.clientWidth) return;
+    const launch = () => {
+      if (root.hidden || !el.isConnected || !art.clientWidth) return;
+      const r = el.getBoundingClientRect(), rise = r.top + r.height + 40;
+      const T0 = 2600;
+      const Y = 66, tf = 'translate(-50%, -50%) rotate(-45deg)';
+      rocketAnim = el.animate([
+        { top: `${Y}%`, transform: `${tf} scale(.5)`, opacity: 0, offset: 0 },
+        { top: `calc(${Y}% - 6px)`, transform: `${tf} scale(1)`, opacity: 1, offset: .06 },
+        { top: `calc(${Y}% - ${rise * .12}px)`, transform: `${tf} scale(1)`, opacity: 1, offset: .35 },
+        { top: `calc(${Y}% - ${rise}px)`, transform: `${tf} scale(1)`, opacity: 1, offset: 1 },
+      ], { duration: T0 + rise * 1.2, easing: 'cubic-bezier(.5,0,.9,.6)', fill: 'forwards' });
+      const ex = el.offsetLeft, ey = el.offsetTop;
+      for (let i = 0; i < 4; i++) {
+        const p = document.createElement('i');
+        p.className = 'rk-puff';
+        p.style.left = `${ex + (i - 1.5) * 6}px`; p.style.top = `${ey + 6}px`;
+        art.append(p);
+        p.animate([{ opacity: .9, transform: 'scale(.4)' }, { opacity: 0, transform: `translate(${(i - 1.5) * 10}px, -12px) scale(2.2)` }], { duration: 1100, delay: i * 90, easing: 'ease-out' }).onfinish = () => p.remove();
+      }
+      rocketAnim.onfinish = () => { rocketAnim = null; el.style.opacity = '0'; rocketTimer = setTimeout(launch, 4500); };
+    };
+    el.style.opacity = '0';
+    rocketTimer = setTimeout(launch, 1200);
+  }
+  window.addEventListener('resize', () => { if (!root.hidden) { startOrbit(); startJaws(); startRocket(); } });
 
   let built = false;
   function show() {
@@ -501,7 +579,7 @@
     root.hidden = false;
     document.body.classList.add('is-home');
     root.scrollTop = 0;
-    startOrbit(); startJaws();
+    startOrbit(); startJaws(); startRocket();
   }
   function hide() { root.hidden = true; const sh = root.querySelector('.hm-sheet'); if (sh) sh.classList.remove('show'); document.body.classList.remove('is-home'); }
 

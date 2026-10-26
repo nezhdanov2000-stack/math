@@ -66,7 +66,7 @@
   };
 
   /* иконки инструментов со своими модулями (модули подключены раньше tools.js) */
-  ['axe', 'joker', 'tread', 'bridge', 'fan', 'rain', 'teeth', 'conveyor', 'cups', 'heli'].forEach((id) => {
+  ['axe', 'joker', 'tread', 'bridge', 'fan', 'rain', 'teeth', 'conveyor', 'cups', 'heli', 'maw'].forEach((id) => {
     ICONS[id] = (MG[id] && MG[id].icon) || '<svg viewBox="0 0 48 48"></svg>';
   });
 
@@ -79,7 +79,6 @@
     joker: { label: 'Джокер', tip: 'нажми на множитель — джокер станет числом; положи карту на дробь, и число появится сверху и снизу', hot: [24, 24] },
     bolt: { label: 'Молния', tip: 'считает молнией: 2 · 3 → 6, 5 − 2 → 3', hot: [15, 30] },
     press: { label: 'Поршни', tip: 'сжимают дроби с одинаковыми знаменателями в одну', hot: [16, 16] },
-    tread: { label: 'Беговая дорожка', tip: 'неправильная дробь бежит и сжигает лишнее — выходят целые', hot: [24, 40] },
     bridge: { label: 'Мост', tip: 'нажми на точку между дробями — мост соединит их в одну дробь', hot: [16, 14] },
     fan: { label: 'Вентилятор', tip: 'дует снизу: делитель переворачивается, а деление становится умножением', hot: [16, 16] },
     rain: { label: 'Облако', tip: 'польёт целое число дождём — под ним вырастет единица, и целое станет дробью', hot: [16, 14] },
@@ -87,11 +86,13 @@
     conveyor: { label: 'Конвейер', tip: 'потяни число через знак «=» — конвейер перенесёт его на другую сторону', hot: [16, 20] },
     cups: { label: 'Стаканчики', tip: 'накрывают обе части уравнения и меняют их местами', hot: [16, 18] },
     box: { label: 'Коробка', tip: 'накрывает слагаемые — получаются скобки; нажми на скобки, и коробка откроется', hot: [16, 22] },
+    maw: { label: 'Пасть', tip: 'дробь раскрывает рот и выплёвывает целое — из числителя уходит один знаменатель', hot: [16, 26] },
     claw: { label: 'Клешня', tip: 'отщипывает единицу от целого', hot: [16, 29] },
   };
 
   const SETS = {
     cancel: ['hammer', 'glove'],
+    ext: ['maw'],
     factor: ['hammer', 'rocket', 'glove', 'axe'],
     common: ['hammer', 'joker', 'press', 'bolt', 'glove'],
     big: ['hammer', 'joker', 'press', 'bolt', 'glove'],
@@ -103,7 +104,7 @@
     shift: ['heli', 'bolt', 'conveyor'],
     br: ['box', 'joker', 'press', 'bolt', 'rain', 'hammer', 'glove', 'rocket'],
     mixmd: ['teeth', 'fan', 'bridge', 'hammer', 'glove'],
-    mixed: ['heli', 'hammer', 'tread', 'joker', 'press', 'bolt', 'glove'],
+    mixed: ['heli', 'hammer', 'maw', 'joker', 'press', 'bolt', 'glove'],
   };
 
   /* курсоры из тех же иконок */
@@ -369,5 +370,5 @@
   }
   MG.erase = erase;
 
-  MG.tools = { use, need, auto, disable, pick: select, current: () => current, icon: (id) => ICONS[id] || '' };
+  MG.tools = { use, need, auto, disable, pick: select, current: () => current, icon: (id) => ICONS[id] || '', info: INFO, sets: SETS };
 })();
