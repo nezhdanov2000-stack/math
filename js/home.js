@@ -135,15 +135,23 @@
   const css = document.createElement('style');
   css.textContent = `
     body.is-home .top, body.is-home .toolbar, body.is-home .stage { display: none !important; }
-    body.is-home { background: #0f1d4d; }
+    body.is-home { background: #0e1a4a; }
     #home { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; z-index: 30; -webkit-overflow-scrolling: touch; touch-action: pan-y;
-      background: linear-gradient(180deg, #0f1d4d 0, #1f4aa8 18%, #4d63c6 34%, #8a64c4 46%, #e2733f 66%, #f3a444 84%, #f8d77c 100%); }
+      background: linear-gradient(180deg, #0e1a4a 0, #17348a 12%, #2360ae 24%, #4f9bd6 36%, #9fd0ee 45%, #d9dcee 52%, #f2dfc0 57%, #fbd774 63%, #f6b845 70%, #ec8b34 79%, #d65f22 89%, #9a4416 100%); }
+    .hm-sky { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 90% 22% at 50% 60%, rgba(255, 231, 150, .6), rgba(255, 200, 90, .22) 55%, transparent 75%),
+        radial-gradient(ellipse 38% 1.6% at 78% 47%, rgba(255, 255, 255, .5), transparent 72%),
+        radial-gradient(ellipse 30% 1.3% at 18% 42%, rgba(255, 255, 255, .42), transparent 72%),
+        radial-gradient(ellipse 44% 1.8% at 30% 55%, rgba(255, 246, 228, .55), transparent 72%),
+        radial-gradient(ellipse 34% 1.4% at 84% 66%, rgba(255, 214, 150, .5), transparent 72%),
+        radial-gradient(ellipse 120% 40% at 50% 112%, rgba(60, 20, 6, .45), transparent 70%); }
     #home[hidden] { display: none; }
-    .hm-stars { position: absolute; inset: 0 0 auto 0; height: 38%; pointer-events: none; opacity: .9;
+    .hm-stars { position: fixed; inset: 0 0 auto 0; height: 40%; -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); pointer-events: none; opacity: .9;
       background-image: radial-gradient(2px 2px at 12% 18%, #fff 50%, transparent 52%), radial-gradient(1.6px 1.6px at 78% 9%, #fff 50%, transparent 52%), radial-gradient(2px 2px at 44% 30%, #fff 50%, transparent 52%), radial-gradient(1.4px 1.4px at 90% 40%, #fff 50%, transparent 52%), radial-gradient(1.8px 1.8px at 25% 62%, #fff 50%, transparent 52%), radial-gradient(1.4px 1.4px at 62% 74%, #fff 50%, transparent 52%), radial-gradient(1.6px 1.6px at 5% 88%, #fff 50%, transparent 52%);
       animation: hmTw 4s ease-in-out infinite alternate; }
     @keyframes hmTw { from { opacity: .5; } to { opacity: 1; } }
-    .hm-col { position: relative; max-width: 620px; margin: 0 auto; padding: calc(56px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
+    .hm-col { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; padding: calc(56px + env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
     .hm-title { text-align: center; font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.2rem); color: #fff4d6; letter-spacing: .02em; -webkit-text-stroke: 1px rgba(40, 24, 8, .0); text-shadow: 0 3px 0 #7a4a14, 0 6px 14px rgba(0, 0, 0, .35); margin: 6px 0 2px; }
     .hm-sub { text-align: center; color: #cfe0ff; font-weight: 800; font-size: .95rem; margin: 0 0 6px; }
     .isle { position: relative; margin: 11% 0 0; }
@@ -189,10 +197,10 @@
     .lv .num { font-weight: 900; font-size: clamp(2.6rem, 11vw, 4rem); line-height: 1; color: #fff1cf; -webkit-text-stroke: 7px #5a3512; paint-order: stroke fill; text-shadow: 0 5px 0 #5a3512; letter-spacing: .02em; }
     .lv .txt { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 5px #5a3512; paint-order: stroke fill; font-size: clamp(1rem, 4.4vw, 1.5rem); line-height: 1.05; text-shadow: 0 3px 0 #5a3512; text-transform: uppercase; max-width: 9em; }
     /* ряд режимов под островом: по порядку, с номерами */
-    .modes { display: flex; flex-wrap: wrap; gap: 10px 8px; padding: 6px 2px 0; position: relative; z-index: 5; }
+    .modes { display: flex; flex-wrap: wrap; gap: 10px 6px; padding: 6px 2px 0; position: relative; z-index: 5; }
     .modes { justify-content: center; }
-    .modes.n5 { max-width: 270px; margin: 0 auto; }
-    .modes .pin { position: relative; transform: none; left: auto; top: auto; width: 4.9rem; }
+    .modes.n5 { max-width: 262px; margin: 0 auto; }
+    .modes .pin { position: relative; transform: none; left: auto; top: auto; width: 4.6rem; }
     .modes .pin .dot { width: clamp(54px, 15vw, 64px); }
     .modes .pin .nm { margin-top: 7px; font-size: clamp(.58rem, 2.3vw, .72rem); max-width: 100%; }
     .modes .pin .no { position: absolute; top: -5px; left: calc(50% - clamp(23px, 6.5vw, 28px) - 6px); min-width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; font-weight: 900; font-size: .72rem; color: #5a3512; background: #fff1cf; border: 2px solid #5a3512; box-shadow: 0 2px 0 #5a3512; z-index: 2; }
@@ -254,9 +262,41 @@
     .zoomed .hm-sub, .zoomed .hm-foot { display: none; }
     .zoomed.hm-col { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
     .zoomed .isle.open { margin-top: 5%; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
-        .isle.open .modes { margin: 0 auto; padding: 16px 8px 14px; border-radius: 26px; background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .22); }
+        .isle.open .modes { margin: 0 auto; padding: 16px 6px 14px; border-radius: 26px; background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .22); }
     .zoomed .isle-art { flex: none; }
     .zoomed .hm-title { display: none; }
+        .hm-col { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+    .hm-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 0 env(safe-area-inset-bottom);
+      background: linear-gradient(#a03804, #392013); box-shadow: 0 -3px 0 #1d1209, 0 -1px 0 3px rgba(255, 190, 110, .18), 0 -10px 26px rgba(40, 14, 2, .35), inset 0 2px 0 rgba(255, 205, 140, .28); }
+    .hm-dock::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none; background: radial-gradient(ellipse 70% 120% at 50% 0, rgba(255, 190, 110, .16), transparent 70%); }
+    .hm-dock button { position: relative; border: 0; background: none; font: inherit; color: #ffe9c4; font-weight: 800; font-size: .7rem; letter-spacing: .01em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 11px 0 10px; border-radius: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; text-shadow: 0 2px 0 rgba(60, 22, 4, .6); transition: color .2s, transform .15s; }
+    .hm-dock button + button::before { content: ''; position: absolute; left: 0; top: 14%; bottom: 14%; width: 2px; background: linear-gradient(transparent, rgba(29, 18, 9, .75) 25%, rgba(29, 18, 9, .75) 75%, transparent); box-shadow: 1px 0 0 rgba(255, 190, 110, .14); }
+    .hm-dock button svg { width: 36px; height: 36px; filter: drop-shadow(0 3px 0 rgba(50, 18, 2, .55)); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+    .hm-dock button:active svg { transform: scale(.9); }
+    .hm-dock button.on { color: #fff; }
+    .hm-dock button.on svg { transform: translateY(-3px) scale(1.1); }
+    .hm-dock button.on::after { content: ''; position: absolute; top: -3px; left: 22%; right: 22%; height: 4px; border-radius: 0 0 6px 6px; background: #ffd86b; box-shadow: 0 0 14px 2px rgba(255, 210, 100, .75); }
+    .hm-sheet { position: fixed; inset: 0; z-index: 19; display: none; }
+    .hm-sheet.show { display: block; }
+    .hm-sheet .bd { position: absolute; inset: 0; background: rgba(10, 8, 30, .5); animation: hmFade .25s both; }
+    .hm-sheet .pn { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: min(100%, 520px); max-height: 82dvh; overflow-y: auto; box-sizing: border-box; padding: 14px 18px calc(104px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; background: linear-gradient(#fff6df, #f6dfae); color: #4a2a12; box-shadow: 0 -6px 0 #5a3512, 0 -12px 30px rgba(0,0,0,.4); animation: hmUp .32s cubic-bezier(.2,.9,.3,1) both; }
+    @keyframes hmUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+    @keyframes hmFade { from { opacity: 0; } to { opacity: 1; } }
+    .hm-sheet .gr { width: 44px; height: 5px; border-radius: 9px; background: #5a351255; margin: 0 auto 12px; }
+    .hm-sheet h2 { margin: 0 0 4px; font-size: 1.35rem; font-weight: 900; }
+    .hm-sheet p { margin: 0 0 12px; font-size: .9rem; opacity: .8; font-weight: 600; }
+    .hm-sheet .cards { display: grid; gap: 10px; }
+    .hm-sheet .cd { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: #fff; box-shadow: 0 3px 0 #d9bb82, inset 0 0 0 2px #ecd49d; font-weight: 800; }
+    .hm-sheet .cd small { display: block; font-weight: 600; opacity: .7; font-size: .76rem; }
+    .hm-sheet .cd .em { width: 42px; height: 42px; flex: none; display: grid; place-items: center; font-size: 1.5rem; border-radius: 14px; background: #ffe9ab; }
+    .hm-sheet .cd.off { opacity: .55; filter: grayscale(.6); }
+    .hm-sheet .cd.go { cursor: pointer; }
+    .hm-sheet .big { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; text-align: center; }
+    .hm-sheet .big div { padding: 10px 4px; border-radius: 16px; background: #fff; box-shadow: 0 3px 0 #d9bb82; font-size: .72rem; font-weight: 700; }
+    .hm-sheet .big b { display: block; font-size: 1.5rem; font-weight: 900; color: #c4571a; }
+    .hm-sheet .soon { text-align: center; padding: 18px 6px 6px; font-weight: 800; }
+    .hm-sheet .soon .em { font-size: 3rem; display: block; margin-bottom: 4px; }
+    .hm-sheet .x { position: absolute; right: 14px; top: 12px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #5a3512; color: #ffe9bf; font-size: 1.1rem; font-weight: 900; cursor: pointer; }
     .noanim .isle-art, .noanim .prog { transition: none !important; }
     .isle { --sx: 0px; }
     .isle.sw { transition: opacity .2s, transform .2s; opacity: 0; transform: translateY(var(--sx)); }
@@ -303,7 +343,10 @@
       col.append(sec);
     });
     col.insertAdjacentHTML('beforeend', '<p class="hm-foot">Все режимы открыты — решай в любом порядке</p>');
-    root.replaceChildren(Object.assign(document.createElement('div'), { className: 'hm-stars' }), col);
+    root.replaceChildren(Object.assign(document.createElement('div'), { className: 'hm-sky' }), Object.assign(document.createElement('div'), { className: 'hm-stars' }), col);
+    const dock = Object.assign(document.createElement('nav'), { className: 'hm-dock', innerHTML: TABS.map(([k, n]) => `<button type="button" data-tab="${k}">${IC[k]}<span>${n}</span></button>`).join('') });
+    dock.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => (b.classList.contains('on') ? closeSheet() : openSheet(b.dataset.tab))));
+    root.append(dock, Object.assign(document.createElement('div'), { className: 'hm-sheet' }));
     root.querySelectorAll('.pin').forEach((b) => b.addEventListener('click', () => MG.go && MG.go(b.dataset.mode)));
     const isles = [...col.querySelectorAll('.isle')];
     isles.forEach((sec, i) => sec.addEventListener('click', (e) => { if (!sec.classList.contains('open') && !e.target.closest('.pin')) openIsle(i); }));
@@ -311,7 +354,7 @@
     col.insertAdjacentHTML('beforeend', `<div class="hm-dots">${LEVELS.map(() => '<i></i>').join('')}</div>`);
     col.querySelectorAll('.hm-dots i').forEach((d, k) => d.addEventListener('click', () => switchTo(k)));
     let sx = 0, sy = 0, st = 0, tracking = false;
-    root.addEventListener('touchstart', (e) => { if (openI < 0 || e.touches.length !== 1) { tracking = false; return; } tracking = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }, { passive: true });
+    root.addEventListener('touchstart', (e) => { if (openI < 0 || e.touches.length !== 1 || e.target.closest('.hm-dock, .hm-sheet')) { tracking = false; return; } tracking = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }, { passive: true });
     root.addEventListener('touchend', (e) => {
       if (!tracking) return; tracking = false;
       const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
@@ -323,6 +366,36 @@
     refresh();
   }
 
+  const IC = {
+    friends: '<svg viewBox="0 0 48 48"><circle cx="17" cy="15" r="7" fill="#7c5ae0" stroke="#2f1f6b" stroke-width="2.4"/><path d="M4 38c0-8 5-12 13-12s13 4 13 12z" fill="#6a46d4" stroke="#2f1f6b" stroke-width="2.4" stroke-linejoin="round"/><circle cx="33" cy="17" r="6.2" fill="#9a7cf0" stroke="#2f1f6b" stroke-width="2.4"/><path d="M26 28c2-1.5 4.500-2 7-2 7 0 11 3.500 11 11H30" fill="#8566e6" stroke="#2f1f6b" stroke-width="2.4" stroke-linejoin="round"/></svg>',
+    map: '<svg viewBox="0 0 48 48"><path d="M5 11l13-4 12 4 13-4v30l-13 4-12-4-13 4z" fill="#58b8ee" stroke="#1d4f7a" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 18c4-3 7-1 9 3s-1 7-5 8-6-3-4-11z M27 14c4-1 8 2 9 6s-3 5-5 9-5-1-6-6 0-8 2-9z" fill="#4fbf7a" stroke="#1d6a3a" stroke-width="1.8"/><path d="M18 7v30M30 11v30" stroke="#1d4f7a" stroke-width="1.6" opacity=".6"/></svg>',
+    tools: '<svg viewBox="0 0 48 48"><rect x="6" y="22" width="36" height="20" rx="4" fill="#4e86c8" stroke="#1d3a66" stroke-width="2.4"/><rect x="6" y="28" width="36" height="3" fill="#1d3a66" opacity=".5"/><rect x="21" y="26" width="6" height="7" rx="1.5" fill="#ffd24a" stroke="#1d3a66" stroke-width="1.6"/><path d="M14 22V8M12 8h6l-1 6h-4zM24 22V6M20 6h8M33 22l5-14" stroke="#ffd24a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M14 22V8M24 22V6M33 22l5-14" stroke="#7a5a10" stroke-width=".8" fill="none" opacity=".5"/></svg>',
+    trophy: '<svg viewBox="0 0 48 48"><path d="M14 6h20v14c0 7-4 11-10 11s-10-4-10-11z" fill="#ffc933" stroke="#8a5a0a" stroke-width="2.4" stroke-linejoin="round"/><path d="M14 10H6c0 8 3 12 9 13M34 10h8c0 8-3 12-9 13" fill="none" stroke="#8a5a0a" stroke-width="2.4" stroke-linecap="round"/><rect x="21" y="31" width="6" height="6" fill="#e6a416" stroke="#8a5a0a" stroke-width="2"/><rect x="13" y="37" width="22" height="6" rx="2" fill="#7c5ae0" stroke="#2f1f6b" stroke-width="2.4"/><path d="M19 10v10" stroke="#fff6c0" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>' };
+  const TABS = [['friends', 'друзья'], ['map', 'разделы'], ['tools', 'инструменты'], ['trophy', 'достижения']];
+  function sheetHtml(tab) {
+    const all = LEVELS.flatMap((l) => l.modes), sol = (m) => Math.min(GOAL, getSolved(m.id));
+    const total = all.reduce((a, m) => a + sol(m), 0), goal = all.length * GOAL;
+    if (tab === 'map') return `<h2>Разделы</h2><p>Выбери, что изучать.</p><div class="cards"><div class="cd go" data-act="close"><span class="em">➗</span><span>Дроби<small>4 острова · ${all.length} режимов — ты здесь</small></span></div><div class="cd off"><span class="em">⚖️</span><span>Уравнения<small>Скоро</small></span></div></div>`;
+    if (tab === 'trophy') {
+      const full = LEVELS.filter((l) => l.modes.every((m) => sol(m) >= GOAL)).length;
+      const A = [['🌱', 'Первый шаг', 'Реши первую задачу', total >= 1], ['🔥', 'Разогрев', 'Реши 10 задач', total >= 10], ['🎯', 'Полсотни', 'Реши 50 задач', total >= 50], ['🏝️', 'Остров покорён', 'Закрой любой остров на 100%', full >= 1], ['👑', 'Мастер дробей', 'Закрой все острова', full === LEVELS.length]];
+      return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div>`;
+    }
+    if (tab === 'friends') return '<h2>Друзья и кураторы</h2><div class="soon"><span class="em">👥</span>Скоро здесь появятся друзья, кураторы и общий рейтинг.</div>';
+    return '<h2>Инструменты</h2><div class="soon"><span class="em">🧰</span>Скоро здесь появится инвентарь с полезными помощниками.</div>';
+  }
+  function openSheet(tab) {
+    const sh = root.querySelector('.hm-sheet');
+    sh.innerHTML = `<div class="bd"></div><div class="pn"><div class="gr"></div><button class="x" type="button" aria-label="Закрыть">✕</button>${sheetHtml(tab)}</div>`;
+    sh.classList.add('show');
+    root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+    sh.querySelector('.bd').onclick = sh.querySelector('.x').onclick = closeSheet;
+    sh.querySelectorAll('[data-act=close]').forEach((e) => { e.onclick = closeSheet; });
+  }
+  function closeSheet() {
+    root.querySelector('.hm-sheet').classList.remove('show');
+    root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.remove('on'));
+  }
   const GOAL = 10;
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
@@ -430,7 +503,7 @@
     root.scrollTop = 0;
     startOrbit(); startJaws();
   }
-  function hide() { root.hidden = true; document.body.classList.remove('is-home'); }
+  function hide() { root.hidden = true; const sh = root.querySelector('.hm-sheet'); if (sh) sh.classList.remove('show'); document.body.classList.remove('is-home'); }
 
   MG.home = { show, hide, refresh };
 })();
