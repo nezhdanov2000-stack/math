@@ -146,7 +146,9 @@
   /* лампа: включает подсказки с курсором (режим «Сокращение чисел») */
   const KEYL = 'mg.tut.lamp';
   const used = () => { try { return !!localStorage.getItem(KEYL); } catch (e) { return true; } };
-  const inCancel = () => { const m = document.getElementById('mode-cancel'); return !!m && !m.hidden; };
+  const HINT_MODES = ['cancel'];
+  const hintMode = () => HINT_MODES.find((id) => { const m = document.getElementById('mode-' + id); return !!m && !m.hidden; }) || '';
+  const inCancel = () => !!hintMode();
   const nudge = () => lamp.classList.toggle('nudge', !used() && inCancel() && !lamp.classList.contains('on'));
   let tipT = 0;
   function say(text) {
@@ -163,7 +165,15 @@
     nudge();
     window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: MG.hints.on } }));
   });
+  let autoFor = '';
+  const setOn = (v) => { MG.hints.on = v; lamp.classList.toggle('on', v); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: v } })); };
   setInterval(() => {
+    const hm = hintMode();
+    if (hm !== autoFor) {
+      autoFor = hm;
+      /* первая задача режима, лампой ещё не пользовались: подсказки включаются сами */
+      if (hm && !used() && +solvedEl.textContent === 0 && !MG.hints.on) setOn(true);
+    }
     if (!inCancel() && MG.hints.on) { MG.hints.on = false; lamp.classList.remove('on'); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: false } })); }
     nudge();
   }, 500);

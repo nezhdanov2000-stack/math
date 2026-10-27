@@ -1,7 +1,7 @@
 /* Офлайн-кэш: сначала сеть (чтобы обновления приходили сразу), если сети нет — из кэша.
  * CACHE — имя версии кэша. При релизе меняй его вместе с ?v= в index.html:
  * старые кэши удаляются в activate, поэтому в кэше не копятся устаревшие файлы. */
-const CACHE = 'mathgame-v157';
+const CACHE = 'mathgame-v167';
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 

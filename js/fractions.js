@@ -165,6 +165,8 @@
    * ============================================================ */
   function newRound() {
     clearSel();
+    const oldOffer = document.querySelector('.so-ov');
+    if (oldOffer) oldOffer.remove();
     const [n, d] = pickFraction();
     lastPair = `${n}/${d}`;
 
@@ -204,7 +206,7 @@
     updateHint();
   }
 
-  /* после 50 % прогресса кувалда не делит сама: множители вводит пользователь */
+  /* с 4-й задачи кувалда не делит сама: множители вводит пользователь */
   const manual = () => (window.MG.clip ? window.MG.clip.isManual() : false);
   async function askSplit(tok) {
     if (tok.smashing || tok.asking || !window.MG.clip) return;
@@ -402,14 +404,41 @@
     setStats(levelOf(solved), solved);
 
     after.classList.add('show');
+    offerSkip();
     ['num', 'den'].forEach((k) => burst(st.sides[k].toks[0].el, '#16a34a', 14));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
+  }
+
+  /* после 4-й решённой задачи (первая ручная) предлагаем пропустить режим */
+  const SKIPKEY = 'mg.tut.skip';
+  const flag = () => { try { return !!localStorage.getItem(SKIPKEY); } catch (e) { return true; } };
+  const setFlag = () => { try { localStorage.setItem(SKIPKEY, '1'); } catch (e) { /* нет хранилища */ } };
+  function closeOffer() {
+    const o = document.querySelector('.so-ov'); if (!o) return;
+    o.classList.add('out'); setTimeout(() => o.remove(), 220);
+  }
+  function offerSkip() {
+    const old = document.querySelector('.so-ov'); if (old) old.remove();
+    if (solved !== 4 || flag()) return;
+    setFlag();
+    const ov = document.createElement('div');
+    ov.className = 'so-ov';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Освоил кувалду?</h3><p>Тогда этот режим можно пропустить.</p><div class="so-row"><button type="button" class="so-go">Пропустить</button><button type="button" class="so-stay">Остаться</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', (e) => { if (e.target === ov) closeOffer(); });
+    ov.querySelector('.so-stay').addEventListener('click', closeOffer);
+    ov.querySelector('.so-go').addEventListener('click', () => {
+      try { localStorage.setItem('mg.solved.cancel', '10'); } catch (e) { /* нет хранилища */ }
+      ov.remove();
+      const home = document.getElementById('home-btn');
+      if (home) home.click();
+    });
   }
 
   /* ============================================================
    * Кнопки и регистрация режима
    * ============================================================ */
-  nextBtn.addEventListener('click', newRound);
+  nextBtn.addEventListener('click', () => { const o = document.querySelector('.so-ov'); if (o) o.remove(); newRound(); });
 
   window.MG.modes.cancel = {
     start() {

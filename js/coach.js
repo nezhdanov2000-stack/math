@@ -37,15 +37,33 @@
     const c = ensure(), r = target.getBoundingClientRect();
     if (!r.width) { hide(); return; }
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const dn = !!target.closest('.toolbar');
+    const dn = !!target.closest('.toolbar'), inClip = !!target.closest('.clip');
     lift(dn);
     c.style.left = `${Math.max(60, Math.min(innerWidth - 60, cx))}px`;
     c.style.top = `${cy}px`;
     const tip = c.querySelector('.tip'), fr = document.getElementById('fraction').getBoundingClientRect();
-    if (dn) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - r.top + 70}px`; }
+    if (inClip) { tip.style.top = 'auto'; const eq = document.querySelector('.clip .eq'); tip.style.bottom = `${innerHeight - (eq ? eq.getBoundingClientRect().top : r.top) + 8}px`; }
+    else if (dn) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - r.top + 70}px`; }
     else { tip.style.bottom = 'auto'; tip.style.top = `${Math.max(r.bottom, fr.bottom) + 56}px`; }
     if (key !== lastKey) { c.querySelector('.tip').textContent = text; lastKey = key; }
     c.classList.add('on');
+  }
+
+  /* планшет с клавиатурой: показываем, какие цифры нажимать и куда */
+  function clipStep(ov) {
+    const n = +ov.querySelector('.top .sk').textContent;
+    let a = 2; while (n % a) a++;
+    const want = [String(a), String(n / a)];
+    const boxes = [...ov.querySelectorAll('.bx')];
+    const vals = boxes.map((b) => b.textContent.trim());
+    const key = (d) => ov.querySelector(`.k[data-d="${d}"]`);
+    const i = vals[0] === want[0] ? (vals[1] === want[1] ? 2 : 1) : 0;
+    if (i < 2 && !want[i].startsWith(vals[i])) { hide(); return; }       // ошибся — подсказка ждёт
+    if (i === 2) { point(ov.querySelector('.k.go'), 'Готово — нажми галочку', 'cgo'); return; }
+    if (i === 1 && !boxes[1].classList.contains('on')) { point(boxes[1], 'Теперь второй множитель — нажми на него', 'cb1'); return; }
+    const d = want[i][vals[i].length];
+    const txt = i === 0 ? `Впиши первый множитель: ${want[0]}` : `Впиши второй множитель: ${want[1]}`;
+    point(key(d), txt, `ck${i}${vals[i].length}${d}`);
   }
 
   let fin = false;
@@ -55,6 +73,8 @@
     if (!active || !mode || mode.hidden) { hide(); fin = false; return; }
     const after = document.getElementById('after');
     if (after && after.classList.contains('show')) { hide(); return; }
+    const ov = document.querySelector('.clip-ov:not(.out)');
+    if (ov) { clipStep(ov); return; }
     const toks = [...document.querySelectorAll('#num .token, #den .token')].filter((t) => !t.classList.contains('one'));
     const tool = document.body.dataset.tool;
     const toolBtn = (id) => document.querySelector(`.toolbar .tool[data-id="${id}"]`);
