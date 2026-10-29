@@ -130,6 +130,7 @@
     bar.querySelectorAll('.tool').forEach((b) => {
       const on = b.dataset.id === current;
       b.classList.toggle('on', on);
+      b.classList.remove('nudge');
       b.setAttribute('aria-pressed', String(on));
     });
     document.body.dataset.tool = current || '';
@@ -166,7 +167,7 @@
     if (!SETS[name]) return;
     mode = name;
     render();
-    current = lastByMode[name] && SETS[name].includes(lastByMode[name]) ? lastByMode[name] : SETS[name][0];
+    current = null;        // ничего не выбрано заранее
     paintSelection();
   }
 
@@ -264,6 +265,7 @@
       btn.classList.remove('nudge');
       void btn.offsetWidth;
       btn.classList.add('nudge');
+      setTimeout(() => btn.classList.remove('nudge'), 650);
       showTip(btn, isOff(id) ? `Инструмент «${INFO[id].label}» вернётся через пару секунд` : `Здесь нужен инструмент «${INFO[id].label}»`);
     }
     return false;
@@ -271,6 +273,7 @@
 
   let hold = false;      // обучение: инструмент не подставляется сам
   function auto(name, has) {
+    return;   // инструмент выбирает только игрок
     if (name !== mode || hold) return;
     if (has[current] && !isOff(current)) return;
     const next = SETS[mode].find((id) => has[id] && !isOff(id));
@@ -299,8 +302,7 @@
       snapIcon(btn.querySelector('svg')).then(() => { if (isOff(id)) btn.classList.add('icon-off'); });
     }
     if (current === id) {
-      const other = SETS[mode].find((x) => x !== id && !isOff(x));
-      if (other) select(other);
+      current = null; paintSelection();
     }
     offTimer[id] = setTimeout(() => {
       const b = bar.querySelector(`.tool[data-id="${id}"]`);

@@ -36,14 +36,18 @@
 
   let state = null, solved = 0, lastKey = '';
 
+  /* уровень растёт каждые 2 решённых примера; с каждым уровнем целая часть (ответ) на 1 знак длиннее:
+   * однозначная, двузначная, трёхзначная… до пятизначной (больше не влезает на экран) */
+  const lvlOf = () => 1 + Math.floor(solved / 2);
   function pick() {
-    const lvl = MG.levelOf(solved, 5);
-    const dMax = [5, 7, 9, 12, 15][lvl - 1], kMax = [2, 3, 4, 5, 7][lvl - 1], kMin = lvl >= 3 ? 2 : 1;
+    const lvl = lvlOf();
+    const qd = Math.min(lvl, 5);
+    const dMax = [5, 7, 9, 9, 9][qd - 1];
     if (solved === 0 && !lastKey) return { n: 7, d: 3 };
     for (let i = 0; i < 400; i++) {
       const d = ri(2, dMax), r = ri(1, d - 1);
       if (gcd(r, d) !== 1) continue;
-      const k = ri(kMin, kMax), n = k * d + r;
+      const k = ri(Math.max(1, 10 ** (qd - 1)), 10 ** qd - 1), n = k * d + r;
       if (`${n}/${d}` === lastKey) continue;
       return { n, d };
     }
@@ -61,6 +65,7 @@
   }
 
   function newRound() {
+    window.dispatchEvent(new Event('mg:round'));   // лампа-подсказка гаснет на новом примере
     const { n, d } = pick();
     lastKey = `${n}/${d}`;
     state = { n0: n, n, d, k: 0, busy: false, done: false };
@@ -72,14 +77,14 @@
     denRow.replaceChildren(tok(d));
     fitBar(true);
     popIn(fracEl);
-    setStats(MG.levelOf(solved, 5), solved);
+    setStats(lvlOf(), solved);
     say();
   }
 
   function say() {
     const s = state;
     hint.set(s.done ? '' : s.k === 0
-      ? `Нажми на дробь: пасть выплюнет целое, когда числитель ${s.n} больше знаменателя ${s.d}`
+      ? (MG.clip && MG.clip.isManual(1) ? `Нажми на дробь пастью и сам посчитай: сколько раз ${s.d} помещается в ${s.n}` : `Нажми на дробь: пасть выплюнет целое, когда числитель ${s.n} больше знаменателя ${s.d}`)
       : `Числитель ${s.n} ещё не меньше знаменателя ${s.d} — выплюнем ещё`);
   }
 
@@ -108,6 +113,7 @@
     if (!st || st.busy || st.done) return;
     if (!MG.tools.need('maw')) return;
     if (st.n < st.d) return;
+    if (MG.clip && MG.clip.isManual(1)) { manualCount(st); return; }
     st.busy = true;
     let landed = null;
     await MG.maw.spit({ bar, onSpit: (x, y) => { landed = flyChip(x, y, st); } });
@@ -128,6 +134,28 @@
     say();
   }
 
+  /* ручной счёт: планшет просит целое и остаток, пасть потом выплёвывает ответ */
+  async function manualCount(st) {
+    st.busy = true;
+    const res = await MG.clip.askDiv(st.n0, st.d, fracEl);
+    if (state !== st) return;
+    if (!res) { st.busy = false; return; }
+    let landed = null;
+    await MG.maw.spit({ bar, onSpit: (x, y) => { landed = flyChip(x, y, st); } });
+    if (state !== st) return;
+    st.k = res[0]; st.n = res[1];
+    numRow.firstChild.textContent = st.n;
+    bump(numRow.firstChild);
+    fitBar();
+    if (landed) await landed;
+    if (state !== st) return;
+    wholeEl.textContent = st.k;
+    wholeEl.classList.add('on');
+    bump(wholeEl);
+    st.busy = false;
+    finish(st);
+  }
+
   async function finish(st) {
     st.done = true;
     hint.set('');
@@ -137,19 +165,46 @@
     wholeEl.classList.add('final');
     resultText.innerHTML = `${mf(st.n0, st.d)} = <span class="mw">${st.k}</span>${mf(st.n, st.d)}`;
     solved++;
-    setStats(MG.levelOf(solved, 5), solved);
+    setStats(lvlOf(), solved);
     after.classList.add('show');
+    offerEnd();
     burst(wholeEl, '#16a34a', 14);
     burst(numRow.firstChild, '#16a34a', 10);
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
+
+  /* после 7 решённых примеров предлагаем закончить режим */
+  const ENDKEY = 'mg.tut.skipext';
+  const closeOffer = () => { const o = document.querySelector('.so-ov'); if (!o) return; o.classList.add('out'); setTimeout(() => o.remove(), 220); };
+  function offerEnd() {
+    const old = document.querySelector('.so-ov'); if (old) old.remove();
+    let seen = true;
+    try { seen = !!localStorage.getItem(ENDKEY); } catch (err) { /* нет хранилища */ }
+    if (solved !== 7 || seen) return;
+    try { localStorage.setItem(ENDKEY, '1'); } catch (err) { /* нет хранилища */ }
+    const ov = document.createElement('div');
+    ov.className = 'so-ov';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Освоил пасть?</h3><p>Тогда этот режим можно закончить.</p><div class="so-row"><button type="button" class="so-go">Закончить</button><button type="button" class="so-stay">Остаться</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', (ev) => { if (ev.target === ov) closeOffer(); });
+    ov.querySelector('.so-stay').addEventListener('click', closeOffer);
+    ov.querySelector('.so-go').addEventListener('click', () => {
+      try { localStorage.setItem('mg.solved.ext', '10'); } catch (err) { /* нет хранилища */ }
+      ov.remove();
+      const home = document.getElementById('home-btn');
+      if (home) home.click();
+    });
+  }
+  nextBtn.addEventListener('click', () => { const o = document.querySelector('.so-ov'); if (o) o.remove(); });
 
   fracEl.addEventListener('click', onClick);
   nextBtn.addEventListener('click', newRound);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state) fitBar(true); });
 
   MG.modes.ext = {
-    start() { if (!state) newRound(); else { setStats(MG.levelOf(solved, 5), solved); fitBar(true); } },
+    info: () => state && { n: state.n, d: state.d, busy: state.busy, done: state.done },
+    levelUp() { solved = (Math.floor(solved / 2) + 1) * 2; newRound(); },
+    start() { if (!state) newRound(); else { setStats(lvlOf(), solved); fitBar(true); } },
     skip: newRound,
   };
 })();

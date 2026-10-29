@@ -907,18 +907,24 @@
     const list = isDen ? t.den : t.num[g].f;
     const v = list[idx];
     if (!(v > 3 && !isPrime(v))) { indivisible(nE, `${v} — неделимое`); return; }
-    splitNum(t, isDen, g, idx, nE);
+    splitNum(t, isDen, g, idx, nE, MG.clip && MG.clip.isManual());
   }
 
-  async function splitNum(t, isDen, g, idx, nE) {
+  async function splitNum(t, isDen, g, idx, nE, manual) {
     const st = state;
     st.busy = true;
+    let forced = 0;
+    if (manual) {
+      const r = await MG.clip.ask((isDen ? t.den : t.num[g].f)[idx], nE);
+      if (!r || state !== st || st.finished) { st.busy = false; return; }
+      forced = r[0];
+    }
     await MG.smash(nE);
     st.busy = false;
     if (state !== st || st.finished) return;
     const list = isDen ? t.den : t.num[g].f;
     const v = list[idx];
-    const p = spf(v);
+    const p = forced || spf(v);
     const src = nE.getBoundingClientRect();
     const first = snap();
     ensureTags(t);
@@ -1294,6 +1300,7 @@
   }
 
   MG.modes.mixed = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!state) newRound();
       else { setStats(levelOf(solved), solved); updateHint(); }

@@ -3,7 +3,9 @@
 (() => {
   'use strict';
   window.MG = window.MG || {};
-  const STEPS = 8;
+  const STEPS_DEFAULT = 8;
+  /* «Сокращение чисел»: 12 задач — четыре стадии по три (обезьяна, человек, профессор, робот) */
+  const stepsNow = () => { const m = document.getElementById('mode-cancel'); return m && !m.hidden ? 12 : STEPS_DEFAULT; };
 
   /* Свои SVG вместо эмодзи — одинаково на Windows, iPhone и Android */
   const ART = {
@@ -124,7 +126,7 @@
 
   function render() {
     const n = Math.max(0, parseInt(solvedEl.textContent, 10) || 0);
-    const pct = Math.min(100, Math.floor(n * 100 / STEPS));
+    const pct = Math.min(100, Math.floor(n * 100 / stepsNow()));
     const gain = pct > prev, instant = !gain;
     const z = Math.min(ZONES.length - 1, Math.max(0, Math.ceil(pct / 25) - 1));
     scene.classList.toggle('snap', instant);
@@ -143,10 +145,10 @@
     box.classList.toggle('full', pct === 100);
     prev = pct;
   }
-  /* лампа: включает подсказки с курсором (режим «Сокращение чисел») */
+  /* лампа: включает подсказки с курсором (режимы «Сокращение чисел» и «Выделить целое») */
   const KEYL = 'mg.tut.lamp';
   const used = () => { try { return !!localStorage.getItem(KEYL); } catch (e) { return true; } };
-  const HINT_MODES = ['cancel'];
+  const HINT_MODES = ['cancel', 'ext'];
   const hintMode = () => HINT_MODES.find((id) => { const m = document.getElementById('mode-' + id); return !!m && !m.hidden; }) || '';
   const inCancel = () => !!hintMode();
   const nudge = () => lamp.classList.toggle('nudge', !used() && inCancel() && !lamp.classList.contains('on'));
@@ -165,14 +167,20 @@
     nudge();
     window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: MG.hints.on } }));
   });
+  /* новый пример: подсказка выключается, дальше игрок включает её лампой сам */
+  /* на 4-м (планшет) и 7-м (молния) примерах подсказка тоже включается сама */
+  window.addEventListener('mg:round', () => {
+    if (MG.hints.on) setOn(false);
+    setTimeout(() => { if (hintMode() === 'cancel' && [3, 6].includes(+solvedEl.textContent)) setOn(true); }, 60);
+  });
   let autoFor = '';
   const setOn = (v) => { MG.hints.on = v; lamp.classList.toggle('on', v); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: v } })); };
   setInterval(() => {
     const hm = hintMode();
     if (hm !== autoFor) {
       autoFor = hm;
-      /* первая задача режима, лампой ещё не пользовались: подсказки включаются сами */
-      if (hm && !used() && +solvedEl.textContent === 0 && !MG.hints.on) setOn(true);
+      /* первая задача режима: подсказки включаются сами */
+      if (hm && +solvedEl.textContent === 0 && !MG.hints.on) setOn(true);
     }
     if (!inCancel() && MG.hints.on) { MG.hints.on = false; lamp.classList.remove('on'); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: false } })); }
     nudge();

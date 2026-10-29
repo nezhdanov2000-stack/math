@@ -480,7 +480,7 @@
     if (isOneTok(tok)) return;
     if (tools.current() === 'glove') { gloveClick(tok); return; }                   // перчатка: выбираем пару
     if (tools.current() === 'rocket' && rocketClick(tok)) return;                   // ракета: цепляем к множителю
-    if (isComposite(tok)) { if (tools.need('hammer')) splitOnce(tok); return; }   // составное → кувалда
+    if (isComposite(tok)) { if (tools.need('hammer')) splitOnce(tok, tok.kind === 'num' && window.MG.clip && window.MG.clip.isManual()); return; }   // составное → кувалда
     if (tok.role === 'cand') { tools.need('rocket'); return; }                      // общий множитель → ракета
     if (tok.role === 'pair') { tools.need('glove'); return; }                       // пару сокращает перчатка
     const name = tok.kind === 'num' ? tok.value : tok.name;
@@ -488,9 +488,17 @@
   }
 
   /* ---------- деление на два множителя ---------- */
-  async function splitOnce(tok) {
-    if (tok.smashing) return;
+  async function splitOnce(tok, manual) {
+    if (tok.smashing || tok.asking) return;
     const st = state;
+    let forced = 0;
+    if (manual) {
+      tok.asking = true;
+      const r = await window.MG.clip.ask(tok.value, tok.el);
+      tok.asking = false;
+      if (!r || state !== st || st.finished || tok.gone) return;
+      forced = r[0];
+    }
     tok.smashing = true;
     await smash(tok.el);                              // кувалда бьёт по числу
     tok.smashing = false;
@@ -501,7 +509,7 @@
 
     let part;
     if (tok.kind === 'num') {
-      const p = spf(tok.value);
+      const p = forced || spf(tok.value);
       part = makeNum(p, tok.side, tok.zone);
       tok.value /= p;
     } else {
@@ -929,6 +937,7 @@
   nextBtn.addEventListener('click', newRound);
 
   window.MG.modes.factor = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

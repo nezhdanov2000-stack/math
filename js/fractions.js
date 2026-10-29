@@ -41,8 +41,21 @@
   /* ---------- генерация дроби ---------- */
   function pickFraction() {
     if (solved === 0 && lastPair === '') return [15, 21];     // как на эскизе
+    if (solved === 6) return [14, 12];                          // знакомство с молнией: после сокращения остаётся 2·3
+    if (solved < 6) {                                           // примеры 1–6: каждое число — не больше двух простых множителей
+      const P = [2, 3, 5, 7];
+      for (let i = 0; i < 200; i++) {
+        const g = P[ri(0, P.length - 1)], a = P[ri(0, P.length - 1)], b = P[ri(0, P.length - 1)];
+        if (a === b || a === g || b === g) continue;
+        const n = g * a, d = g * b;
+        if (`${n}/${d}` === lastPair) continue;
+        return [n, d];
+      }
+      return [15, 21];
+    }
     const lvl = levelOf(solved);
-    const maxN = [60, 120, 300, 900, 2500, 6000][lvl - 1];
+    const maxN = solved < 9 ? 60 : 120;                    // числа, которые можно разложить в уме
+    const maxP = solved < 9 ? 7 : 11;                      // и простые множители поменьше
     for (let i = 0; i < 3000; i++) {
       const g = ri(2, Math.max(3, Math.floor(Math.sqrt(maxN) * 1.5)));
       const aMax = Math.floor(maxN / g);
@@ -54,6 +67,7 @@
       const n = g * a;
       const d = g * b;
       if (factorize(n).length > 6 || factorize(d).length > 6) continue;
+      if (Math.max(...factorize(n), ...factorize(d)) > maxP) continue;
       if (`${n}/${d}` === lastPair) continue;
       return [n, d];
     }
@@ -140,11 +154,16 @@
   const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
+    if (state.calc) {
+      const need = ['num', 'den'].filter((k) => state.sides[k].toks.length > 1);
+      const where = need.length === 2 ? 'в числителе и в знаменателе' : (need[0] === 'num' ? 'в числителе' : 'в знаменателе');
+      return `Молния: нажми на множители ${where} — она перемножит их в одно число`;
+    }
     const anyPair = ['num', 'den'].some((k) =>
       state.sides[k].toks.some((t) => t.paired && !t.gone));
     return anyPair
-      ? 'Возьми ластик и выбери два одинаковых цветных множителя — сверху и снизу. Ошибёшься — ластик исчезнет'
-      : (manual() ? 'Возьми кувалду, нажми на число и впиши два множителя. Простое число не делится.' : 'Возьми кувалду и ударь по числу — оно разобьётся на два множителя. Простое число не делится.');
+      ? 'Ластик: выбери два одинаковых цветных множителя — сверху и снизу. Ошибёшься — ластик исчезнет'
+      : (manual() ? 'Кувалда: нажми на составное число и впиши два множителя. Простое число не делится' : 'Кувалда: ударь по составному числу — оно разобьётся на множители. Простое число не делится');
   }
   function autoTool() {
     if (!state || state.finished) return;
@@ -163,11 +182,31 @@
   /* ============================================================
    * Раунд
    * ============================================================ */
+  /* молния появляется на панели с 7-го примера */
+  function unlockBolt() {
+    const set = window.MG.tools.sets.cancel;
+    if (solved >= 6 && !set.includes('bolt')) {
+      set.push('bolt');
+      const m = document.getElementById('mode-cancel');
+      if (m && !m.hidden) {
+        window.MG.tools.use('cancel');
+        const b = document.querySelector('.toolbar .tool[data-id="bolt"]');
+        if (b) { b.classList.add('back'); setTimeout(() => b.classList.remove('back'), 800); }
+      }
+    } else if (solved < 6 && set.includes('bolt')) {
+      set.splice(set.indexOf('bolt'), 1);
+      const m = document.getElementById('mode-cancel');
+      if (m && !m.hidden) window.MG.tools.use('cancel');
+    }
+  }
+
   function newRound() {
     clearSel();
+    window.dispatchEvent(new Event('mg:round'));
     const oldOffer = document.querySelector('.so-ov');
     if (oldOffer) oldOffer.remove();
     const [n, d] = pickFraction();
+    unlockBolt();
     lastPair = `${n}/${d}`;
 
     Object.values(rows).forEach((r) => { r.innerHTML = ''; });
@@ -279,6 +318,8 @@
     if (!state || state.finished || tok.gone || tok.value === 1) return;
     const tools = window.MG.tools;
     if (tools.current() === 'glove') { gloveClick(tok); return; }   // перчатка: выбираем пару
+    if (tools.current() === 'bolt') { boltClick(tok); return; }
+    if (state.calc) { tools.need('bolt'); return; }                 // всё сокращено — остаётся перемножить
     if (!isPrime(tok.value) && !tok.paired) {               // составное без пары → кувалда делит
       if (tools.need('hammer')) { if (manual()) askSplit(tok); else splitOnce(tok); }
       return;
@@ -352,7 +393,31 @@
     // дробь несократима, когда у числителя и знаменателя нет общих делителей
     const prod = (k) => state.sides[k].toks
       .filter((t) => !t.gone).reduce((x, t) => x * t.value, 1);
-    if (gcd(prod('num'), prod('den')) === 1) finish();
+    if (gcd(prod('num'), prod('den')) !== 1) return;
+    if (solved < 6 || ['num', 'den'].every((k) => state.sides[k].toks.length < 2)) { finish(); return; }   // молния открывается с 7-го примера
+    state.calc = true;                       // осталось перемножить остатки молнией
+    updateHint();
+  }
+
+  /* ---------- молния: перемножить множители одной части в число ---------- */
+  async function boltClick(tok) {
+    const st = state;
+    if (!st.calc) { window.MG.indivisible(tok.el, 'молния считает остатки — сначала сократи дробь'); return; }
+    const side = st.sides[tok.side];
+    if (side.toks.length < 2) { window.MG.indivisible(tok.el, 'здесь считать нечего'); return; }
+    if (st.zapping) return;
+    st.zapping = true;
+    const rr = rows[side.key].getBoundingClientRect();
+    const mark = document.createElement('div');
+    Object.assign(mark.style, { position: 'fixed', pointerEvents: 'none', width: '2px', height: '2px', left: `${rr.left + rr.width / 2}px`, top: `${rr.top + rr.height / 2}px` });
+    document.body.append(mark);
+    await window.MG.lightning([mark], { reveal: false, color: '#facc15' });
+    mark.remove();
+    if (state !== st) return;
+    await collapse(side);
+    if (state !== st) return;
+    st.zapping = false;
+    if (['num', 'den'].every((k) => st.sides[k].toks.length < 2)) { st.calc = false; finish(); } else updateHint();
   }
 
   async function collapse(side) {
@@ -404,7 +469,7 @@
     setStats(levelOf(solved), solved);
 
     after.classList.add('show');
-    offerSkip();
+    if (solved >= 12) setTimeout(offerDone, 900);
     ['num', 'den'].forEach((k) => burst(st.sides[k].toks[0].el, '#16a34a', 14));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
@@ -413,13 +478,27 @@
   const SKIPKEY = 'mg.tut.skip';
   const flag = () => { try { return !!localStorage.getItem(SKIPKEY); } catch (e) { return true; } };
   const setFlag = () => { try { localStorage.setItem(SKIPKEY, '1'); } catch (e) { /* нет хранилища */ } };
+  /* 12 примеров решено — уровень пройден, дальше примеров нет */
+  function offerDone() {
+    if (document.querySelector('.so-ov')) return;
+    const ov = document.createElement('div');
+    ov.className = 'so-ov';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты освоил сокращение дробей. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('.so-go').addEventListener('click', () => {
+      try { localStorage.setItem('mg.solved.cancel', String(Math.max(12, solved))); } catch (e) { /* нет хранилища */ }
+      ov.remove();
+      const home = document.getElementById('home-btn');
+      if (home) home.click();
+    });
+  }
   function closeOffer() {
     const o = document.querySelector('.so-ov'); if (!o) return;
     o.classList.add('out'); setTimeout(() => o.remove(), 220);
   }
   function offerSkip() {
     const old = document.querySelector('.so-ov'); if (old) old.remove();
-    if (solved !== 4 || flag()) return;
+    if (solved !== 6 || flag()) return;
     setFlag();
     const ov = document.createElement('div');
     ov.className = 'so-ov';
@@ -438,9 +517,10 @@
   /* ============================================================
    * Кнопки и регистрация режима
    * ============================================================ */
-  nextBtn.addEventListener('click', () => { const o = document.querySelector('.so-ov'); if (o) o.remove(); newRound(); });
+  nextBtn.addEventListener('click', () => { if (solved >= 12) { offerDone(); return; } const o = document.querySelector('.so-ov'); if (o) o.remove(); newRound(); });
 
   window.MG.modes.cancel = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); if (solved >= 12) offerDone(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

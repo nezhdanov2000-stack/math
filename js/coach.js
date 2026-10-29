@@ -1,5 +1,6 @@
-/* Подсказка-палец для первой задачи режима «Сокращение чисел»:
- * показывает, как пользоваться кувалдой и ластиком. Следит за состоянием на экране
+/* Подсказка-палец (включается лампой, на первой задаче режима — сама):
+ * «Сокращение чисел» — показывает, как пользоваться кувалдой и ластиком;
+ * «Выделить целое» — показывает пасть и ведёт по планшету (деление уголком или формула). Следит за состоянием на экране
  * и каждый раз показывает ближайший нужный шаг. После первой решённой задачи больше не появляется. */
 (() => {
   'use strict';
@@ -33,7 +34,7 @@
   const lift = (on) => document.body.classList.toggle('co-lift', on);
   const hide = () => { if (el) el.classList.remove('on'); lastKey = ''; lift(false); };
 
-  function point(target, text, key) {
+  function point(target, text, key, below) {
     const c = ensure(), r = target.getBoundingClientRect();
     if (!r.width) { hide(); return; }
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -41,8 +42,13 @@
     lift(dn);
     c.style.left = `${Math.max(60, Math.min(innerWidth - 60, cx))}px`;
     c.style.top = `${cy}px`;
-    const tip = c.querySelector('.tip'), fr = document.getElementById('fraction').getBoundingClientRect();
-    if (inClip) { tip.style.top = 'auto'; const eq = document.querySelector('.clip .eq'); tip.style.bottom = `${innerHeight - (eq ? eq.getBoundingClientRect().top : r.top) + 8}px`; }
+    const tip = c.querySelector('.tip'), fr = (below || document.getElementById('fraction')).getBoundingClientRect();
+    const board = inClip && target.closest('.clip');
+    if (board && board.querySelector('.tabs')) {     // планшет «целое и остаток»: подсказка над планшетом, чтобы не закрывать запись
+      const br = board.getBoundingClientRect();
+      if (br.top > 90) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - br.top + 24}px`; }
+      else { tip.style.bottom = 'auto'; tip.style.top = `${Math.min(br.bottom + 12, innerHeight - 70)}px`; }
+    } else if (inClip) { tip.style.top = 'auto'; const eq = document.querySelector('.clip .eq'); tip.style.bottom = `${innerHeight - (eq ? eq.getBoundingClientRect().top : r.top) + 8}px`; }
     else if (dn) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - r.top + 70}px`; }
     else { tip.style.bottom = 'auto'; tip.style.top = `${Math.max(r.bottom, fr.bottom) + 56}px`; }
     if (key !== lastKey) { c.querySelector('.tip').textContent = text; lastKey = key; }
@@ -53,6 +59,8 @@
   function clipStep(ov) {
     const n = +ov.querySelector('.top .sk').textContent;
     let a = 2; while (n % a) a++;
+    { const p = a; let full = p; while (n % (full * p) === 0) full *= p;   // 12 → 4 · 3 (а не 2 · 6): дальше разобьём 4 и ничего лишнего
+      if (full < n) a = full; }
     const want = [String(a), String(n / a)];
     const boxes = [...ov.querySelectorAll('.bx')];
     const vals = boxes.map((b) => b.textContent.trim());
@@ -66,11 +74,72 @@
     point(key(d), txt, `ck${i}${vals[i].length}${d}`);
   }
 
+  /* ---------- «Выделить целое» ---------- */
+  /* те же шаги деления уголком, что и в планшете (clip.js → askDiv) */
+  function divSteps(n, d) {
+    const digs = String(n).split('').map(Number), L = digs.length;
+    let first = 1, cur = digs[0];
+    while (cur < d && first < L) { cur = cur * 10 + digs[first]; first++; }
+    const cells = [];
+    for (let end = first - 1; ; end++) {
+      const q = Math.floor(cur / d), prod = q * d, rem = cur - prod;
+      cells.push({ exp: String(q), txt: `Сколько раз ${d} помещается в ${cur}? Впиши ${q}` });
+      cells.push({ exp: String(prod), txt: `Умножь: ${d} × ${q} = ${prod}. Впиши ${prod}` });
+      cells.push({ exp: String(rem), txt: end + 1 < L ? `Вычти: ${cur} − ${prod} = ${rem}. Впиши ${rem}, рядом снесём следующую цифру` : `Вычти: ${cur} − ${prod} = ${rem}. Это остаток — впиши ${rem}` });
+      if (end + 1 >= L) break;
+      cur = rem * 10 + digs[end + 1];
+    }
+    return cells;
+  }
+
+  function divStep(ov) {
+    const nums = ov.querySelectorAll('.pv1 .pvn');
+    const n = +nums[0].textContent, d = +nums[1].textContent;
+    const key = (dg) => ov.querySelector(`.k[data-d="${dg}"]`);
+    const pane = ov.querySelector('.pane:not([hidden])');
+    if (!pane) { hide(); return; }
+    if (pane.classList.contains('p3')) {            // вкладка III: n/d = d × [целое] + [остаток]
+      const want = [String(Math.floor(n / d)), String(n % d)];
+      const boxes = [...pane.querySelectorAll('.eq .bx')];
+      const vals = boxes.map((b) => b.textContent.trim());
+      const i = vals[0] === want[0] ? (vals[1] === want[1] ? 2 : 1) : 0;
+      if (i === 2) { point(ov.querySelector('.k.go'), 'Готово — нажми галочку', 'dgo'); return; }
+      if (i === 1 && !boxes[1].classList.contains('on')) { point(boxes[1], 'Теперь остаток — нажми на вторую клетку', 'db1'); return; }
+      if (!boxes[i].classList.contains('on')) { point(boxes[i], 'Нажми на клетку для целого', 'db0'); return; }
+      if (!want[i].startsWith(vals[i])) { point(key('x'), 'Не та цифра — сотри её', `dx${i}`); return; }
+      const txt = i === 0 ? `Сколько раз ${d} помещается в ${n}? Впиши ${want[0]}` : `Остаток: ${n} − ${d} × ${want[0]} = ${want[1]}. Впиши ${want[1]}`;
+      point(key(want[i][vals[i].length]), txt, `d3${i}${vals[i].length}`);
+      return;
+    }
+    /* вкладки I и II: деление уголком, клетки заполняются по очереди */
+    const cells = divSteps(n, d);
+    const ci = pane.querySelectorAll('.bx.lc.done').length;
+    const el = pane.querySelector('.bx.lc.on');
+    if (ci >= cells.length || !el) { hide(); return; }
+    const c = cells[ci], val = el.textContent.trim();
+    if (!c.exp.startsWith(val)) { point(key('x'), 'Не та цифра — сотри её', `dx${ci}`); return; }
+    point(key(c.exp[val.length]), c.txt, `dl${ci}`);
+  }
+
+  function tickExt() {
+    const after = document.getElementById('ex-after');
+    const info = MG.modes.ext && MG.modes.ext.info && MG.modes.ext.info();
+    if ((after && after.classList.contains('show')) || !info || info.done) { hide(); return; }
+    const ov = document.querySelector('.clip-ov:not(.out)');
+    if (ov) { if (ov.querySelector('.tabs')) divStep(ov); else hide(); return; }
+    if (info.busy) { hide(); return; }                 // пасть выплёвывает целое — не мешаем
+    const toolBtn = document.querySelector('.toolbar .tool[data-id="maw"]');
+    if (document.body.dataset.tool !== 'maw' && toolBtn) { point(toolBtn, 'Возьми пасть — она выделяет целую часть', 'eb'); return; }
+    const fr = document.getElementById('ex-fraction');
+    point(fr, `Нажми пастью на дробь и посчитай, сколько раз ${info.d} помещается в ${info.n}`, 'ef', fr);
+  }
+
   let fin = false;
   document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.token') && lastKey.startsWith('g2')) { fin = true; hide(); } }, true);
+  const shown = (id) => { const m = document.getElementById(id); return !!m && !m.hidden; };
   function tick() {
-    const mode = document.getElementById('mode-cancel');
-    if (!active || !mode || mode.hidden) { hide(); fin = false; return; }
+    if (active && shown('mode-ext')) { tickExt(); return; }
+    if (!active || !shown('mode-cancel')) { hide(); fin = false; return; }
     const after = document.getElementById('after');
     if (after && after.classList.contains('show')) { hide(); return; }
     const ov = document.querySelector('.clip-ov:not(.out)');
@@ -98,6 +167,12 @@
         const mate = paired.find((t) => t.parentElement.id === other && t.textContent === sel.textContent);
         if (mate) point(mate, '…и на такой же снизу — они сократятся', `g2${mate.textContent}`); else hide();
       }
+      return;
+    }
+    const multi = ['num', 'den'].find((id) => toks.filter((t) => t.parentElement.id === id).length > 1);
+    if (multi) {                                   // всё сокращено — остаётся перемножить молнией
+      if (tool !== 'bolt' && toolBtn('bolt')) { point(toolBtn('bolt'), 'Осталось перемножить множители — возьми молнию', 'bb'); return; }
+      point(toks.find((t) => t.parentElement.id === multi), 'Нажми молнией — множители перемножатся в одно число', `z${multi}`);
       return;
     }
     hide();

@@ -252,6 +252,24 @@
   }
 
   /* ---------- деление числа на два множителя (автопилот) ---------- */
+  /* вручную: множители вводит пользователь на планшете */
+  const manual = () => (window.MG.clip ? window.MG.clip.isManual() : false);
+  async function askSplit(tok) {
+    if (tok.smashing || tok.asking || !window.MG.clip) return;
+    const st = state;
+    tok.asking = true;
+    const r = await window.MG.clip.ask(tok.value, tok.el);
+    tok.asking = false;
+    if (!r || state !== st || st.finished || tok.gone) return;
+    tok.smashing = true;
+    await smash(tok.el);
+    tok.smashing = false;
+    if (state !== st || st.finished || tok.gone) return;
+    splitStep(st.sides[tok.side], tok, r[0]);
+    refreshPairs();
+    updateHint();
+  }
+
   async function splitOnce(tok) {
     if (tok.smashing) return;
     const st = state;
@@ -265,10 +283,10 @@
   }
 
   /* число рассыпается: наименьший простой множитель + остаток */
-  function splitStep(side, big) {
+  function splitStep(side, big, forced) {
     const first = snapshot();
     relax();
-    const p = spf(big.value);
+    const p = forced || spf(big.value);
     const prime = makeTok(p, side.key);
     side.toks.splice(side.toks.indexOf(big), 0, prime);
     big.value /= p;
@@ -322,7 +340,7 @@
     if (tools.current() === 'glove') { gloveClick(tok); return; }   // перчатка: выбираем пару
     if (!isPrime(tok.value)) {                              // составное → кувалда делит
       if (tok.paired && tools.current() !== 'hammer') { tools.need('glove'); return; }   // одинаковые числа сразу сокращаются ластиком
-      if (tools.need('hammer')) splitOnce(tok);
+      if (tools.need('hammer')) { if (manual()) askSplit(tok); else splitOnce(tok); }
       return;
     }
     if (tok.paired) { tools.need('glove'); return; }        // сокращать надо перчаткой
@@ -589,6 +607,7 @@
   }
 
   window.MG.modes.div = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

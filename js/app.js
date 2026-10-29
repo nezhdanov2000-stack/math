@@ -28,6 +28,21 @@
     }).observe(solvedEl, { childList: true, characterData: true, subtree: true });
   }
 
+  /* тест: кнопка «следующий уровень» (в режимах, где она подключена) */
+  (() => {
+    const stats = document.querySelector('.top .stats');
+    if (!stats) return;
+    const st = document.createElement('style');
+    st.textContent = '.lvl-up { margin-left: 10px; padding: 1px 9px; border: 2px dashed #8a8d99; border-radius: 99px; background: transparent; color: #6b6e7a; font: 800 .78rem/1.5 inherit; font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; } .lvl-up:active { transform: scale(.94); }';
+    document.head.append(st);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lvl-up'; b.textContent = 'уровень +1 (тест)';
+    b.addEventListener('click', () => {
+      if (MG.active && typeof MG.active.levelUp === 'function') MG.active.levelUp();
+    });
+    stats.append(b);
+  })();
+
   function leaveCurrent() {
     if (MG.active && typeof MG.active.stop === 'function') MG.active.stop();
     MG.active = null;

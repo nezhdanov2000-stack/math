@@ -813,6 +813,15 @@
     const F = me.F1;
     const par = F.num.find((n) => n.factored);
     const g = par.k, m = F.den.v / g;
+    if (MG.clip && MG.clip.isManual()) {
+      for (;;) {
+        const r = await MG.clip.ask(F.den.v, F.den.el);
+        if (st !== me) return;
+        if (!r) { me.busy = false; return; }
+        if (r[0] === g || r[0] === m) break;
+        MG.indivisible(F.den.el, `нужен множитель ${g}`);
+      }
+    }
     await MG.smash(F.den.el);
     if (st !== me) return;
     F.den.parts = [{ v: g, el: mk('div', 'br-tok') }, { v: m, el: mk('div', 'br-tok') }];
@@ -925,6 +934,7 @@
   nextBtn.addEventListener('click', newRound);
 
   MG.modes.br = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!st) newRound();
       else setStats(levelOf(solved), solved);

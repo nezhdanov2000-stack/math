@@ -350,14 +350,22 @@
     if (['press', 'bolt'].includes(window.MG.tools.current())) return;   // клики поршней и молнии — отдельно
     if (window.MG.tools.current() === 'joker' && tok.role === 'drag') return;   // карту берут нажатием на множитель
     if (tok.zone !== 'den') return;
-    if (isComposite(tok)) { if (window.MG.tools.need('hammer')) splitDen(tok); return; }
+    if (isComposite(tok)) { if (window.MG.tools.need('hammer')) splitDen(tok, window.MG.clip && window.MG.clip.isManual()); return; }
     if (tok.role === 'drag') return;                       // сюда придёт перетаскивание рукой
     if (isPrime(tok.value)) indivisible(tok.el, `${tok.value} — этот множитель уже есть`);
   }
 
-  async function splitDen(tok) {
-    if (tok.smashing) return;
+  async function splitDen(tok, manual) {
+    if (tok.smashing || tok.asking) return;
     const st = state;
+    let forced = 0;
+    if (manual) {
+      tok.asking = true;
+      const r = await window.MG.clip.ask(tok.value, tok.el);
+      tok.asking = false;
+      if (!r || state !== st || st.finished) return;
+      forced = r[0];
+    }
     tok.smashing = true;
     await smash(tok.el);                              // кувалда бьёт по числу
     tok.smashing = false;
@@ -365,7 +373,7 @@
 
     const list = tok.frac.den;
     const first = snapshot();
-    const p = spf(tok.value);
+    const p = forced || spf(tok.value);
     const part = makeTok(p, tok.frac, 'den', false);
     part.fromJoker = tok.fromJoker;
     list.splice(list.indexOf(tok), 0, part);
@@ -776,6 +784,7 @@
   nextBtn.addEventListener('click', newRound);
 
   window.MG.modes[cfg.id] = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

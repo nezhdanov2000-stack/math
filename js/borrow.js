@@ -681,6 +681,7 @@
   nextBtn.addEventListener('click', newRound);
 
   window.MG.modes.borrow = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

@@ -633,6 +633,7 @@
   nextBtn.addEventListener('click', newRound);
 
   window.MG.modes.shift = {
+    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
     start() {
       if (!st) newRound();
       else setStats(levelOf(solved), solved);
