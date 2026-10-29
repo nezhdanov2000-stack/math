@@ -1,11 +1,12 @@
-/* Полоска прогресса под шапкой: каждая решённая задача — 1/8 пути (12–13 %).
+/* Полоска прогресса под шапкой: каждая решённая задача — 1/8 пути (или 1/total режима).
  * Четыре зоны по 25 % со своим пейзажем: джунгли → деревня → город → космос. */
 (() => {
   'use strict';
   window.MG = window.MG || {};
   const STEPS_DEFAULT = 8;
-  /* «Сокращение чисел»: 12 задач — четыре стадии по три (обезьяна, человек, профессор, робот) */
-  const stepsNow = () => { const m = document.getElementById('mode-cancel'); return m && !m.hidden ? 12 : STEPS_DEFAULT; };
+  /* 8 задач — четыре стадии по две (обезьяна, человек, профессор, робот);
+   * режим может задать своё число задач: MG.modes[имя].total (у «Общего знаменателя» — 12, по 3 на стадию) */
+  const stepsNow = () => (MG.active && MG.active.total) || STEPS_DEFAULT;
 
   /* Свои SVG вместо эмодзи — одинаково на Windows, iPhone и Android */
   const ART = {
@@ -145,10 +146,12 @@
     box.classList.toggle('full', pct === 100);
     prev = pct;
   }
-  /* лампа: включает подсказки с курсором (режимы «Сокращение чисел» и «Выделить целое») */
+  /* лампа: включает подсказки с курсором (режимы «Сокращение чисел», «Выделить целое», «Вынесение за скобки», «Общий знаменатель») */
   const KEYL = 'mg.tut.lamp';
   const used = () => { try { return !!localStorage.getItem(KEYL); } catch (e) { return true; } };
-  const HINT_MODES = ['cancel', 'ext'];
+  const HINT_MODES = ['cancel', 'ext', 'factor', 'common'];
+  /* на каких примерах подсказка включается сама: начало стадий и знакомство с новым инструментом */
+  const AUTO_ON = { cancel: [0, 2, 4], ext: [0, 2], factor: [0, 2], common: [0, 3, 6] };
   const hintMode = () => HINT_MODES.find((id) => { const m = document.getElementById('mode-' + id); return !!m && !m.hidden; }) || '';
   const inCancel = () => !!hintMode();
   const nudge = () => lamp.classList.toggle('nudge', !used() && inCancel() && !lamp.classList.contains('on'));
@@ -168,10 +171,13 @@
     window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: MG.hints.on } }));
   });
   /* новый пример: подсказка выключается, дальше игрок включает её лампой сам */
-  /* на 4-м (планшет) и 7-м (молния) примерах подсказка тоже включается сама */
+  /* в начале 1-й и 2-й стадии (1-й и 3-й пример) подсказка включается сама; в «Сокращении» — ещё на 5-м (молния) */
   window.addEventListener('mg:round', () => {
     if (MG.hints.on) setOn(false);
-    setTimeout(() => { if (hintMode() === 'cancel' && [3, 6].includes(+solvedEl.textContent)) setOn(true); }, 60);
+    setTimeout(() => {
+      const hm = hintMode(), n = +solvedEl.textContent;
+      if (hm && (AUTO_ON[hm] || [0]).includes(n)) setOn(true);
+    }, 60);
   });
   let autoFor = '';
   const setOn = (v) => { MG.hints.on = v; lamp.classList.toggle('on', v); window.dispatchEvent(new CustomEvent('mg:hints', { detail: { on: v } })); };

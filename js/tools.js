@@ -94,8 +94,7 @@
     cancel: ['hammer', 'glove'],
     ext: ['maw'],
     factor: ['hammer', 'rocket', 'glove', 'axe'],
-    common: ['hammer', 'joker', 'press', 'bolt', 'glove'],
-    big: ['hammer', 'joker', 'press', 'bolt', 'glove'],
+    common: ['joker', 'press', 'bolt', 'glove'],   // кувалда добавляется со стадии «человек» (common.js)
     borrow: ['claw', 'joker', 'press', 'bolt', 'glove'],
     mul: ['bridge', 'hammer', 'glove'],
     div: ['fan', 'bridge', 'hammer', 'glove'],

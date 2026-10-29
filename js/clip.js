@@ -463,8 +463,8 @@
   const KEYT = 'mg.test.manual';
   const forced = () => { try { return localStorage.getItem(KEYT) === '1'; } catch (e) { return false; } };
   const setForced = (v) => { try { localStorage.setItem(KEYT, v ? '1' : '0'); } catch (e) { /* нет хранилища */ } };
-  /* ручной режим: включён тестовой кнопкой или решено 3 задачи, начиная с 4-й */
-  const isManual = (from = 3) => forced() || !(MG.active === MG.modes.cancel) || (parseInt((document.getElementById('solved') || {}).textContent, 10) || 0) >= from;
+  /* ручной режим: включён тестовой кнопкой или решено 2 задачи (стадия «человек»), начиная с 3-й */
+  const isManual = (from = 2) => forced() || !(MG.active === MG.modes.cancel) || (parseInt((document.getElementById('solved') || {}).textContent, 10) || 0) >= from;
 
   MG.clip = { ask, askDiv, forced, setForced, isManual };
 })();

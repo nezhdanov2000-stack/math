@@ -56,7 +56,10 @@
     x: '#8b5cf6', y: '#ec4899', a: '#0ea5e9', b: '#84cc16',
     t: '#14b8a6', n: '#e11d48', m: '#a855f7', k: '#f97316',
   };
-  const levelOf = (s) => window.MG.levelOf(s, 5);   // уровень: +1 за каждые 3 задачи, не выше 5
+  /* 8 задач: четыре стадии по 2 (обезьяна, человек, профессор, робот); топор — со стадии «человек» */
+  const TOTAL = 8;
+  const AXE_FROM = 2;
+  const levelOf = (s) => Math.min(4, 1 + Math.floor(s / 2));
   const pick = (arr) => arr[ri(0, arr.length - 1)];
   const shuffled = (arr) => arr.slice().sort(() => Math.random() - 0.5);
 
@@ -188,6 +191,14 @@
         kind: 'num-n',
         num: [{ c: 2, vars: [{ n: 'x', e: 1 }], neg: false }, { c: 4, vars: [], neg: false }],
         den: [{ c: 2, vars: [], neg: false }],
+      };
+    }
+    if (solved === AXE_FROM) {                       // знакомство с топором: знаменатель сократится целиком
+      round++;
+      return {
+        kind: 'num-p',
+        num: [{ c: 2, vars: [{ n: 'x', e: 2 }], neg: false }, { c: 6, vars: [{ n: 'x', e: 1 }], neg: false }],
+        den: [{ c: 2, vars: [{ n: 'x', e: 1 }], neg: false }],
       };
     }
     const lvl = levelOf(solved);
@@ -436,7 +447,20 @@
   /* ============================================================
    * Раунд
    * ============================================================ */
+  /* топор появляется на панели со стадии «человек» (3-й пример) */
+  function unlockAxe() {
+    const set = window.MG.tools.sets.factor, on = solved >= AXE_FROM, has = set.includes('axe');
+    if (on === has) return;
+    if (on) set.push('axe'); else set.splice(set.indexOf('axe'), 1);
+    if (stage.hidden) return;
+    window.MG.tools.use('factor');
+    const b = on && document.querySelector('.toolbar .tool[data-id="axe"]');
+    if (b) { b.classList.add('back'); setTimeout(() => b.classList.remove('back'), 800); }
+  }
+
   function newRound() {
+    window.dispatchEvent(new Event('mg:round'));   // лампа-подсказка гаснет на новом примере
+    unlockAxe();
     clearSel();
     clearArm();
     if (window.MG.axe) window.MG.axe.reset(rows.num, bar);
@@ -800,7 +824,7 @@
     if (!state || state.finished || state.pending > 0) return;
     const common = intersect([sideCommon(state.sides.num), sideCommon(state.sides.den)]);
     if (!common.length) {
-      if (isOneSide(state.sides.den)) { state.chop = true; updateHint(); return; }   // единицу в знаменателе срубает топор
+      if (isOneSide(state.sides.den) && solved >= AXE_FROM) { state.chop = true; updateHint(); return; }   // единицу в знаменателе срубает топор (пока топора нет — она уходит сама)
       finish();
     }
   }
@@ -928,21 +952,86 @@
     [...rows.num.children, ...rows.den.children]
       .filter((el) => el.classList.contains('token') && el.offsetParent)
       .forEach((el) => burst(el, '#16a34a', 6));
+    if (solved >= TOTAL) setTimeout(offerDone, T(900));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
+  }
+
+  /* 8 примеров решено — уровень пройден, дальше примеров нет */
+  function offerDone() {
+    if (document.querySelector('.so-ov')) return;
+    const ov = document.createElement('div');
+    ov.className = 'so-ov';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты научился выносить общий множитель за скобки. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('.so-go').addEventListener('click', () => {
+      try { localStorage.setItem('mg.solved.factor', String(Math.max(TOTAL, solved))); } catch (e) { /* нет хранилища */ }
+      ov.remove();
+      const home = document.getElementById('home-btn');
+      if (home) home.click();
+    });
+  }
+
+  /* ============================================================
+   * Подсказка-палец (coach.js): следующий шаг { tool, el, text }
+   * ============================================================ */
+  const tokName = (t) => (t.kind === 'num' ? String(t.value) : t.name + (t.exp > 1 ? `^${t.exp}` : ''));
+  function coachStep() {
+    const st = state;
+    if (!st || st.finished || st.pending > 0) return null;
+    const live = allToks().filter((t) => !t.gone && t.el.isConnected);
+
+    if (st.chop) {                                         // знаменатель стал 1 → топор
+      const one = st.sides.den.terms[0].toks.find(isOneTok);
+      return one && { tool: 'axe', el: one.el, text: 'Сруби топором единицу в знаменателе' };
+    }
+
+    const pairs = live.filter((t) => t.role === 'pair');
+    if (pairs.length) {                                    // одинаковые сверху и снизу → ластик
+      const odd = sel.find((t) => t.role !== 'pair');
+      if (odd) return { tool: 'glove', el: odd.el, text: 'Этот множитель не сократится — нажми на него ещё раз, чтобы снять выбор' };
+      const s = sel[0];
+      if (s) { const p = partnerOf(s); return p && { tool: 'glove', el: p.el, text: '…и на такой же с другой стороны — они сократятся' }; }
+      const a = pairs.find((t) => t.side === 'num') || pairs[0];
+      return { tool: 'glove', el: a.el, text: `Ластиком нажми на ${tokName(a)} сверху…` };
+    }
+
+    const cands = live.filter((t) => t.role === 'cand');
+    if (cands.length) {                                    // общий множитель всех слагаемых → ракета
+      const base = armed.find((t) => t.role === 'cand') || cands[0];
+      const k = atomKey(base), side = st.sides[base.side];
+      const group = side.terms.map((term) => term.toks.find((t) => !t.gone && t.role === 'cand' && atomKey(t) === k &&
+        (armed.includes(t) || !term.toks.some((u) => u !== t && armed.includes(u) && atomKey(u) === k))));
+      const wrong = armed.find((t) => !group.includes(t));
+      if (wrong) return { tool: 'rocket', el: wrong.el, text: 'Сюда ракету не надо — нажми, чтобы снять её' };
+      const miss = group.find((t) => t && !armed.includes(t));
+      if (miss) return { tool: 'rocket', el: miss.el, text: armed.length ? `Прицепи ракету к ${k} и в этом слагаемом` : `${k} есть в каждом слагаемом — прицепи к нему ракету` };
+      return { tool: 'rocket', el: goBtn, text: 'Ракеты прицеплены — жми «Запуск»' };
+    }
+
+    const comp = live.filter((t) => isComposite(t) && !isOneTok(t));
+    if (comp.length) {                                     // общего пока не видно → кувалда
+      const sumCommon = (side) => (side.terms.length > 1 ? intersect(side.terms.map((term) => term.toks.flatMap(atomsOfTok))) : []);
+      const want = new Set([...intersect([sideCommon(st.sides.num), sideCommon(st.sides.den)]), ...sumCommon(st.sides.num), ...sumCommon(st.sides.den)]);
+      const t = comp.find((u) => atomsOfTok(u).some((a) => want.has(a))) || comp[0];
+      return { tool: 'hammer', el: t.el, text: t.kind === 'num' ? `Ударь кувалдой по ${t.value} — разложи его на множители` : `Ударь кувалдой по ${tokName(t)} — она разобьётся на множители` };
+    }
+    return null;
   }
 
   /* ============================================================
    * Кнопки и регистрация режима
    * ============================================================ */
-  nextBtn.addEventListener('click', newRound);
+  nextBtn.addEventListener('click', () => { if (solved >= TOTAL) { offerDone(); return; } newRound(); });
 
   window.MG.modes.factor = {
-    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
+    coachStep,
+    levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(levelOf(solved), solved); offerDone(); return; } newRound(); },
     start() {
+      unlockAxe();
       if (!state) newRound();
       else setStats(levelOf(solved), solved);
       updateLaunchUI();
     },
-    skip: newRound,
+    skip() { if (solved >= TOTAL) { offerDone(); return; } newRound(); },
   };
 })();

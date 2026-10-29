@@ -1,4 +1,7 @@
-/* Режим 3: приведение дробей к общему знаменателю.
+/* Режим «Общий знаменатель» (объединён с «Большими знаменателями»).
+ *   12 задач — четыре стадии по 3:
+ *     обезьяна, человек — общий знаменатель (маленькие знаменатели);
+ *     профессор, робот  — большие знаменатели (сначала разбей кувалдой, иначе общий знаменатель выйдет не минимальным).
  *
  *   2/3 − 1/2
  *   1. Знаменатели раскрашены по простым множителям: 3 — красный, 2 — синий.
@@ -17,7 +20,7 @@
   } = window.MG;
 
   function create(cfg) {
-  /* cfg: { id: 'common' | 'big', p: префикс id в разметке, big: режим «большие знаменатели» } */
+  /* cfg: { id: 'common', p: префикс id в разметке } */
 
   /* ============================================================
    * DOM
@@ -28,7 +31,7 @@
   const after = $(`#${cfg.p}-after`);
   const resultText = $(`#${cfg.p}-resultText`);
   const nextBtn = $(`#${cfg.p}-next`);
-  const noteEl = cfg.big ? $(`#${cfg.p}-note`) : null;
+  const noteEl = $(`#${cfg.p}-note`);
 
   /* ============================================================
    * Модель
@@ -44,7 +47,12 @@
   let lastKey = '';
   let uid = 0;
 
-  const levelOf = (s) => window.MG.levelOf(s, 5);   // уровень: +1 за каждые 3 задачи, не выше 5
+  const TOTAL = 12;                                 // 4 стадии по 3 задачи
+  const BIG_FROM = 6;                               // с 7-й задачи (профессор) — большие знаменатели
+  const levelOf = (s) => Math.min(4, 1 + Math.floor(s / 3));   // стадия: обезьяна, человек, профессор, робот
+  const isBig = () => solved >= BIG_FROM;
+  const HAMMER_FROM = 3;                            // кувалда — со стадии «человек», когда появляются составные знаменатели
+  let bigIntro = false;
   const pick = (arr) => arr[ri(0, arr.length - 1)];
   const lcm = (a, b) => (a / gcd(a, b)) * b;
   const isComposite = (t) => t.value > 1 && !isPrime(t.value);
@@ -73,13 +81,13 @@
   ];
   const specKey = (s) => JSON.stringify([s.fracs, s.ops]);
 
-  function genSpec(lvl) {
+  function genSpec(lvl, nF = lvl >= 3 && Math.random() < 0.5 ? 3 : 2) {
     const pool = DEN_POOLS[lvl - 1];
-    const nF = lvl >= 3 && Math.random() < 0.5 ? 3 : 2;
     const maxL = lvl === 1 ? 15 : lvl === 2 ? 72 : 120;
     for (let i = 0; i < 4000; i++) {
       const dens = [];
       while (dens.length < nF) { const d = pick(pool); if (!dens.includes(d)) dens.push(d); }
+      if (lvl >= 2 && dens.every(isPrime)) continue;   // со стадии «человек» — хотя бы один составной знаменатель
       const L = dens.reduce(lcm);
       if (L > maxL || factorize(L).length > 5) continue;
 
@@ -144,15 +152,25 @@
     return { fracs: [{ n: 3, d: 14 }, { n: 2, d: 21 }], ops: ['−'] };
   }
 
+  /* какая задача на каком шаге:
+   *   обезьяна  1–3:  знаменатели 2, 3, 5 (первая — 2/3 − 1/2, как на эскизе)
+   *   человек   4–6:  составные знаменатели (4, 6, 8, 9…), последняя — из трёх дробей
+   *   профессор 7–9:  большие знаменатели с общими множителями (первая — 3/14 − 2/21)
+   *   робот    10–12: ещё больше, иногда три дроби */
   function pickSpec() {
-    if (cfg.big) {
-      if (solved === 0 && lastKey === '') return { fracs: [{ n: 3, d: 14 }, { n: 2, d: 21 }], ops: ['−'] };
-      return genBig(levelOf(solved));
+    const s = Math.min(solved, TOTAL - 1);
+    if (s === 0 && lastKey === '') return { fracs: [{ n: 2, d: 3 }, { n: 1, d: 2 }], ops: ['−'] };
+    if (s === BIG_FROM && !bigIntro) { bigIntro = true; return { fracs: [{ n: 3, d: 14 }, { n: 2, d: 21 }], ops: ['−'] }; }
+    switch (s) {
+      case 0: case 1: case 2: return genSpec(1, 2);
+      case 3: case 4: return genSpec(2, 2);
+      case 5: return genSpec(3, 3);
+      case 6: case 7: return genBig(1);
+      case 8: return genBig(2);
+      case 9: return genBig(3);
+      case 10: return genBig(4);
+      default: return genBig(5);
     }
-    if (solved === 0 && lastKey === '') {           // как на эскизе: 2/3 − 1/2
-      return { fracs: [{ n: 2, d: 3 }, { n: 1, d: 2 }], ops: ['−'] };
-    }
-    return genSpec(levelOf(solved));
   }
 
   /* ============================================================
@@ -224,6 +242,21 @@
       renderRow(F.denRow, F.den);
       fitBar(F);
     });
+    shrinkToFit();
+  }
+
+  /* запись выросла шире экрана (много множителей, три дроби) — уменьшаем шрифт, чтобы всё было видно */
+  function shrinkToFit() {
+    const kids = [...fracsEl.children];
+    if (!state || !kids.length) return;
+    const rs = kids.map((k) => k.getBoundingClientRect());
+    const need = Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.left));
+    const avail = fracsEl.clientWidth;
+    if (!avail || need <= avail) return;
+    const fs = parseFloat(fracsEl.style.fontSize) || 56;
+    state.fontFit = Math.max(14, fs * (avail / need) * 0.96);
+    state.shrunk = true;
+    applyFontSize();
   }
 
   /* размер шрифта: самая широкая запись — когда все дроби приведены к общему знаменателю */
@@ -236,7 +269,7 @@
       return s + Math.max(1 + (AL - own), AL) * 1.25 + 0.5;
     }, 0) + (spec.fracs.length - 1) * 1.8;
     let width = w;
-    if (cfg.big) {                                   // запас на случай, если множат на неразложенные числа
+    if (isBig()) {                                   // запас на случай, если множат на неразложенные числа
       const digs = spec.fracs.reduce((s, f) => s + String(f.d).length * 0.62 + 0.6, 0);
       width = Math.max(w, spec.fracs.length * digs * 1.08 + (spec.fracs.length - 1) * 1.8);
     }
@@ -246,7 +279,7 @@
   }
   function applyFontSize() {
     if (!state) return;
-    fracsEl.style.fontSize = `${Math.max(24, Math.min(60, state.fontFit))}px`;
+    fracsEl.style.fontSize = `${Math.max(state.shrunk ? 14 : 24, Math.min(60, state.fontFit))}px`;
     state.fracs.forEach((F) => fitBar(F, true));
   }
   window.addEventListener('resize', () => {
@@ -265,7 +298,7 @@
         if (colored) t.el.style.setProperty('--c', colorOf(t.value));
       });
       F.den.forEach((t) => {
-        const drag = !st.finished && t.value > 1 && (isPrime(t.value) || cfg.big)
+        const drag = !st.finished && t.value > 1 && (isPrime(t.value) || isBig())
           && st.fracs.some((Y) => Y !== F && needs(t, Y));
         t.role = drag ? 'drag' : null;
         t.el.classList.toggle('paired', drag);
@@ -283,7 +316,7 @@
     if (!state || state.finished) return '';
     if (state.ready) return 'Знаменатели одинаковые. Возьми поршни и нажми на дроби — они сожмут их в одну дробь';
     const anyDrag = state.fracs.some((F) => F.den.some((t) => t.role === 'drag'));
-    if (cfg.big && state.fracs.some((F) => F.den.some(isComposite))) {
+    if (isBig() && state.fracs.some((F) => F.den.some(isComposite))) {
       return 'Знаменатели большие. Возьми кувалду и ударь по числу — оно разобьётся на множители, так общий знаменатель получится проще';
     }
     if (anyDrag) {
@@ -310,7 +343,20 @@
   /* ============================================================
    * Раунд
    * ============================================================ */
+  /* кувалда появляется на панели вместе с составными знаменателями (стадия «человек») */
+  function unlockHammer() {
+    const set = window.MG.tools.sets[cfg.id], on = solved >= HAMMER_FROM, has = set.includes('hammer');
+    if (on === has) return;
+    if (on) set.unshift('hammer'); else set.splice(set.indexOf('hammer'), 1);
+    if (stage.hidden) return;
+    window.MG.tools.use(cfg.id);
+    const b = on && document.querySelector('.toolbar .tool[data-id="hammer"]');
+    if (b) { b.classList.add('back'); setTimeout(() => b.classList.remove('back'), 800); }
+  }
+
   function newRound() {
+    window.dispatchEvent(new Event('mg:round'));   // лампа-подсказка гаснет на новом примере
+    unlockHammer();
     clearSel();
     const spec = pickSpec();
     lastKey = specKey(spec);
@@ -743,7 +789,7 @@
     let rn = F0.num[0].value;
     let rd = F0.den.reduce((x, t) => x * t.value, 1);
     let note = null;
-    if (cfg.big) {
+    if (isBig()) {
       const L = st.spec.fracs.reduce((a, f) => lcm(a, f.d), 1);
       const g = gcd(rn, rd);
       if (rd > L && g > 1) {
@@ -774,6 +820,7 @@
     setStats(levelOf(solved), solved);
 
     after.classList.add('show');
+    if (solved >= TOTAL) setTimeout(offerDone, T(900));
     fracsEl.querySelectorAll('.token').forEach((el) => burst(el, '#16a34a', 10));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
@@ -781,18 +828,69 @@
   /* ============================================================
    * Кнопки и регистрация режима
    * ============================================================ */
-  nextBtn.addEventListener('click', newRound);
+  /* 12 задач решено — уровень пройден */
+  function offerDone() {
+    if (document.querySelector('.so-ov')) return;
+    const ov = document.createElement('div');
+    ov.className = 'so-ov';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты научился приводить дроби к общему знаменателю — и к маленькому, и к большому. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('.so-go').addEventListener('click', () => {
+      try { localStorage.setItem(`mg.solved.${cfg.id}`, String(Math.max(TOTAL, solved))); } catch (e) { /* нет хранилища */ }
+      ov.remove();
+      const home = document.getElementById('home-btn');
+      if (home) home.click();
+    });
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (solved >= TOTAL) { offerDone(); return; }
+    const o = document.querySelector('.so-ov'); if (o) o.remove();
+    newRound();
+  });
+
+  /* ============================================================
+   * Подсказка-палец (coach.js): следующий шаг → { tool, el, text }
+   * ============================================================ */
+  function coachStep() {
+    const st = state;
+    if (!st || st.zapping || after.classList.contains('show')) return null;
+    if (st.calc) {                                   // дроби слились — молния считает (busy остаётся после поршней)
+      const F0 = st.fracs[0];
+      if (numNeeds(F0)) return { tool: 'bolt', el: F0.numRow, text: 'Нажми молнией на числитель — она посчитает его' };
+      if (denNeeds(F0)) return { tool: 'bolt', el: F0.denRow, text: 'Теперь нажми молнией на знаменатель — множители перемножатся' };
+      return null;
+    }
+    if (st.finished || st.busy) return null;
+    if (st.ready) return { tool: 'press', el: st.fracs[0].el, text: 'Знаменатели одинаковые — нажми поршнями на дроби, они сожмутся в одну' };
+    const comp = st.fracs.flatMap((F) => F.den).find((t) => isComposite(t) && !t.smashing);
+    if (comp) return { tool: 'hammer', el: comp.el, text: `Нажми кувалдой на ${comp.value} и впиши два множителя` };
+    if (drag) {                                      // карта уже в руке — куда её положить
+      const Y = st.fracs.find((F) => validTarget(drag.tok, F));
+      return Y ? { tool: 'joker', el: Y.el, text: `Положи ${drag.tok.value} на эту дробь — в ней не хватает ${drag.tok.value}` } : null;
+    }
+    for (const F of st.fracs) {
+      const t = F.den.find((x) => x.role === 'drag');
+      if (t) return { tool: 'joker', el: t.el, text: `Схвати джокером ${t.value} и перетащи на дробь, где его не хватает` };
+    }
+    return null;
+  }
 
   window.MG.modes[cfg.id] = {
-    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
+    total: TOTAL,
+    coachStep,
+    levelUp() {
+      solved = Math.min(TOTAL, (Math.floor(solved / 3) + 1) * 3);
+      if (solved >= TOTAL) { setStats(levelOf(solved), solved); offerDone(); return; }
+      newRound();
+    },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);
     },
-    skip: newRound,
+    skip() { if (solved >= TOTAL) { offerDone(); return; } newRound(); },
   };
   }
 
-  create({ id: 'common', p: 'c', big: false });
-  create({ id: 'big', p: 'b', big: true });
+  create({ id: 'common', p: 'c' });
 })();

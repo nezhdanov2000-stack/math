@@ -211,7 +211,7 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
 .token.ghost, .glyph.ghost { transition: none; }
 
 /* ---------- режим 3: общий знаменатель ---------- */
-#mode-common .fracs, #mode-big .fracs, #mode-borrow .fracs {
+#mode-common .fracs, #mode-borrow .fracs {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,7 +219,7 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
   font-size: 56px;
   font-weight: 900;
 }
-#mode-common .fr, #mode-big .fr, #mode-borrow .fr {
+#mode-common .fr, #mode-borrow .fr {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -227,12 +227,12 @@ button.ghost:hover { color: var(--ink); border-color: var(--ink); background: rg
   border-radius: .4em;
   transition: background-color .25s, opacity .25s, box-shadow .25s;
 }
-#mode-common .row, #mode-big .row, #mode-borrow .row { width: auto; gap: 0; min-height: 1.5em; justify-content: center; }
-#mode-common .token, #mode-big .token, #mode-borrow .token { padding: .06em .09em; }
-#mode-common .token::before, #mode-big .token::before, #mode-borrow .token::before { content: none; }
-#mode-common .token.dot, #mode-big .token.dot, #mode-borrow .token.dot { margin-left: .7em; }
-#mode-common .token.dot::before, #mode-big .token.dot::before, #mode-borrow .token.dot::before { content: '·'; left: -.35em; opacity: .55; }
-#mode-common .glyph.op, #mode-big .glyph.op, #mode-borrow .glyph.op { align-self: center; margin: 0 .35em; }
+#mode-common .row, #mode-borrow .row { width: auto; gap: 0; min-height: 1.5em; justify-content: center; }
+#mode-common .token, #mode-borrow .token { padding: .06em .09em; }
+#mode-common .token::before, #mode-borrow .token::before { content: none; }
+#mode-common .token.dot, #mode-borrow .token.dot { margin-left: .7em; }
+#mode-common .token.dot::before, #mode-borrow .token.dot::before { content: '·'; left: -.35em; opacity: .55; }
+#mode-common .glyph.op, #mode-borrow .glyph.op { align-self: center; margin: 0 .35em; }
 
 .token.dcol { color: var(--c); }
 .token.drag { cursor: grab; touch-action: none; }
@@ -584,3 +584,8 @@ body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none
 .home-btn svg { width: 18px; height: 18px; }
 .home-btn:hover { background: #fff; }
 .home-btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+
+/* без текстовых подсказок */
+.hint, .coach .tip { display: none !important; }
+/* молния: точка умножения — зона нажатия */
+body[data-tool="bolt"] .stage .token:not(.lead)::before { pointer-events: auto; padding: .45em .3em; cursor: pointer; opacity: .9; color: #eab308; }

@@ -62,6 +62,7 @@
   }
 
   function activate(name) {
+    if (name === 'big') name = 'common';           // «Большие знаменатели» теперь стадии «Общего знаменателя»
     if (!sections[name] || !MG.modes[name]) name = 'cancel';
     leaveCurrent();
     curMode = name;
@@ -78,5 +79,5 @@
 
   MG.go = activate;
   const h0 = location.hash.slice(1);
-  if (sections[h0]) activate(h0); else showHome();
+  if (sections[h0] || h0 === 'big') activate(h0); else showHome();
 })();

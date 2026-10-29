@@ -14,7 +14,6 @@
       { id: 'factor', name: 'Вынесение за скобки', icon: 'rocket', x: 66, y: 10 } ] },
     { n: 'II', title: 'Сложение и вычитание', cls: 'l2', modes: [
       { id: 'common', name: 'Общий знаменатель', icon: 'joker', x: 32, y: 56 },
-      { id: 'big', name: 'Большие знаменатели', icon: 'press', x: 9, y: 76 },
       { id: 'borrow', name: 'Занять единицу', icon: 'claw', x: 60, y: 42, lab: 'r' },
       { id: 'mixed', name: 'Смешанные числа', icon: 'heli', x: 38, y: 24, lab: 'r' },
       { id: 'br', name: 'Дроби с переменными', icon: 'box', x: 84, y: 71 } ] },
@@ -405,11 +404,11 @@
     trophy: '<svg viewBox="0 0 48 48"><path d="M14 6h20v14c0 7-4 11-10 11s-10-4-10-11z" fill="#ffc933" stroke="#8a5a0a" stroke-width="2.4" stroke-linejoin="round"/><path d="M14 10H6c0 8 3 12 9 13M34 10h8c0 8-3 12-9 13" fill="none" stroke="#8a5a0a" stroke-width="2.4" stroke-linecap="round"/><rect x="21" y="31" width="6" height="6" fill="#e6a416" stroke="#8a5a0a" stroke-width="2"/><rect x="13" y="37" width="22" height="6" rx="2" fill="#7c5ae0" stroke="#2f1f6b" stroke-width="2.4"/><path d="M19 10v10" stroke="#fff6c0" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>' };
   const TABS = [['friends', 'друзья'], ['map', 'разделы'], ['tools', 'инструменты'], ['trophy', 'достижения']];
   function sheetHtml(tab) {
-    const all = LEVELS.flatMap((l) => l.modes), sol = (m) => Math.min(GOAL, getSolved(m.id));
-    const total = all.reduce((a, m) => a + sol(m), 0), goal = all.length * GOAL;
+    const all = LEVELS.flatMap((l) => l.modes), sol = (m) => Math.min(goalOf(m.id), getSolved(m.id));
+    const total = all.reduce((a, m) => a + sol(m), 0), goal = all.reduce((a, m) => a + goalOf(m.id), 0);
     if (tab === 'map') return `<h2>Разделы</h2><p>Выбери, что изучать.</p><div class="cards"><div class="cd go" data-act="close"><span class="em">➗</span><span>Дроби<small>4 острова · ${all.length} режимов — ты здесь</small></span></div><div class="cd off"><span class="em">⚖️</span><span>Уравнения<small>Скоро</small></span></div></div>`;
     if (tab === 'trophy') {
-      const full = LEVELS.filter((l) => l.modes.every((m) => sol(m) >= GOAL)).length;
+      const full = LEVELS.filter((l) => l.modes.every((m) => sol(m) >= goalOf(m.id))).length;
       const A = [['🌱', 'Первый шаг', 'Реши первую задачу', total >= 1], ['🔥', 'Разогрев', 'Реши 10 задач', total >= 10], ['🎯', 'Полсотни', 'Реши 50 задач', total >= 50], ['🏝️', 'Остров покорён', 'Закрой любой остров на 100%', full >= 1], ['👑', 'Мастер дробей', 'Закрой все острова', full === LEVELS.length]];
       return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div><button class="rst sw" type="button">Ручное разбиение (тест): ${MG.clip && MG.clip.forced() ? 'включено' : 'выключено'} — нажми, чтобы сменить</button><button class="rst" type="button">Сбросить прогресс (для теста)</button>`;
     }
@@ -453,6 +452,9 @@
     root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.remove('on'));
   }
   const GOAL = 10;
+  /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
+  /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
+  const goalOf = (id) => (['cancel', 'ext', 'factor'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;
@@ -499,8 +501,8 @@
   }
   function refresh() {
     root.querySelectorAll('.isle').forEach((sec, i) => {
-      const ms = LEVELS[i].modes, done = ms.reduce((a, m) => a + Math.min(GOAL, getSolved(m.id)), 0);
-      sec.querySelector('.prog').innerHTML = ringSvg(done, ms.length * GOAL);
+      const ms = LEVELS[i].modes, done = ms.reduce((a, m) => a + Math.min(goalOf(m.id), getSolved(m.id)), 0);
+      sec.querySelector('.prog').innerHTML = ringSvg(done, ms.reduce((a, m) => a + goalOf(m.id), 0));
     });
     root.querySelectorAll('.pin').forEach((b) => {
       const n = getSolved(b.dataset.mode), st = b.querySelector('.st');
@@ -560,7 +562,13 @@
     if (!art.clientWidth) return;
     const launch = () => {
       if (root.hidden || !el.isConnected || !art.clientWidth) return;
-      const r = el.getBoundingClientRect(), rise = r.top + r.height + 40;
+      // остров I скрыт (открыт другой остров) — не летим, проверим позже
+      if (el.closest('.isle.gone, .isle.fade')) { rocketTimer = setTimeout(launch, 4500); return; }
+      el.getAnimations().forEach((a) => a.cancel());   // мерим позицию из исходной точки в лесу
+      // высота подъёма — до верха страницы, а не до верха экрана: при прокрутке вниз
+      // r.top становится отрицательным, и ракета летела вниз, к другим островам
+      const r = el.getBoundingClientRect(), rr = root.getBoundingClientRect();
+      const rise = Math.max(120, r.top - rr.top + root.scrollTop + r.height + 40);
       const T0 = 2600;
       const Y = 66, tf = 'translate(-50%, -50%) rotate(-45deg)';
       rocketAnim = el.animate([
@@ -577,7 +585,9 @@
         art.append(p);
         p.animate([{ opacity: .9, transform: 'scale(.4)' }, { opacity: 0, transform: `translate(${(i - 1.5) * 10}px, -12px) scale(2.2)` }], { duration: 1100, delay: i * 90, easing: 'ease-out' }).onfinish = () => p.remove();
       }
-      rocketAnim.onfinish = () => { rocketAnim = null; el.style.opacity = '0'; rocketTimer = setTimeout(launch, 4500); };
+      // снимаем анимацию целиком: с fill: 'forwards' ракета оставалась видимой в конечной точке,
+      // а следующий запуск мерил высоту от этой точки и обрывался на полпути
+      rocketAnim.onfinish = () => { if (rocketAnim) rocketAnim.cancel(); rocketAnim = null; el.style.opacity = '0'; rocketTimer = setTimeout(launch, 4500); };
     };
     el.style.opacity = '0';
     rocketTimer = setTimeout(launch, 1200);

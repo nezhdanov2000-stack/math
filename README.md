@@ -8,8 +8,7 @@
   - Сокращение чисел
   - Вынесение за скобки
 - **Сложение и вычитание**
-  - Общий знаменатель
-  - Большие знаменатели
+  - Общий знаменатель (12 задач: обезьяна и человек — общий знаменатель, профессор и робот — большие знаменатели)
   - Занять единицу
   - Смешанные числа
   - Дроби с переменными
@@ -36,7 +35,7 @@
 | `js/core.js` | Общее ядро: математика (`gcd`, `factorize`…), случайные числа (`ri`, `rnd`, `pick`), анимации (`popIn`, `burst`, `smash`, `rocket`…), FLIP (`snapshot`/`play`), подсказка `hinter(el)`, уровень `levelOf`, штраф `PENALTY`, уборка эффектов `sweepFx()` |
 | `js/<инструмент>.js` | Анимации инструментов (`axe`, `bridge`, `conveyor`, `cups`, `fan`, `heli`, `joker`, `rain`, `teeth`, `maw`, `tread`, `press`, `ice`, `lightning`, `rocket-fx`). Каждый экспортирует `MG.<имя>` с `icon` и функциями анимации |
 | `js/tools.js` | Панель инструментов: наборы по режимам (`SETS`), подписи и курсоры (`INFO`), `need`/`auto`/`disable` |
-| `js/<режим>.js` | Режимы: `fractions` (cancel), `factor`, `ext`, `common` (common + big), `borrow`, `mixed`, `br`, `mul`, `div`, `wf` (whole), `mq` (mixmd), `pp` (prop), `sh` (shift). Каждый регистрирует `MG.modes[имя] = { start, skip, stop? }` |
+| `js/<режим>.js` | Режимы: `fractions` (cancel), `factor`, `ext`, `common` (общий + большие знаменатели, 12 задач), `borrow`, `mixed`, `br`, `mul`, `div`, `wf` (whole), `mq` (mixmd), `pp` (prop), `sh` (shift). Каждый регистрирует `MG.modes[имя] = { start, skip, stop? }` |
 | `js/home.js` | Карта островов (главное меню) |
 | `js/app.js` | Переключение карта ↔ режим, хэш в адресе, счётчик «решено» в `localStorage` |
 | `sw.js` | Офлайн-кэш (сначала сеть, потом кэш) |

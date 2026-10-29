@@ -1,6 +1,7 @@
 /* Подсказка-палец (включается лампой, на первой задаче режима — сама):
  * «Сокращение чисел» — показывает, как пользоваться кувалдой и ластиком;
- * «Выделить целое» — показывает пасть и ведёт по планшету (деление уголком или формула). Следит за состоянием на экране
+ * «Выделить целое» — показывает пасть и ведёт по планшету (деление уголком или формула);
+ * «Вынесение за скобки» и «Общий знаменатель» — режим сам отдаёт следующий шаг (MG.modes.factor.coachStep), палец его показывает. Следит за состоянием на экране
  * и каждый раз показывает ближайший нужный шаг. После первой решённой задачи больше не появляется. */
 (() => {
   'use strict';
@@ -35,19 +36,22 @@
   const hide = () => { if (el) el.classList.remove('on'); lastKey = ''; lift(false); };
 
   function point(target, text, key, below) {
+    if (!target) return;
     const c = ensure(), r = target.getBoundingClientRect();
     if (!r.width) { hide(); return; }
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const dn = !!target.closest('.toolbar'), inClip = !!target.closest('.clip');
     lift(dn);
-    c.style.left = `${Math.max(60, Math.min(innerWidth - 60, cx))}px`;
+    c.style.left = `${Math.max(12, Math.min(innerWidth - 12, cx))}px`;
     c.style.top = `${cy}px`;
     const tip = c.querySelector('.tip'), fr = (below || document.getElementById('fraction')).getBoundingClientRect();
     const board = inClip && target.closest('.clip');
-    if (board && board.querySelector('.tabs')) {     // планшет «целое и остаток»: подсказка над планшетом, чтобы не закрывать запись
-      const br = board.getBoundingClientRect();
-      if (br.top > 90) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - br.top + 24}px`; }
-      else { tip.style.bottom = 'auto'; tip.style.top = `${Math.min(br.bottom + 12, innerHeight - 70)}px`; }
+    tip.style.transform = '';
+    if (board && board.querySelector('.tabs')) {     // планшет «целое и остаток»: подсказка поверх бледного превью, запись и клавиши видны
+      const pv = board.querySelector('.pv1'), eq = board.querySelector('.p3 .eq');
+      tip.style.bottom = 'auto';
+      if (pv && !pv.hidden) { const pr = pv.getBoundingClientRect(); tip.style.top = `${pr.top + pr.height / 2}px`; tip.style.transform = 'translate(-50%, -50%)'; }
+      else if (eq) tip.style.top = `${eq.getBoundingClientRect().bottom + 16}px`;
     } else if (inClip) { tip.style.top = 'auto'; const eq = document.querySelector('.clip .eq'); tip.style.bottom = `${innerHeight - (eq ? eq.getBoundingClientRect().top : r.top) + 8}px`; }
     else if (dn) { tip.style.top = 'auto'; tip.style.bottom = `${innerHeight - r.top + 70}px`; }
     else { tip.style.bottom = 'auto'; tip.style.top = `${Math.max(r.bottom, fr.bottom) + 56}px`; }
@@ -118,6 +122,7 @@
     if (ci >= cells.length || !el) { hide(); return; }
     const c = cells[ci], val = el.textContent.trim();
     if (!c.exp.startsWith(val)) { point(key('x'), 'Не та цифра — сотри её', `dx${ci}`); return; }
+    if (val.length >= c.exp.length) return;         // число вписано — планшет сам проверит его через миг
     point(key(c.exp[val.length]), c.txt, `dl${ci}`);
   }
 
@@ -134,11 +139,35 @@
     point(fr, `Нажми пастью на дробь и посчитай, сколько раз ${info.d} помещается в ${info.n}`, 'ef', fr);
   }
 
+  /* ---------- режимы, которые сами говорят следующий шаг: coachStep() → { tool, el, text } ---------- */
+  const TOOL_TIP = {
+    hammer: 'Возьми кувалду — она разбивает число на множители',
+    rocket: 'Возьми ракету — она выносит общий множитель за скобки',
+    glove: 'Возьми ластик — он сокращает одинаковые множители',
+    axe: 'Возьми топор — сруби единицу в знаменателе',
+    joker: 'Возьми джокера — он переносит множитель на другую дробь',
+    press: 'Возьми поршни — они сжимают дроби в одну',
+    bolt: 'Возьми молнию — она считает',
+  };
+  function tickStep(id) {
+    const mode = document.getElementById(`mode-${id}`), after = mode.querySelector('.after');
+    if (after && after.classList.contains('show')) { hide(); return; }
+    const ov = document.querySelector('.clip-ov:not(.out)');
+    if (ov) { if (ov.querySelector('.tabs')) hide(); else clipStep(ov); return; }   // планшет кувалды — те же шаги, что в «Сокращении»
+    const m = MG.modes[id], s = m && m.coachStep && m.coachStep();
+    if (!s || !s.el) { hide(); return; }
+    const btn = s.tool && document.querySelector(`.toolbar .tool[data-id="${s.tool}"]`);
+    if (btn && document.body.dataset.tool !== s.tool) { point(btn, TOOL_TIP[s.tool] || 'Возьми этот инструмент', `t${s.tool}`); return; }
+    point(s.el, s.text, s.text, mode.querySelector('.fraction, .fracs'));
+  }
+
   let fin = false;
   document.addEventListener('pointerdown', (e) => { if (e.target.closest && e.target.closest('.token') && lastKey.startsWith('g2')) { fin = true; hide(); } }, true);
   const shown = (id) => { const m = document.getElementById(id); return !!m && !m.hidden; };
   function tick() {
     if (active && shown('mode-ext')) { tickExt(); return; }
+    if (active && shown('mode-factor')) { tickStep('factor'); return; }
+    if (active && shown('mode-common')) { tickStep('common'); return; }
     if (!active || !shown('mode-cancel')) { hide(); fin = false; return; }
     const after = document.getElementById('after');
     if (after && after.classList.contains('show')) { hide(); return; }
@@ -147,7 +176,8 @@
     const toks = [...document.querySelectorAll('#num .token, #den .token')].filter((t) => !t.classList.contains('one'));
     const tool = document.body.dataset.tool;
     const toolBtn = (id) => document.querySelector(`.toolbar .tool[data-id="${id}"]`);
-    const big = toks.find((t) => t.classList.contains('big') && !t.classList.contains('paired'));
+    const calc = !!(MG.modes.cancel.info && (MG.modes.cancel.info() || {}).calc);   // всё сокращено: 3·3 → 9 уже не бьём кувалдой
+    const big = !calc && toks.find((t) => t.classList.contains('big') && !t.classList.contains('paired'));
     if (big) {
       if (tool !== 'hammer' && toolBtn('hammer')) point(toolBtn('hammer'), 'Начнём с кувалды — нажми на неё', 'hb');
       else if (MG.clip && MG.clip.isManual()) point(big, 'Нажми на число и впиши два множителя', `m${big.textContent}`);
@@ -172,7 +202,9 @@
     const multi = ['num', 'den'].find((id) => toks.filter((t) => t.parentElement.id === id).length > 1);
     if (multi) {                                   // всё сокращено — остаётся перемножить молнией
       if (tool !== 'bolt' && toolBtn('bolt')) { point(toolBtn('bolt'), 'Осталось перемножить множители — возьми молнию', 'bb'); return; }
-      point(toks.find((t) => t.parentElement.id === multi), 'Нажми молнией — множители перемножатся в одно число', `z${multi}`);
+      const ts = toks.filter((t) => t.parentElement.id === multi), a = ts[0].getBoundingClientRect(), b = ts[1].getBoundingClientRect();
+      const dx = (a.right + b.left) / 2, dr = { left: dx - 1, right: dx + 1, top: b.top, bottom: b.bottom, width: 2, height: b.height };
+      point({ getBoundingClientRect: () => dr, closest: () => null }, '', `z${multi}`);
       return;
     }
     hide();

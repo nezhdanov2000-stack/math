@@ -36,13 +36,15 @@
   let lastPair = '';
   let uid = 0;
 
-  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
+  /* 8 задач: четыре стадии по 2 (обезьяна, человек, профессор, робот) */
+  const TOTAL = 8;
+  const levelOf = (s) => Math.min(4, 1 + Math.floor(s / 2));
 
   /* ---------- генерация дроби ---------- */
   function pickFraction() {
     if (solved === 0 && lastPair === '') return [15, 21];     // как на эскизе
-    if (solved === 6) return [14, 12];                          // знакомство с молнией: после сокращения остаётся 2·3
-    if (solved < 6) {                                           // примеры 1–6: каждое число — не больше двух простых множителей
+    if (solved === 4) return [14, 12];                          // знакомство с молнией: после сокращения остаётся 2·3
+    if (solved < 4) {                                           // примеры 1–4: каждое число — не больше двух простых множителей
       const P = [2, 3, 5, 7];
       for (let i = 0; i < 200; i++) {
         const g = P[ri(0, P.length - 1)], a = P[ri(0, P.length - 1)], b = P[ri(0, P.length - 1)];
@@ -54,8 +56,8 @@
       return [15, 21];
     }
     const lvl = levelOf(solved);
-    const maxN = solved < 9 ? 60 : 120;                    // числа, которые можно разложить в уме
-    const maxP = solved < 9 ? 7 : 11;                      // и простые множители поменьше
+    const maxN = solved < 6 ? 60 : 120;                    // числа, которые можно разложить в уме
+    const maxP = solved < 6 ? 7 : 11;                      // и простые множители поменьше
     for (let i = 0; i < 3000; i++) {
       const g = ri(2, Math.max(3, Math.floor(Math.sqrt(maxN) * 1.5)));
       const aMax = Math.floor(maxN / g);
@@ -84,9 +86,9 @@
     el.tabIndex = 0;
     const tok = { id: ++uid, value, side, el, paired: false, gone: false };
     paint(tok);
-    el.addEventListener('click', () => onTokenClick(tok));
+    el.addEventListener('click', (e) => onTokenClick(tok, e));
     el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTokenClick(tok); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTokenClick(tok, null); }
     });
     el.addEventListener('mouseenter', () => peek(tok, true));
     el.addEventListener('mouseleave', () => peek(tok, false));
@@ -182,10 +184,10 @@
   /* ============================================================
    * Раунд
    * ============================================================ */
-  /* молния появляется на панели с 7-го примера */
+  /* молния появляется на панели с 5-го примера (профессор) */
   function unlockBolt() {
     const set = window.MG.tools.sets.cancel;
-    if (solved >= 6 && !set.includes('bolt')) {
+    if (solved >= 4 && !set.includes('bolt')) {
       set.push('bolt');
       const m = document.getElementById('mode-cancel');
       if (m && !m.hidden) {
@@ -193,7 +195,7 @@
         const b = document.querySelector('.toolbar .tool[data-id="bolt"]');
         if (b) { b.classList.add('back'); setTimeout(() => b.classList.remove('back'), 800); }
       }
-    } else if (solved < 6 && set.includes('bolt')) {
+    } else if (solved < 4 && set.includes('bolt')) {
       set.splice(set.indexOf('bolt'), 1);
       const m = document.getElementById('mode-cancel');
       if (m && !m.hidden) window.MG.tools.use('cancel');
@@ -314,11 +316,17 @@
   }
 
   /* ---------- клики ---------- */
-  function onTokenClick(tok) {
+  function onTokenClick(tok, ev) {
     if (!state || state.finished || tok.gone || tok.value === 1) return;
     const tools = window.MG.tools;
     if (tools.current() === 'glove') { gloveClick(tok); return; }   // перчатка: выбираем пару
-    if (tools.current() === 'bolt') { boltClick(tok); return; }
+    if (tools.current() === 'bolt') {
+      /* молния бьёт по знаку умножения «·» (слева от множителя), а не по числу */
+      const lead = tok.el.classList.contains('lead');
+      const onDot = !ev || (!lead && ev.clientX < tok.el.getBoundingClientRect().left + 2);
+      if (!onDot) { if (state.calc) indivisible(tok.el, 'нажми на точку · между множителями'); else boltClick(tok); return; }
+      boltClick(tok); return;
+    }
     if (state.calc) { tools.need('bolt'); return; }                 // всё сокращено — остаётся перемножить
     if (!isPrime(tok.value) && !tok.paired) {               // составное без пары → кувалда делит
       if (tools.need('hammer')) { if (manual()) askSplit(tok); else splitOnce(tok); }
@@ -394,7 +402,7 @@
     const prod = (k) => state.sides[k].toks
       .filter((t) => !t.gone).reduce((x, t) => x * t.value, 1);
     if (gcd(prod('num'), prod('den')) !== 1) return;
-    if (solved < 6 || ['num', 'den'].every((k) => state.sides[k].toks.length < 2)) { finish(); return; }   // молния открывается с 7-го примера
+    if (solved < 4 || ['num', 'den'].every((k) => state.sides[k].toks.length < 2)) { finish(); return; }   // молния открывается с 7-го примера
     state.calc = true;                       // осталось перемножить остатки молнией
     updateHint();
   }
@@ -469,7 +477,7 @@
     setStats(levelOf(solved), solved);
 
     after.classList.add('show');
-    if (solved >= 12) setTimeout(offerDone, 900);
+    if (solved >= TOTAL) setTimeout(offerDone, 900);
     ['num', 'den'].forEach((k) => burst(st.sides[k].toks[0].el, '#16a34a', 14));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
@@ -478,7 +486,7 @@
   const SKIPKEY = 'mg.tut.skip';
   const flag = () => { try { return !!localStorage.getItem(SKIPKEY); } catch (e) { return true; } };
   const setFlag = () => { try { localStorage.setItem(SKIPKEY, '1'); } catch (e) { /* нет хранилища */ } };
-  /* 12 примеров решено — уровень пройден, дальше примеров нет */
+  /* 8 примеров решено — уровень пройден, дальше примеров нет */
   function offerDone() {
     if (document.querySelector('.so-ov')) return;
     const ov = document.createElement('div');
@@ -486,7 +494,7 @@
     ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты освоил сокращение дробей. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
     document.body.appendChild(ov);
     ov.querySelector('.so-go').addEventListener('click', () => {
-      try { localStorage.setItem('mg.solved.cancel', String(Math.max(12, solved))); } catch (e) { /* нет хранилища */ }
+      try { localStorage.setItem('mg.solved.cancel', String(Math.max(TOTAL, solved))); } catch (e) { /* нет хранилища */ }
       ov.remove();
       const home = document.getElementById('home-btn');
       if (home) home.click();
@@ -517,10 +525,11 @@
   /* ============================================================
    * Кнопки и регистрация режима
    * ============================================================ */
-  nextBtn.addEventListener('click', () => { if (solved >= 12) { offerDone(); return; } const o = document.querySelector('.so-ov'); if (o) o.remove(); newRound(); });
+  nextBtn.addEventListener('click', () => { if (solved >= TOTAL) { offerDone(); return; } const o = document.querySelector('.so-ov'); if (o) o.remove(); newRound(); });
 
   window.MG.modes.cancel = {
-    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); if (solved >= 12) offerDone(); },
+    info: () => state && { calc: !!state.calc },   // для подсказки-пальца: всё сокращено, осталось перемножить
+    levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); newRound(); if (solved >= TOTAL) offerDone(); },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);

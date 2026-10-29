@@ -36,22 +36,20 @@
 
   let state = null, solved = 0, lastKey = '';
 
-  /* уровень растёт каждые 2 решённых примера; с каждым уровнем целая часть (ответ) на 1 знак длиннее:
-   * однозначная, двузначная, трёхзначная… до пятизначной (больше не влезает на экран) */
-  const lvlOf = () => 1 + Math.floor(solved / 2);
+  /* 8 примеров: четыре стадии по 2 (обезьяна, человек, профессор, робот).
+   * С каждой стадией числитель на 1 знак длиннее: однозначный, двузначный, трёхзначный, четырёхзначный. */
+  const TOTAL = 8;
+  const lvlOf = () => Math.min(4, 1 + Math.floor(solved / 2));
   function pick() {
-    const lvl = lvlOf();
-    const qd = Math.min(lvl, 5);
-    const dMax = [5, 7, 9, 9, 9][qd - 1];
+    const L = lvlOf();
     if (solved === 0 && !lastKey) return { n: 7, d: 3 };
+    const lo = Math.max(3, 10 ** (L - 1)), hi = 10 ** L - 1;
     for (let i = 0; i < 400; i++) {
-      const d = ri(2, dMax), r = ri(1, d - 1);
-      if (gcd(r, d) !== 1) continue;
-      const k = ri(Math.max(1, 10 ** (qd - 1)), 10 ** qd - 1), n = k * d + r;
-      if (`${n}/${d}` === lastKey) continue;
+      const n = ri(lo, hi), d = ri(2, Math.min(9, n - 1)), r = n % d;
+      if (!r || gcd(r, d) !== 1 || `${n}/${d}` === lastKey) continue;   // нужен остаток, и дробь в остатке несократима
       return { n, d };
     }
-    return { n: 11, d: 4 };
+    return [{ n: 7, d: 2 }, { n: 47, d: 3 }, { n: 467, d: 4 }, { n: 4673, d: 5 }][L - 1];
   }
 
   const tok = (v) => { const el = document.createElement('div'); el.className = 'token'; el.textContent = v; return el; };
@@ -167,44 +165,40 @@
     solved++;
     setStats(lvlOf(), solved);
     after.classList.add('show');
-    offerEnd();
+    if (solved >= TOTAL) setTimeout(offerDone, T(900));
     burst(wholeEl, '#16a34a', 14);
     burst(numRow.firstChild, '#16a34a', 10);
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
 
-  /* после 7 решённых примеров предлагаем закончить режим */
-  const ENDKEY = 'mg.tut.skipext';
-  const closeOffer = () => { const o = document.querySelector('.so-ov'); if (!o) return; o.classList.add('out'); setTimeout(() => o.remove(), 220); };
-  function offerEnd() {
-    const old = document.querySelector('.so-ov'); if (old) old.remove();
-    let seen = true;
-    try { seen = !!localStorage.getItem(ENDKEY); } catch (err) { /* нет хранилища */ }
-    if (solved !== 7 || seen) return;
-    try { localStorage.setItem(ENDKEY, '1'); } catch (err) { /* нет хранилища */ }
+  /* 8 примеров решено — уровень пройден, дальше примеров нет */
+  function offerDone() {
+    if (document.querySelector('.so-ov')) return;
     const ov = document.createElement('div');
     ov.className = 'so-ov';
-    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Освоил пасть?</h3><p>Тогда этот режим можно закончить.</p><div class="so-row"><button type="button" class="so-go">Закончить</button><button type="button" class="so-stay">Остаться</button></div></div>';
+    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты научился выделять целую часть. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
     document.body.appendChild(ov);
-    ov.addEventListener('click', (ev) => { if (ev.target === ov) closeOffer(); });
-    ov.querySelector('.so-stay').addEventListener('click', closeOffer);
     ov.querySelector('.so-go').addEventListener('click', () => {
-      try { localStorage.setItem('mg.solved.ext', '10'); } catch (err) { /* нет хранилища */ }
+      try { localStorage.setItem('mg.solved.ext', String(Math.max(TOTAL, solved))); } catch (err) { /* нет хранилища */ }
       ov.remove();
       const home = document.getElementById('home-btn');
       if (home) home.click();
     });
   }
-  nextBtn.addEventListener('click', () => { const o = document.querySelector('.so-ov'); if (o) o.remove(); });
+
+  nextBtn.addEventListener('click', () => {
+    if (solved >= TOTAL) { offerDone(); return; }
+    const o = document.querySelector('.so-ov'); if (o) o.remove();
+    newRound();
+  });
 
   fracEl.addEventListener('click', onClick);
-  nextBtn.addEventListener('click', newRound);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state) fitBar(true); });
 
   MG.modes.ext = {
     info: () => state && { n: state.n, d: state.d, busy: state.busy, done: state.done },
-    levelUp() { solved = (Math.floor(solved / 2) + 1) * 2; newRound(); },
+    levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
     start() { if (!state) newRound(); else { setStats(lvlOf(), solved); fitBar(true); } },
-    skip: newRound,
+    skip() { if (solved >= TOTAL) { offerDone(); return; } newRound(); },
   };
 })();
