@@ -184,13 +184,18 @@
 
   const specKey = (s) => JSON.stringify([s.num, s.den]);
 
+  /* сократится ли знаменатель целиком (останется 1): все его множители есть и в числителе */
+  const commonOf = (terms) => (terms.length > 1 ? intersect(terms.map(atomsOfMono)) : atomsOfMono(terms[0]));
+  const denGoesToOne = (spec) => spec.den.length === 1
+    && intersect([commonOf(spec.num), atomsOfMono(spec.den[0])]).length === atomsOfMono(spec.den[0]).length;
+
   function pickSpec() {
-    if (solved === 0 && lastKey === '') {          // как на эскизе: (2x + 4) / 2
+    if (solved === 0 && lastKey === '') {          // первый пример: (2x + 4) / 6 = (x + 2) / 3 — знаменатель не исчезает
       round = 1;
       return {
         kind: 'num-n',
         num: [{ c: 2, vars: [{ n: 'x', e: 1 }], neg: false }, { c: 4, vars: [], neg: false }],
-        den: [{ c: 2, vars: [], neg: false }],
+        den: [{ c: 6, vars: [], neg: false }],
       };
     }
     if (solved === AXE_FROM) {                       // знакомство с топором: знаменатель сократится целиком
@@ -203,9 +208,16 @@
     }
     const lvl = levelOf(solved);
     const kinds = lvl >= 3 ? KINDS_ALL : KINDS_EASY;
-    for (let i = 0; i < 20; i++) {
-      const spec = genSpec(kinds[round % kinds.length], lvl);
-      if (specKey(spec) !== lastKey) { round++; return spec; }
+    const noAxe = solved < AXE_FROM;                 // пока топора нет — знаменатель не должен сократиться до 1
+    for (let i = 0; i < (noAxe ? 300 : 20); i++) {
+      const spec = genSpec(kinds[(round + Math.floor(i / 10)) % kinds.length], lvl);
+      if (noAxe && denGoesToOne(spec)) {            // знаменатель домножаем на «лишний» множитель: (2x + 4) / 2 → (2x + 4) / 6
+        spec.den = [{ ...spec.den[0], c: spec.den[0].c * pick([2, 3, 5]) }];
+        if (spec.den[0].c > 30) continue;
+      }
+      if (specKey(spec) === lastKey || (noAxe && denGoesToOne(spec))) continue;
+      round++;
+      return spec;
     }
     round++;
     return genSpec(kinds[round % kinds.length], lvl);

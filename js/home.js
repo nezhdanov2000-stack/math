@@ -1,5 +1,7 @@
-/* Главное меню: карта с островами. Остров = раздел, точки на острове = режимы.
- *   MG.home.show()  — открыть карту      MG.home.refresh() — обновить значки «решено»
+/* Главное меню, два уровня:
+ *   разделы (SECTIONS) — большие острова, собранные из кусков-подразделов;
+ *   острова подразделов (LEVELS) — точки на острове = режимы.
+ *   MG.home.show('sections' | 'islands') — открыть меню      MG.home.refresh() — обновить значки «решено»
  * Режим открывается через MG.go(имя) (задаёт app.js). */
 (() => {
   'use strict';
@@ -27,6 +29,43 @@
       { id: 'shift', name: 'Перенос через «=»', icon: 'conveyor', x: 72, y: 72 } ] },
   ];
 
+  /* ---------- разделы: самое главное меню ----------
+   * Раздел — один большой остров. Его основа — остров первого подраздела (base),
+   * остальные подразделы — куски (parts): пока подраздел не решён, кусок отколот и висит
+   * в стороне; чем больше процент, тем ближе он подлетает; на 100% ждёт тапа (награда)
+   * и защёлкивается. Кусок рисуется тем же SVG, что и остров подраздела (ART).
+   * Новый раздел (например, «Десятичные дроби»): свой список островов + запись здесь.
+   *   lvl        — номер острова подраздела в levels;
+   *   cx, cy, s  — где стоит кусок, когда прикреплён: центр травы и масштаб (поле 1000×800);
+   *   dx, dy     — куда он отлетает, пока не решён;  back — рисовать позади основы;
+   *   tap        — сдвиг подсказки «Нажми!» по высоте (в единицах острова 400×300);
+   *   open       — с какого прогресса основы кусок появляется (до этого на его месте облако).
+   *                Кусок появляется и раньше, если у его подраздела уже есть хоть одна решённая задача. */
+  /* раздел «Десятичные дроби»: пока только острова-заглушки, режимы появятся позже */
+  const DEC_LEVELS = [
+    { n: 'I', title: 'Сложение и вычитание', modes: [] },
+    { n: 'II', title: 'Умножение', modes: [] },
+    { n: 'III', title: 'Деление', modes: [] },
+    { n: 'IV', title: 'Уравнения', modes: [] },
+  ];
+  const SECTIONS = [
+    { id: 'fr', title: 'Обыкновенные дроби', levels: LEVELS,
+      base: { lvl: 0, art: 'l1', cx: 500, cy: 470, s: 1.3 },
+      parts: [
+        { lvl: 3, art: 'beam', cx: 680, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true, tap: -150, open: 1 },
+        { lvl: 1, art: 'l2', cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1, open: 1 / 3 },
+        { lvl: 2, art: 'l3', cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1, open: 2 / 3 },
+      ] },
+    /* soon — остров ещё не нарисован: на его месте всегда облако */
+    { id: 'dec', title: 'Десятичные дроби', levels: DEC_LEVELS,
+      base: { lvl: 0, art: 'crane', cx: 500, cy: 470, s: 1.3 },
+      parts: [
+        { lvl: 3, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
+        { lvl: 1, soon: true, cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1 },
+        { lvl: 2, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
+      ] },
+  ];
+
   /* ---------- рисунки островов (SVG 400×300) ---------- */
   const pine = (x, y, s = 1, c = '#2f8f4e') => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-3" y="-6" width="6" height="12" fill="#6b4a2b"/><path d="M0 -58 L-17 -26 L-8 -26 L-22 2 L22 2 L8 -26 L17 -26Z" fill="${c}" stroke="#1c5a33" stroke-width="2.2" stroke-linejoin="round"/><path d="M0 -58 L8 -40 L0 -42Z M8 -26 L16 -8 L6 -10Z" fill="#fff" opacity=".13"/></g>`;
   const palm = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" stroke-linecap="round" stroke-linejoin="round"><path d="M0 0 Q6 -22 -2 -44" fill="none" stroke="#8a5a2e" stroke-width="5"/><path d="M-2 -44 Q-22 -50 -30 -38 M-2 -44 Q-16 -62 -34 -56 M-2 -44 Q10 -64 28 -58 M-2 -44 Q22 -48 32 -36 M-2 -44 Q2 -60 2 -66" fill="none" stroke="#2f9a4a" stroke-width="5"/></g>`;
@@ -37,8 +76,9 @@
     <linearGradient id="gSnow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cfe3f7"/></linearGradient>
     <radialGradient id="gSun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff4b0" stop-opacity=".95"/><stop offset=".55" stop-color="#ffd36b" stop-opacity=".45"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
   </defs>`;
-  const under = (cx = 200, w = 175, h = 56) => `<path d="M${cx - w} 226 Q${cx - w + 14} ${226 + h} ${cx - 30} ${226 + h * 1.15} Q${cx} ${226 + h * 1.5} ${cx + 30} ${226 + h * 1.15} Q${cx + w - 14} ${226 + h} ${cx + w} 226Z" fill="url(#gUnder)" stroke="#33271d" stroke-width="3" stroke-linejoin="round"/><path d="M${cx - 60} 240 l6 14 M${cx + 10} 246 l5 16 M${cx + 70} 238 l-4 12" stroke="#33271d" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>`;
-  const grass = (cx = 200, w = 175) => `<ellipse cx="${cx}" cy="226" rx="${w}" ry="34" fill="url(#gGrass)" stroke="#2f6e33" stroke-width="3"/>`;
+  let bare = false;                                   // true — рисуем остров без земли (для острова раздела)
+  const under = (cx = 200, w = 175, h = 56) => bare ? '' : `<path d="M${cx - w} 226 Q${cx - w + 14} ${226 + h} ${cx - 30} ${226 + h * 1.15} Q${cx} ${226 + h * 1.5} ${cx + 30} ${226 + h * 1.15} Q${cx + w - 14} ${226 + h} ${cx + w} 226Z" fill="url(#gUnder)" stroke="#33271d" stroke-width="3" stroke-linejoin="round"/><path d="M${cx - 60} 240 l6 14 M${cx + 10} 246 l5 16 M${cx + 70} 238 l-4 12" stroke="#33271d" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>`;
+  const grass = (cx = 200, w = 175) => bare ? '' : `<ellipse cx="${cx}" cy="226" rx="${w}" ry="34" fill="url(#gGrass)" stroke="#2f6e33" stroke-width="3"/>`;
   const mountain = (x, base, hgt, w, snow = true) => {
     const t = base - hgt, l = x - w / 2, r = x + w / 2;
     return `<path d="M${l} ${base} L${x - w * 0.12} ${t + hgt * 0.08} Q${x} ${t - 6} ${x + w * 0.12} ${t + hgt * 0.08} L${r} ${base}Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="3" stroke-linejoin="round"/>
@@ -99,7 +139,7 @@
       <g stroke="#6a4d27" stroke-width="2.6" stroke-linejoin="round"><g class="bxC"><rect x="187" y="198" width="26" height="24" fill="#e2b266"/><path d="M187 207 h26 M200 198 v9" fill="none" stroke-width="2"/></g></g>
       <g transform="translate(285 62)"><g class="hel"><line x1="0" y1="14" x2="0" y2="40" stroke="#33384a" stroke-width="2.2"/><path d="M-4 40 q4 7 8 0" fill="none" stroke="#33384a" stroke-width="2.6" stroke-linecap="round"/>${(((MG.tools && MG.tools.icon && MG.tools.icon('heli')) || '').replace('<svg ', '<svg x="-21" y="-24" width="42" height="42" '))}</g></g></svg>`,
     l3: () => `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}<circle cx="120" cy="140" r="110" fill="url(#gSun)"/>${under(200, 178)}
-      <ellipse cx="200" cy="226" rx="178" ry="32" fill="#a5753f" stroke="#5e3f1e" stroke-width="3"/>
+      ${bare ? '' : '<ellipse cx="200" cy="226" rx="178" ry="32" fill="#a5753f" stroke="#5e3f1e" stroke-width="3"/>'}
       <path d="M70 228 L112 128 L136 150 L164 62 L190 120 L198 150 L200 228Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="3" stroke-linejoin="round"/>
       <path d="M164 62 L190 120 L198 150 L200 228 L168 228 L168 110Z" fill="#3b2f35" opacity=".3"/>
       <path d="M252 228 L254 110 L286 28 L322 110 L344 228Z" fill="url(#gRock)" stroke="#4a4140" stroke-width="3" stroke-linejoin="round"/>
@@ -137,6 +177,264 @@
       <circle cx="200" cy="186" r="9" fill="#f6d27a" stroke="#6e4311" stroke-width="3"/>
       ${pine(70, 228, .7, '#3aa05a')}${pine(330, 228, .7)}${cloud(300, 90, .8, .9)}${cloud(88, 108, .7, .85)}</svg>`,
   };
+
+  /* кусок «Уравнения» для острова раздела: только фиолетовый луч (тот самый «=», что встаёт
+   * барьером в режиме «Перенос через =»). Остров «Уравнения» ещё в разработке. */
+  ART.beam = () => {
+    let sp = '';
+    for (let i = 0; i < 9; i++) sp += `<circle class="bm-sp" cx="${186 + (i * 37) % 30}" cy="${210 - (i * 23) % 40}" r="${2.2 + (i % 3) * 0.9}" style="animation-delay:${(-i * 0.47).toFixed(2)}s"/>`;
+    let st = '';
+    for (let y = -330; y < 236; y += 26) st += `<rect x="186" y="${y}" width="28" height="4" rx="2"/>`;
+    return `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}
+      <linearGradient id="bmBar" gradientUnits="userSpaceOnUse" x1="0" y1="-330" x2="0" y2="226"><stop offset="0" stop-color="#c4b5fd" stop-opacity="0"/><stop offset=".35" stop-color="#a78bfa"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+      <linearGradient id="bmGlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a78bfa" stop-opacity="0"/><stop offset=".5" stop-color="#c4b5fd" stop-opacity=".75"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+      <linearGradient id="bmFade" gradientUnits="userSpaceOnUse" x1="0" y1="-330" x2="0" y2="226"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".4" stop-color="#fff" stop-opacity="1"/></linearGradient>
+      <mask id="bmMask"><rect x="150" y="-340" width="100" height="580" fill="url(#bmFade)"/></mask>
+      <clipPath id="bmClip"><rect x="186" y="-330" width="28" height="556"/></clipPath>
+      ${under(200, 118, 46)}${grass(200, 118)}
+      ${pine(118, 230, 0.62, '#3aa05a')}${pine(286, 231, 0.55)}
+      <ellipse class="bm-pool" cx="200" cy="222" rx="44" ry="11" fill="#8b5cf6"/>
+      <g mask="url(#bmMask)">
+        <rect x="140" y="-330" width="120" height="556" fill="url(#bmGlow)" class="bm-glow"/>
+        <rect x="186" y="-330" width="28" height="556" fill="#a78bfa" opacity=".16"/>
+        <g clip-path="url(#bmClip)"><g class="bm-st" fill="#ddd6fe" opacity=".45">${st}</g></g>
+        <rect x="174" y="-330" width="13" height="556" rx="6.5" fill="url(#bmBar)" stroke="#4c1d95" stroke-width="2.4"/>
+        <rect x="213" y="-330" width="13" height="556" rx="6.5" fill="url(#bmBar)" stroke="#4c1d95" stroke-width="2.4"/>
+      </g>
+      <g fill="#ede9fe">${sp}</g>
+      <path d="M168 224 Q168 212 182 212 L218 212 Q232 212 232 224Z" fill="#6b5f5b" stroke="#3b2f35" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M176 218 h16 M208 218 h16" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round"/></svg>`;
+  };
+
+
+  /* остров I раздела «Десятичные дроби»: стройка. Кран забирает числа из-за острова целиком,
+   * держа их за запятую-ручку, и кладёт на строительные леса: сначала зелёное 2,74, потом сверху красное 12,1
+   * (запятая точно над запятой). Пустые разряды становятся нулями — овальными окнами. Потом справа налево,
+   * разряд за разрядом, из-под лесов выкатывается ответ 14,84 — фундамент. Леса убирают, ручки исчезают,
+   * появляются две крыши: целая и дробная части — два дома. Шар-баба их сносит, и всё сначала.
+   * Вся анимация — CSS-кадры одного цикла (CR.T), координаты в единицах острова 400×300. */
+  const CR = (() => {
+    const T = 18, S = 26, C = 14, X0 = 40;
+    const colX = [X0, X0 + S, X0 + 2 * S, X0 + 2 * S + C, X0 + 3 * S + C];   // десятки, единицы, запятая, десятые, сотые
+    const AX = X0 + 2 * S + C / 2, R = colX[4] + S;                    // ось запятой — за неё держит крюк; правый край дома
+    const FY = 198, GY = 172, RY = 146;                                // верх фундамента (лесов), зелёного и красного слоя
+    const PICK = 222, PICKY = 216, CARRY = 84, BALLX = 175;            // где кран берёт числа (за островом), высота переноса
+    const kf = (name, fr) => `@keyframes ${name} { ${fr.map(([p, v]) => `${p}% { ${v} }`).join(' ')} }`;
+    const a = (rowTop) => rowTop + S - 15;                             // кончик крюка — над головкой запятой
+    /* крюк: [%, x, y кончика] */
+    const hook = [[0, PICK, a(PICKY)], [4, PICK, a(PICKY)], [12, PICK, a(CARRY)], [20, AX, a(CARRY)], [27, AX, a(GY)], [30, AX, a(GY)],
+      [36, AX, a(CARRY)], [41, PICK, a(CARRY)], [45, PICK, a(PICKY)], [51, PICK, a(CARRY)], [58, AX, a(CARRY)], [64, AX, a(RY)], [66, AX, a(RY)],
+      [71, AX, a(CARRY)], [96, AX, a(CARRY)], [96.1, PICK, a(CARRY)], [100, PICK, a(PICKY)]];
+    const trolley = [[0, PICK], [12, PICK], [20, AX], [36, AX], [41, PICK], [51, PICK], [58, AX], [84, AX], [88, BALLX], [96, BALLX], [97, PICK], [100, PICK]];
+    const load = (home, from, to) => [[0, `transform: translate(${PICK - AX}px, ${PICKY - home}px);`],
+      ...hook.filter((h) => h[0] >= from && h[0] <= to).map(([p, x, y]) => [p, `transform: translate(${x - AX}px, ${y - a(home)}px);`]),
+      [99.8, 'transform: translate(0px, 0px);'], [100, `transform: translate(${PICK - AX}px, ${PICKY - home}px);`]];
+    /* разлёт при ударе шара (91%), перед ним — свой выход блока (pre) */
+    const HIT = 91;
+    const boom = (i, pre) => {
+      const dx = -(50 + ((i * 37) % 70)), dy = -(30 + ((i * 53) % 60)), r = ((i * 71) % 140) - 70;
+      return kf(`crB${i}`, [...(pre || [[0, 'opacity: 1; transform: none;']]), [HIT, 'opacity: 1; transform: none;'],
+        [HIT + 3, `opacity: 1; transform: translate(${dx * 0.7}px, ${dy}px) rotate(${r * 0.6}deg);`],
+        [HIT + 6, `opacity: 0; transform: translate(${dx}px, ${dy + 70}px) rotate(${r}deg);`], [100, `opacity: 0; transform: translate(${dx}px, ${dy + 70}px) rotate(${r}deg);`]]);
+    };
+    const pop = (p) => [[0, 'opacity: 0; transform: scale(.2);'], [p, 'opacity: 0; transform: scale(.2);'], [p + 2.5, 'opacity: 1; transform: scale(1.15);'], [p + 4, 'opacity: 1; transform: scale(1);']];
+    /* разряд ответа сползает сверху вниз — из своего столбика верхних чисел в фундамент */
+    const drop = (p) => {
+      const d = RY - FY;
+      return [[0, `opacity: 0; transform: translateY(${d}px) scale(.85);`], [p, `opacity: 0; transform: translateY(${d}px) scale(.85);`],
+        [p + 0.8, `opacity: 1; transform: translateY(${d}px) scale(1.05);`], [p + 3, 'opacity: 1; transform: translateY(1px) scale(1);'],
+        [p + 3.4, 'opacity: 1; transform: translateY(-2px) scale(1);'], [p + 3.8, 'opacity: 1; transform: none;']];
+    };
+    const base = `.cr-tro { animation: crTro ${T}s linear infinite; } .cr-hk { animation: crHk ${T}s ease-in-out infinite, crHkO ${T}s linear infinite; }
+      .cr-g { animation: crG ${T}s ease-in-out infinite; } .cr-r { animation: crR ${T}s ease-in-out infinite; }
+      .cr-hd { animation: crHd ${T}s linear infinite; } .cr-sc { transform-box: fill-box; transform-origin: 50% 100%; animation: crSc ${T}s ease-in-out infinite; }
+      .cr-ball { transform-box: view-box; transform-origin: 0 0; animation: crBall ${T}s ease-in-out infinite; }
+      .cr-bk { transform-box: fill-box; transform-origin: 50% 50%; } .cr-bk.rf { transform-origin: 50% 100%; }
+      .cr-dust { transform-box: fill-box; transform-origin: center; opacity: 0; animation: crDust ${T}s ease-out infinite; }
+      .cr-sp { transform-box: fill-box; transform-origin: center; opacity: 0; animation: crSp ${T}s ease-out infinite; }
+      ${kf('crTro', trolley.map(([p, x]) => [p, `transform: translateX(${x}px);`]))}
+      ${kf('crHk', hook.map(([p, x, y]) => [p, `transform: translate(${x}px, ${y}px);`]))}
+      ${kf('crHkO', [[0, 'opacity: 1;'], [85, 'opacity: 1;'], [86, 'opacity: 0;'], [96.5, 'opacity: 0;'], [98, 'opacity: 1;'], [100, 'opacity: 1;']])}
+      ${kf('crG', load(GY, 4, 30))} ${kf('crR', load(RY, 45, 66))}
+      ${kf('crHd', [[0, 'opacity: 1;'], [82, 'opacity: 1;'], [84, 'opacity: 0;'], [99.8, 'opacity: 0;'], [100, 'opacity: 1;']])}
+      ${kf('crSc', [[0, 'opacity: 1; transform: none;'], [80, 'opacity: 1; transform: none;'], [82.5, 'opacity: 0; transform: scaleY(.2);'], [98, 'opacity: 0; transform: scaleY(.2);'], [100, 'opacity: 1; transform: none;']])}
+      ${kf('crBall', [[0, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-60deg);`], [86, `opacity: 0; transform: translate(${AX}px, 40px) rotate(0deg);`], [88, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(-60deg);`],
+        [HIT, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(0deg); animation-timing-function: ease-out;`], [HIT + 2, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(8deg);`], [HIT + 4, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(-22deg);`],
+        [HIT + 6, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-10deg);`], [100, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-60deg);`]])}
+      ${kf('crDust', [[0, 'opacity: 0; transform: scale(.3);'], [HIT - 0.1, 'opacity: 0; transform: scale(.3);'], [HIT + 0.5, 'opacity: .95; transform: scale(.8);'], [HIT + 6, 'opacity: 0; transform: scale(2.2);'], [100, 'opacity: 0; transform: scale(2.2);']])}
+      ${kf('crSp', [[0, 'opacity: 0; transform: scale(.3);'], [84, 'opacity: 0; transform: scale(.3);'], [86, 'opacity: 1; transform: scale(1.3) rotate(45deg);'], [90, 'opacity: 0; transform: scale(1.6) rotate(90deg);'], [100, 'opacity: 0;']])}
+      @media (prefers-reduced-motion: reduce) { .cr-tro, .cr-hk, .cr-g, .cr-r, .cr-hd, .cr-sc, .cr-bk, .cr-dust, .cr-sp, .cr-ball { animation: none !important; } .cr-ball, .cr-hd, .cr-hk, .cr-dust, .cr-sp, .cr-sc { display: none; } }`;
+    let nb = 0, extra = '';
+    /* блок, который разлетается от шара; pre — как он появляется (по умолчанию виден всегда) */
+    const bk = (inner, pre, cls = '') => { const i = nb++; extra += boom(i, pre); return `<g class="cr-bk${cls ? ' ' + cls : ''}" style="animation: crB${i} ${T}s ease-in-out infinite">${inner}</g>`; };
+    return { T, S, C, colX, AX, R, FY, GY, RY, bk, pop, drop, css: () => base + extra, reset: () => { nb = 0; extra = ''; } };
+  })();
+  const crStyle = document.createElement('style');
+  document.head.append(crStyle);
+  ART.crane = () => {
+    CR.reset();
+    const { S, colX, AX, R, FY, GY, RY, bk, pop, drop } = CR;
+    const L = colX[0];
+    const cell = (col, y, edge, inner) => { const x = colX[col]; return `<rect x="${x + 1.2}" y="${y + 1.2}" width="${S - 2.4}" height="${S - 2.4}" rx="3.5" fill="#efe9dd" stroke="${edge}" stroke-width="3"/>${inner(x)}`; };
+    const digit = (col, y, ch, edge, txt) => cell(col, y, edge, (x) => `<text x="${x + S / 2}" y="${y + S / 2 + 7}" text-anchor="middle" font-family="Nunito,system-ui,sans-serif" font-weight="900" font-size="20" fill="${txt}">${ch}</text>`);
+    const zero = (col, y, edge) => cell(col, y, edge, (x) => `<ellipse cx="${x + S / 2}" cy="${y + S / 2}" rx="6.2" ry="9" fill="#a9d4f0" stroke="#4a4f5c" stroke-width="2"/><path d="M${x + S / 2 - 2.5} ${y + S / 2 - 4} q1 -3 3 -3.4" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
+    /* запятая — обычная запятая между разрядами; за её головку и берётся крюк крана */
+    const comma = (y, col) => `<circle cx="${AX}" cy="${y + S - 9}" r="5" fill="${col}"/><path d="M${AX + 4.4} ${y + S - 8} q0.6 7 -6 10.5" fill="none" stroke="${col}" stroke-width="3.6" stroke-linecap="round"/>`;
+    const roof = (x1, x2) => `<path d="M${x1 - 4} ${RY} L${(x1 + x2) / 2} ${RY - 24} L${x2 + 4} ${RY}Z" fill="#e0663d" stroke="#5a2a1a" stroke-width="2.6" stroke-linejoin="round"/><path d="M${(x1 + x2) / 2 - 5} ${RY - 9} h10 v7 h-10z" fill="#a9d4f0" stroke="#5a2a1a" stroke-width="1.6"/>`;
+    const layer = (cls, y, chars, edge, txt) => `<g class="${cls}">
+      ${chars.map((ch, col) => (ch === null ? '' : bk(digit(col, y, ch, edge, txt)))).join('')}
+      <g class="cr-hd">${comma(y, '#3b3f4a')}</g></g>`;
+    /* строительные леса под слоями: стойки, настил, раскосы */
+    let sc = `<rect x="${L - 6}" y="${FY - 3}" width="${R - L + 12}" height="5" rx="1.5" fill="#c98f4a" stroke="#6b4423" stroke-width="1.8"/>`;
+    for (let x = L - 2; x <= R + 2; x += (R - L + 4) / 4) sc += `<rect x="${x - 2}" y="${FY + 2}" width="4" height="${S - 2}" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="1.4"/>`;
+    for (let i = 0; i < 4; i++) { const x1 = L - 2 + i * (R - L + 4) / 4, x2 = x1 + (R - L + 4) / 4; sc += `<path d="M${x1} ${FY + S - 2} L${x2} ${FY + 3}" stroke="#9aa1ad" stroke-width="2"/>`; }
+    /* фундамент — ответ 14,84: разряды сползают из столбиков сверху вниз, справа налево (сотые → десятки) */
+    const F = [[4, '4', 69], [3, '8', 71.2], [2, ',', 73.4], [1, '4', 75.6], [0, '1', 77.8]];
+    const found = F.map(([col, ch, p]) => bk(ch === ',' ? comma(FY, '#3b3f4a')
+      : cell(col, FY, '#6b7080', (x) => `<rect x="${x + 1.2}" y="${FY + 1.2}" width="${S - 2.4}" height="${S - 2.4}" rx="3.5" fill="#c9ccd3"/><text x="${x + S / 2}" y="${FY + S / 2 + 7}" text-anchor="middle" font-family="Nunito,system-ui,sans-serif" font-weight="900" font-size="20" fill="#2f333d">${ch}</text>`),
+      drop(p))).join('');
+    let tower = '';
+    const TX = 262, TW = 22, TT = 44;
+    for (let y = TT; y < 216; y += 16) tower += `M${TX} ${y} L${TX + TW} ${y + 16} M${TX + TW} ${y} L${TX} ${y + 16} `;
+    const truss = (x1, x2, yt, yb) => {
+      let z = '';
+      for (let x = x1; x < x2 - 1; x += 12) z += `M${x} ${yb} L${x + 6} ${yt} L${x + 12} ${yb} `;
+      return `<path d="${z}" stroke="#2f6fc4" stroke-width="2.2" fill="none"/><path d="M${x1} ${yt} H${x2} M${x1} ${yb} H${x2}" stroke="#1d4f8f" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
+    };
+    const cone = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-7 0 L-2.5 -19 L2.5 -19 L7 0Z" fill="#f97316" stroke="#7c2d12" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5 -7 H5 M-3.6 -13 H3.6" stroke="#fff" stroke-width="2.8"/><rect x="-9.5" y="-1" width="19" height="3.5" rx="1" fill="#7c2d12"/></g>`;
+    const svg = `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}${under()}${grass()}
+      <clipPath id="crCable"><rect x="-200" y="40" width="800" height="400"/></clipPath>
+      <clipPath id="crBack"><path d="M-200 -400 H600 V226 H375 A175 34 0 0 0 25 226 H-200Z"/><rect x="-200" y="-400" width="${R + 202}" height="660"/></clipPath>
+      <ellipse cx="170" cy="228" rx="140" ry="20" fill="#dcbb80" stroke="#a7834a" stroke-width="2.4"/>
+      <rect x="${L - 8}" y="${FY + S}" width="${R - L + 16}" height="5" rx="2" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="2"/>
+      <g stroke-linejoin="round">
+        <path d="M${TX - 12} 230 L${TX} 216 H${TX + TW} L${TX + TW + 12} 230Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="2.6"/>
+        <path d="${tower}" stroke="#2f6fc4" stroke-width="2" fill="none"/>
+        <rect x="${TX}" y="${TT}" width="${TW}" height="${216 - TT}" fill="none" stroke="#1d4f8f" stroke-width="3.2"/>
+        <path d="M${TX + TW + 6} 216 V70 M${TX + TW + 14} 216 V70 ${Array.from({ length: 10 }, (_, i) => `M${TX + TW + 6} ${80 + i * 14} h8`).join(' ')}" stroke="#8a93a6" stroke-width="1.6"/>
+      </g>
+      <g class="cr-sc">${sc}</g>
+      <g clip-path="url(#crBack)">
+        ${layer('cr-g', GY, [null, '2', null, '7', '4'], '#3f9a45', '#2f7a35')}
+        ${layer('cr-r', RY, ['1', '2', null, '1', null], '#d0473d', '#b8322a')}
+      </g>
+      ${found}
+      ${bk(zero(0, GY, '#3f9a45'), pop(66))}${bk(zero(4, RY, '#d0473d'), pop(66.5))}
+      ${bk(roof(colX[0], colX[1] + S), pop(83), 'rf')}${bk(roof(colX[3], colX[4] + S), pop(83.6), 'rf')}
+      <g fill="#fff6b0" stroke="#d99a0b" stroke-width="1.6"><path class="cr-sp" d="M${colX[1]} ${RY - 30} l2.5 -6 l2.5 6 l6 2.5 l-6 2.5 l-2.5 6 l-2.5 -6 l-6 -2.5Z"/><path class="cr-sp" d="M${colX[4]} ${RY - 26} l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2Z"/></g>
+      <g stroke-linejoin="round">
+        ${truss(70, TX + 6, 22, 34)}${truss(TX + 16, 362, 24, 34)}
+        <path d="M${TX + 5} 22 L${TX + 11} -6 L${TX + 17} 22Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="2.4"/>
+        <path d="M${TX + 11} -6 L70 22 M${TX + 11} -6 L362 24" stroke="#4a4f5c" stroke-width="1.5" fill="none"/>
+        <rect x="334" y="34" width="28" height="22" rx="2" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="2.4"/><path d="M334 45 h28" stroke="#4a4f5c" stroke-width="1.4"/>
+        <rect x="${TX + TW}" y="34" width="26" height="24" rx="3.5" fill="#3f84d8" stroke="#1d4f8f" stroke-width="2.4"/><rect x="${TX + TW + 4}" y="38" width="17" height="11" rx="2" fill="#cfe4f5" stroke="#1d4f8f" stroke-width="1.6"/>
+        <rect x="${TX - 4}" y="34" width="${TW + 8}" height="10" rx="2" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="2.2"/>
+      </g>
+      <g class="cr-tro"><rect x="-10" y="32" width="20" height="8" rx="2" fill="#4a4f5c"/></g>
+      <g clip-path="url(#crCable)"><g clip-path="url(#crBack)"><g class="cr-hk">
+        <path d="M0 -320 V-6" stroke="#33384a" stroke-width="1.8"/>
+        <path d="M-5 -8 h10 l-2 5 h-6Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M0 -3 v2 q0 5 -4 5" fill="none" stroke="#4a4f5c" stroke-width="2.2" stroke-linecap="round"/>
+      </g></g></g>
+      <g class="cr-ball"><path d="M0 0 V131" stroke="#4a4f5c" stroke-width="2.4" stroke-dasharray="4 2"/><circle cx="0" cy="145" r="15" fill="#5b616e" stroke="#2b2f3a" stroke-width="2.6"/><circle cx="-5" cy="139" r="4.5" fill="#fff" opacity=".35"/></g>
+      ${[0, 1, 2, 3].map((i) => `<circle class="cr-dust" cx="${colX[4] + 22 - i * 9}" cy="${GY - 2 + (i % 2) * 18}" r="${9 + i * 2}" fill="#e7dcc6" stroke="#b9a882" stroke-width="1.6"/>`).join('')}
+      ${cone(14, 240, 0.9)}${cone(216, 238)}${cone(236, 244, 0.8)}
+      <g stroke="#6a4d27" stroke-width="2.2" stroke-linejoin="round"><rect x="306" y="212" width="30" height="18" rx="1.5" fill="#d9a85d"/><path d="M306 221 h30 M321 212 v18" fill="none" stroke-width="1.5"/>
+        <rect x="338" y="202" width="26" height="28" rx="1.5" fill="#c9954d"/><path d="M338 216 h26" fill="none" stroke-width="1.5"/></g>
+      ${pine(378, 232, 0.62, '#3aa05a')}
+      ${cloud(60, 70, 0.5, 0.85)}</svg>`;
+    crStyle.textContent = CR.css();
+    return svg;
+  };
+
+  /* остров раздела целиком: основа + куски подразделов (вложенные SVG островов).
+   * Землю (низ острова и верх: трава/песок) рисуем отдельно от построек: у оторванного куска своя земля
+   * с обводкой, а прикреплённые куски сливаются с основой в одну монолитную землю — обводка только
+   * по внешнему контуру (сначала все обводки, потом все заливки поверх). */
+  const uid = (s, p) => s.replace(/id="([^"]+)"/g, `id="${p}$1"`).replace(/url\(#([^)]+)\)/g, `url(#${p}$1)`);
+  const nest = (art, cx, cy, s, p) => {
+    bare = true;
+    let svg;
+    try { svg = ART[art](); } finally { bare = false; }
+    return uid(svg, p).replace('<svg viewBox="0 0 400 300" aria-hidden="true">',
+      `<svg x="${cx - 200 * s}" y="${cy - 226 * s}" width="${400 * s}" height="${300 * s}" viewBox="0 0 400 300" overflow="visible">`);
+  };
+  /* земля островов: ширина, глубина низа, верх (трава или песок) — как в ART */
+  const GROUND = { l1: { w: 175, h: 56 }, l2: { w: 170, h: 56 }, l3: { w: 178, h: 56, ry: 32, top: 'sand' }, l4: { w: 150, h: 64 }, beam: { w: 118, h: 46 }, crane: { w: 175, h: 56 } };
+  const TOPC = { grass: ['#2f6e33'], sand: ['#5e3f1e', '#a5753f'] };
+  const underD = (w, h) => `M${200 - w} 226 Q${200 - w + 14} ${226 + h} 170 ${226 + h * 1.15} Q200 ${226 + h * 1.5} 230 ${226 + h * 1.15} Q${200 + w - 14} ${226 + h} ${200 + w} 226Z`;
+  const STAR4 = 'M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z';
+  function sectionSvg(sec, si) {
+    const P = `s${si}`, B = sec.base;
+    const at = (pc) => `translate(${(pc.cx - 200 * pc.s).toFixed(1)} ${(pc.cy - 226 * pc.s).toFixed(1)}) scale(${pc.s})`;
+    const G = (pc) => GROUND[pc.art] || GROUND.l1;
+    const topFill = (pc) => (G(pc).top === 'sand' ? TOPC.sand[1] : `url(#${P}gr)`);
+    const topStroke = (pc) => (G(pc).top === 'sand' ? TOPC.sand[0] : TOPC.grass[0]);
+    const cracks = `<path d="M140 240 l6 14 M210 246 l5 16 M270 238 l-4 12" stroke="#33271d" stroke-width="2.4" stroke-linecap="round" opacity=".5" fill="none"/>`;
+    /* своя земля оторванного куска (с обводкой, едет вместе с ним) */
+    const own = (pc) => `<g class="sx-own" transform="${at(pc)}"><path d="${underD(G(pc).w, G(pc).h)}" fill="url(#${P}un)" stroke="#33271d" stroke-width="3" stroke-linejoin="round"/>${cracks}<ellipse cx="200" cy="226" rx="${G(pc).w}" ry="${G(pc).ry || 34}" fill="${topFill(pc)}" stroke="${topStroke(pc)}" stroke-width="3"/></g>`;
+    /* перемычка между куском и основой: полоса вдоль линии центров + низ под ней */
+    const joint = (pt) => {
+      const jx = (pt.cx + B.cx) / 2, jy = (pt.cy + B.cy) / 2, dx = B.cx - pt.cx, dy = B.cy - pt.cy;
+      const len = Math.hypot(dx, dy) / 2, ang = (Math.atan2(dy, dx) * 180) / Math.PI, ry = Math.min(G(pt).ry || 34, 34) * pt.s * 0.95;
+      const bot = Math.min(pt.cy + G(pt).h * 1.3 * pt.s, B.cy + G(B).h * 1.3 * B.s), hx = Math.abs(dx) / 2;
+      return { s: pt.s, under: `<path d="M${(jx - hx).toFixed(1)} ${(jy - 4).toFixed(1)} Q${jx.toFixed(1)} ${(2 * bot - jy).toFixed(1)} ${(jx + hx).toFixed(1)} ${(jy - 4).toFixed(1)}Z"`,
+        top: `<ellipse cx="${jx.toFixed(1)}" cy="${jy.toFixed(1)}" rx="${len.toFixed(1)}" ry="${ry.toFixed(1)}" transform="rotate(${ang.toFixed(1)} ${jx.toFixed(1)} ${jy.toFixed(1)})"` };
+    };
+    /* общая монолитная земля: основа + прикреплённые куски (у неприкреплённых — display:none).
+     * Прикреплённый кусок зарастает травой основы: песок под замком тоже становится зелёным. */
+    const merged = () => {
+      const items = [{ pc: B, k: -1 }, ...sec.parts.map((pt, k) => ({ pc: pt, k, j: joint(pt) })).filter((it) => !it.pc.soon)];
+      const attr = (k) => (k < 0 ? '' : ` class="sx-m" data-k="${k}"`);
+      const un = (pc, extra) => `<path transform="${at(pc)}" d="${underD(G(pc).w, G(pc).h)}" ${extra}/>`;
+      const tp = (pc, extra) => `<ellipse transform="${at(pc)}" cx="200" cy="226" rx="${G(pc).w}" ry="${G(pc).ry || 34}" ${extra}/>`;
+      const each = (fn) => items.map((it) => `<g${attr(it.k)}>${fn(it)}</g>`).join('');
+      return `<g class="sx-ground" stroke-linejoin="round">
+        <g fill="none" stroke="#33271d">${each(({ pc, j }) => un(pc, 'stroke-width="6"') + (j ? `${j.under} stroke-width="${(6 * j.s).toFixed(1)}"/>` : ''))}</g>
+        <g fill="url(#${P}un)" stroke="none">${each(({ pc, j }) => un(pc, '') + (j ? `${j.under}/>` : ''))}</g>
+        <g>${each(({ pc }) => `<g transform="${at(pc)}">${cracks}</g>`)}</g>
+        <g fill="none">${each(({ pc, j }) => tp(pc, `stroke="${TOPC.grass[0]}" stroke-width="6"`) + (j ? `${j.top} stroke="#2f6e33" stroke-width="${(6 * j.s).toFixed(1)}"/>` : ''))}</g>
+        <g stroke="none">${each(({ pc, j }) => (j ? `${j.top} fill="url(#${P}gr)"/>` : '') + tp(pc, `fill="url(#${P}gr)"`))}</g>
+      </g>`;
+    };
+    const crumbs = (k) => `<g class="sx-crumbs" data-k="${k}">${[0, 1, 2].map((j) => `<g class="sx-cr"><g class="sx-cr-in" style="animation-delay:${-j * 0.9 - k}s"><path d="${['M-14 -4 L-4 -12 L12 -8 L14 4 L2 12 L-10 8Z', 'M-9 -3 L-2 -9 L9 -5 L8 5 L-3 8Z', 'M-6 -2 L0 -7 L7 -3 L5 5 L-4 5Z'][j]}" fill="#7a6049" stroke="#33271d" stroke-width="2.6" stroke-linejoin="round"/><path d="M-8 -4 L0 -9 L8 -5" fill="none" stroke="#4c9a46" stroke-width="3" stroke-linecap="round"/></g></g>`).join('')}</g>`;
+    const part = (pt, k) => {
+      const py = pt.cy + 98 * pt.s;
+      return `<g class="sx-part" data-k="${k}" style="transform-origin:${pt.cx}px ${pt.cy}px"><g class="sx-rise"><g class="sx-bob" style="animation-delay:${(-k * 1.4).toFixed(1)}s">
+        <ellipse class="sx-glow" cx="${pt.cx}" cy="${pt.cy - 50 * pt.s}" rx="${235 * pt.s}" ry="${180 * pt.s}" fill="url(#${P}gl)"/>
+        ${own(pt)}
+        ${nest(pt.art, pt.cx, pt.cy, pt.s, `${P}p${k}`)}
+        <g class="sx-spk">${[[-1.05, -0.55, 0], [1.02, -0.2, 0.5], [-0.7, 0.3, 1]].map(([x, y, d]) => `<g transform="translate(${(pt.cx + x * 190 * pt.s).toFixed(0)} ${(pt.cy - 60 * pt.s + y * 150 * pt.s).toFixed(0)})"><path class="sx-tw" d="${STAR4}" fill="#fff6b0" stroke="#d99a0b" stroke-width="2" style="animation-delay:${d}s"/></g>`).join('')}</g>
+        <g class="sx-pill" transform="translate(${pt.cx} ${py.toFixed(0)})"><rect x="-38" y="-19" width="76" height="38" rx="19"/><text y="8" text-anchor="middle">0%</text></g>
+      </g></g></g>`;
+    };
+    /* облако-намёк на месте ещё не открытого куска (там, где кусок висит при 0%) */
+    const fog = (pt, k) => {
+      const [ux, uy] = unit(pt), fx = pt.cx + ux * FAR, fy = pt.cy + uy * FAR - 70 * pt.s, z = 2.1 * pt.s;
+      const puff = (x, y, sc, c) => `<g transform="translate(${x} ${y}) scale(${sc})"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="${c}" stroke="#c9d6ec" stroke-width="2.4" stroke-linejoin="round"/></g>`;
+      return `<g class="sx-fog" data-k="${k}" transform="translate(${fx.toFixed(0)} ${fy.toFixed(0)}) scale(${z.toFixed(2)})"><g class="sx-fog-in">
+        <g class="fg-l">${puff(-34, 10, 1, '#eef3fc')}${puff(-10, 34, 0.8, '#f7f9ff')}</g>
+        <g class="fg-r">${puff(34, 2, 1.1, '#ffffff')}${puff(16, 32, 0.85, '#f3f6fd')}</g>
+        <g class="fg-s">${[[-30, -10, 0], [36, -22, 0.6], [6, 22, 1.1]].map(([x, y, d]) => `<g transform="translate(${x} ${y}) scale(.55)"><path class="sx-tw" d="${STAR4}" fill="#fff6b0" stroke="#d99a0b" stroke-width="2.4" style="animation-delay:${d}s"/></g>`).join('')}</g>
+      </g></g>`;
+    };
+    const parts = sec.parts.map((pt, k) => ({ pt, k }));
+    const tapOf = (pt, k) => `<g class="sx-tap" data-k="${k}"><g transform="translate(${pt.cx} ${(pt.cy + (pt.tap || -205) * pt.s).toFixed(0)})"><g class="sx-tap-in"><path d="M-14 16 L14 16 L0 34Z" fill="#ffd23f" stroke="#5a3512" stroke-width="5" stroke-linejoin="round"/><rect x="-74" y="-30" width="148" height="50" rx="25" fill="#ffd23f" stroke="#5a3512" stroke-width="5"/><text y="8" text-anchor="middle">Нажми!</text></g></g></g>`;
+    const draw = (list) => list.map(({ pt, k }) => (pt.soon ? fog(pt, k) : fog(pt, k) + crumbs(k) + part(pt, k))).join('');
+    return `<svg class="sx-art" viewBox="0 50 1000 740" aria-hidden="true">
+      <defs><radialGradient id="${P}gl"><stop offset="0" stop-color="#fff3a8" stop-opacity=".95"/><stop offset=".45" stop-color="#ffd23f" stop-opacity=".5"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>
+        <linearGradient id="${P}gr" gradientUnits="userSpaceOnUse" x1="0" y1="${B.cy - 70}" x2="0" y2="${B.cy + 80}"><stop offset="0" stop-color="#78c158"/><stop offset="1" stop-color="#4c9a46"/></linearGradient>
+        <linearGradient id="${P}un" gradientUnits="userSpaceOnUse" x1="0" y1="${B.cy - 20}" x2="0" y2="${B.cy + 140}"><stop offset="0" stop-color="#7a6049"/><stop offset="1" stop-color="#43352a"/></linearGradient></defs>
+      <g class="sx-world">
+        ${merged()}
+        ${draw(parts.filter((x) => x.pt.back))}
+        <g class="sx-base">${nest(B.art, B.cx, B.cy, B.s, `${P}b`)}</g>
+        <g class="sx-pill sx-bpill" transform="translate(${B.cx} ${(B.cy + 118 * B.s).toFixed(0)})"><rect x="-38" y="-19" width="76" height="38" rx="19"/><text y="8" text-anchor="middle">0%</text></g>
+        ${draw(parts.filter((x) => !x.pt.back))}
+        ${sec.parts.map((pt, k) => (pt.soon ? '' : tapOf(pt, k))).join('')}
+      </g>
+      <g class="sx-fx"></g></svg>`;
+  }
 
   /* ---------- вёрстка ---------- */
   const css = document.createElement('style');
@@ -271,7 +569,7 @@
     .prog .pc { font-weight: 900; font-size: 25px; fill: #fff; }
     .prog .tt { margin-top: 3px; display: inline-block; padding: 1px 8px; border-radius: 99px; background: rgba(24,16,40,.72); font-weight: 800; font-size: clamp(.56rem, 2.4vw, .72rem); }
     .isle.open .prog .tt { display: none; }
-    .hm-back { display: none; align-self: flex-start; margin: 4px 0 0; border: 0; border-radius: 99px; padding: 8px 16px; font: inherit; font-weight: 800; color: #fff1cf; background: #5a3512; box-shadow: 0 3px 0 #2d1a08; cursor: pointer; }
+    .hm-back { position: relative; display: none; align-self: flex-start; margin: 4px 0 0; border: 0; border-radius: 99px; padding: 8px 16px; font: inherit; font-weight: 800; color: #fff1cf; background: #5a3512; box-shadow: 0 3px 0 #2d1a08; cursor: pointer; }
     .zoomed .hm-back { display: inline-block; }
     .zoomed .hm-sub, .zoomed .hm-foot { display: none; }
     .zoomed.hm-col { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
@@ -357,8 +655,8 @@
   function build() {
     const col = document.createElement('div');
     col.className = 'hm-col';
-    col.innerHTML = `<div class="hm-title">Математические игры</div><p class="hm-sub">Выбери остров</p>`;
-    col.insertAdjacentHTML('beforeend', '<button class="hm-back" type="button">← Все острова</button>');
+    col.innerHTML = `<div class="hm-title">${SECTIONS[0].title}</div><p class="hm-sub">Выбери остров</p>`;
+    col.insertAdjacentHTML('beforeend', '<button class="hm-back" type="button">← Разделы<i class="gb">!</i></button>');
     let seq = 0;
     LEVELS.forEach((lv, i) => {
       const side = i % 2 ? 'l' : 'r';
@@ -374,14 +672,17 @@
       col.append(sec);
     });
     col.insertAdjacentHTML('beforeend', '<p class="hm-foot">Все режимы открыты — решай в любом порядке</p>');
-    root.replaceChildren(Object.assign(document.createElement('div'), { className: 'hm-sky' }), Object.assign(document.createElement('div'), { className: 'hm-stars' }), col);
-    const dock = Object.assign(document.createElement('nav'), { className: 'hm-dock', innerHTML: TABS.map(([k, n]) => `<button type="button" data-tab="${k}">${IC[k]}<span>${n}</span></button>`).join('') });
-    dock.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => (b.classList.contains('on') ? closeSheet() : openSheet(b.dataset.tab))));
+    root.replaceChildren(Object.assign(document.createElement('div'), { className: 'hm-sky' }), Object.assign(document.createElement('div'), { className: 'hm-stars' }), buildSections(), col,
+      Object.assign(document.createElement('div'), { className: 'sx-toast' }));
+    const dock = Object.assign(document.createElement('nav'), { className: 'hm-dock', innerHTML: TABS.map(([k, n]) => `<button type="button" data-tab="${k}">${IC[k]}<span>${n}</span>${k === 'map' ? '<i class="gb">!</i>' : ''}</button>`).join('') });
+    dock.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.tab === 'map') { goSections(); return; }            // «разделы» — самое главное меню
+      if (b.classList.contains('on')) closeSheet(); else openSheet(b.dataset.tab);
+    }));
     root.append(dock, Object.assign(document.createElement('div'), { className: 'hm-sheet' }));
     root.querySelectorAll('.pin').forEach((b) => b.addEventListener('click', () => MG.go && MG.go(b.dataset.mode)));
     const isles = [...col.querySelectorAll('.isle')];
-    isles.forEach((sec, i) => sec.addEventListener('click', (e) => { if (!sec.classList.contains('open') && !e.target.closest('.pin')) openIsle(i); }));
-    col.querySelector('.hm-back').addEventListener('click', closeIsle);
+    col.querySelector('.hm-back').addEventListener('click', goSections);
     col.insertAdjacentHTML('beforeend', `<div class="hm-dots">${LEVELS.map(() => '<i></i>').join('')}</div>`);
     col.querySelectorAll('.hm-dots i').forEach((d, k) => d.addEventListener('click', () => switchTo(k)));
     let sx = 0, sy = 0, st = 0, tracking = false;
@@ -406,11 +707,10 @@
   function sheetHtml(tab) {
     const all = LEVELS.flatMap((l) => l.modes), sol = (m) => Math.min(goalOf(m.id), getSolved(m.id));
     const total = all.reduce((a, m) => a + sol(m), 0), goal = all.reduce((a, m) => a + goalOf(m.id), 0);
-    if (tab === 'map') return `<h2>Разделы</h2><p>Выбери, что изучать.</p><div class="cards"><div class="cd go" data-act="close"><span class="em">➗</span><span>Дроби<small>4 острова · ${all.length} режимов — ты здесь</small></span></div><div class="cd off"><span class="em">⚖️</span><span>Уравнения<small>Скоро</small></span></div></div>`;
     if (tab === 'trophy') {
       const full = LEVELS.filter((l) => l.modes.every((m) => sol(m) >= goalOf(m.id))).length;
       const A = [['🌱', 'Первый шаг', 'Реши первую задачу', total >= 1], ['🔥', 'Разогрев', 'Реши 10 задач', total >= 10], ['🎯', 'Полсотни', 'Реши 50 задач', total >= 50], ['🏝️', 'Остров покорён', 'Закрой любой остров на 100%', full >= 1], ['👑', 'Мастер дробей', 'Закрой все острова', full === LEVELS.length]];
-      return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div><button class="rst sw" type="button">Ручное разбиение (тест): ${MG.clip && MG.clip.forced() ? 'включено' : 'выключено'} — нажми, чтобы сменить</button><button class="rst" type="button">Сбросить прогресс (для теста)</button>`;
+      return `<h2>Достижения и статистика</h2><p>Твой путь по островам.</p><div class="big"><div><b>${total}</b>решено</div><div><b>${Math.round(total / goal * 100)}%</b>прогресс</div><div><b>${full}/${LEVELS.length}</b>островов</div></div><div class="cards">${A.map(([e, t, d, ok]) => `<div class="cd${ok ? '' : ' off'}"><span class="em">${ok ? e : '🔒'}</span><span>${t}<small>${d}</small></span></div>`).join('')}</div><button class="rst sw" type="button">Ручное разбиение (тест): ${MG.clip && MG.clip.forced() ? 'включено' : 'выключено'} — нажми, чтобы сменить</button><button class="rst sw tst" type="button">Тест: +25% островам II–IV</button><button class="rst" type="button">Сбросить прогресс (для теста)</button>`;
     }
     if (tab === 'friends') return '<h2>Друзья и кураторы</h2><div class="soon"><span class="em">👥</span>Скоро здесь появятся друзья, кураторы и общий рейтинг.</div>';
     const T = MG.tools || {}, INFO = T.info || {}, SETS = T.sets || {}, ids = Object.keys(INFO);
@@ -436,12 +736,21 @@
       pick(slots[0] && slots[0].dataset.t);
     }
     root.querySelectorAll('.hm-dock button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
-    const swb = sh.querySelector('.rst.sw');
+    const swb = sh.querySelector('.rst.sw:not(.tst)');
     if (swb) swb.onclick = () => { if (!MG.clip) return; MG.clip.setForced(!MG.clip.forced()); swb.textContent = `Ручное разбиение (тест): ${MG.clip.forced() ? 'включено' : 'выключено'} — нажми, чтобы сменить`; };
+    const tst = sh.querySelector('.rst.tst');
+    if (tst) tst.onclick = () => {                                       // тест: куски острова раздела подлетают ближе
+      SECTIONS[0].parts.forEach((pt) => LEVELS[pt.lvl].modes.forEach((m) => {
+        const g = goalOf(m.id);
+        try { localStorage.setItem(`mg.solved.${m.id}`, String(Math.min(g, getSolved(m.id) + Math.ceil(g / 4)))); } catch (e) { /* нет хранилища */ }
+      }));
+      closeSheet(); refresh();
+      if (view === 'sections') refreshSections(true); else goSections();
+    };
     const rst = sh.querySelector('.rst:not(.sw)');
     if (rst) rst.onclick = () => {
       if (!rst.classList.contains('ask')) { rst.classList.add('ask'); rst.textContent = 'Точно сбросить? Нажми ещё раз'; return; }
-      try { Object.keys(localStorage).filter((k) => /^mg\.(solved|tut)/.test(k)).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* нет хранилища */ }
+      try { Object.keys(localStorage).filter((k) => /^mg\.(solved|tut|isle)/.test(k)).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* нет хранилища */ }
       location.reload();
     };
     sh.querySelector('.bd').onclick = sh.querySelector('.x').onclick = closeSheet;
@@ -460,19 +769,19 @@
     const f = total ? done / total : 0, full = f >= 1;
     return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="rgba(24,16,40,.78)" stroke="#5a3512" stroke-width="3"/><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="11"/><circle cx="50" cy="50" r="40" fill="none" stroke="${full ? '#ffd23f' : '#3fbf6d'}" stroke-width="11" stroke-linecap="round" stroke-dasharray="${(RC * f).toFixed(1)} ${RC.toFixed(1)}" transform="rotate(-90 50 50)"/><text class="pc" x="50" y="58" text-anchor="middle">${Math.round(f * 100)}%</text></svg><span class="tt">${done}/${total}</span>`;
   }
-  let busy = false, openI = -1, savedScroll = 0;
+  let busy = false, openI = -1;
   const isleEls = () => [...root.querySelectorAll('.isle')];
   const restart = () => setTimeout(() => { startOrbit(); startJaws(); startRocket(); }, 560);
+  /* открыть остров подраздела сразу приближенным (списка островов больше нет: острова видны на острове раздела) */
   function openIsle(i) {
-    if (busy) return; busy = true;
     const els = isleEls(), col = root.querySelector('.hm-col');
-    savedScroll = root.scrollTop; openI = i;
-    els.forEach((s, k) => { if (k !== i) s.classList.add('fade'); });
-    setTimeout(() => {
-      els.forEach((s, k) => { if (k !== i) s.classList.add('gone'); });
-      col.classList.add('zoomed'); root.scrollTop = 0;
-      requestAnimationFrame(() => { els[i].classList.add('open'); dotsUpdate(); busy = false; restart(); });
-    }, 260);
+    i = Math.max(0, Math.min(LEVELS.length - 1, i));
+    col.classList.add('zoomed', 'noanim');
+    els.forEach((s, k) => { s.classList.remove('fade', 'sw', 'sw-in', 'open'); s.classList.toggle('gone', k !== i); s.style.setProperty('--sx', '0px'); });
+    els[i].classList.add('open');
+    openI = i; dotsUpdate(); root.scrollTop = 0;
+    requestAnimationFrame(() => requestAnimationFrame(() => col.classList.remove('noanim')));
+    restart();
   }
   function dotsUpdate() { root.querySelectorAll('.hm-dots i').forEach((d, k) => d.classList.toggle('on', k === openI)); }
   function switchTo(k) {
@@ -489,15 +798,6 @@
         busy = false; restart();
       }));
     }, 210);
-  }
-  function closeIsle() {
-    if (busy || openI < 0) return; busy = true;
-    const els = isleEls(), col = root.querySelector('.hm-col');
-    els[openI].classList.remove('open'); col.classList.remove('zoomed');
-    els.forEach((s) => s.classList.remove('gone'));
-    root.scrollTop = savedScroll;
-    requestAnimationFrame(() => { els.forEach((s) => s.classList.remove('fade')); });
-    openI = -1; setTimeout(() => { busy = false; }, 300); restart();
   }
   function refresh() {
     root.querySelectorAll('.isle').forEach((sec, i) => {
@@ -594,12 +894,429 @@
   }
   window.addEventListener('resize', () => { if (!root.hidden) { startOrbit(); startJaws(); startRocket(); } });
 
+
+  /* ================= главное меню разделов ================= */
+  const css2 = document.createElement('style');
+  css2.textContent = `
+    #home[data-view="sections"] .hm-col, #home[data-view="islands"] .sx-col { display: none; }
+    .sx-col { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; box-sizing: border-box; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+      padding: calc(56px + env(safe-area-inset-top)) 14px calc(92px + env(safe-area-inset-bottom)); }
+    .sx-sec + .sx-sec { margin-top: 8vh; }
+    .sx-next { align-self: center; margin: 3vh 0 0; padding: 7px 16px; border: 0; border-radius: 99px; font: inherit; font-weight: 800; font-size: .85rem; color: #fff1cf; background: #5a3512; box-shadow: 0 3px 0 #2d1a08; cursor: pointer; animation: sxNext 1.4s ease-in-out infinite alternate; }
+    @keyframes sxNext { from { transform: translateY(-3px); } to { transform: translateY(4px); } }
+    .sx-sec { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+    .sx-head { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 12px; margin: 4% 0 0; pointer-events: none; }
+    .sx-ring { width: clamp(66px, 19vw, 92px); flex: none; text-align: center; color: #fff; }
+    .sx-ring svg { width: 100%; display: block; filter: drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
+    .sx-ring .pc { font-weight: 900; font-size: 25px; fill: #fff; }
+    .sx-ring .tt { margin-top: 3px; display: inline-block; padding: 1px 8px; border-radius: 99px; background: rgba(24,16,40,.72); font-weight: 800; font-size: clamp(.56rem, 2.4vw, .72rem); }
+    .sx-name { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 6px #5a3512; paint-order: stroke fill; font-size: clamp(1.3rem, 6.4vw, 2.1rem); line-height: 1.04; text-shadow: 0 4px 0 #5a3512; text-transform: uppercase; max-width: 8.5em; }
+    .sx-stage { position: relative; width: 122%; margin: 0 -11%; max-width: calc((100vh - 300px) * 1.35); max-width: calc((100dvh - 300px) * 1.35); align-self: center; aspect-ratio: 1000 / 740; }
+    .sx-stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 16px 16px rgba(0, 0, 0, .3)); animation: hmFloat 6s ease-in-out infinite; }
+    .sx-tip { position: relative; z-index: 2; align-self: center; margin: 2% 0 0; padding: 7px 16px; border-radius: 99px; background: rgba(255, 241, 207, .82); color: #5a3512; font-weight: 800; font-size: clamp(.72rem, 3.3vw, .9rem); text-align: center; box-shadow: 0 3px 0 rgba(90, 53, 18, .45); pointer-events: none; }
+    .sx-tip.hot { background: #ffd23f; animation: sxPulse 1.1s ease-in-out infinite alternate; }
+    @keyframes sxPulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+    .sx-part { cursor: pointer; }
+    .sx-bob, .sx-cr-in, .sx-tw, .sx-tap-in { transform-box: fill-box; transform-origin: center; }
+    .sx-bob { animation: sxBob 4.4s ease-in-out infinite alternate; }
+    @keyframes sxBob { from { transform: translateY(-10px) rotate(-1.4deg); } to { transform: translateY(10px) rotate(1.4deg); } }
+    .sx-cr-in { animation: sxBob 3.1s ease-in-out infinite alternate; }
+    .sx-part.on .sx-bob, .sx-part.going .sx-bob { animation: none; }
+    .sx-part.ready .sx-bob { animation: sxReady 1.5s ease-in-out infinite alternate; }
+    @keyframes sxReady { from { transform: translateY(-5px); } to { transform: translateY(5px); } }
+    .sx-glow, .sx-pill, .sx-spk { pointer-events: none; }
+    .sx-tap { cursor: pointer; }
+    .sx-glow { opacity: 0; }
+    .sx-part.ready .sx-glow { animation: sxGlow 1.5s ease-in-out infinite alternate; }
+    @keyframes sxGlow { from { opacity: .4; } to { opacity: 1; } }
+    .sx-pill rect { fill: rgba(24, 16, 40, .8); stroke: #fff1cf; stroke-width: 3.5; }
+    .sx-pill text { fill: #fff; font: 900 23px Nunito, system-ui, sans-serif; }
+    .sx-tap text { fill: #5a3512; font: 900 27px Nunito, system-ui, sans-serif; }
+    .sx-part.on .sx-pill, .sx-part.ready .sx-pill, .sx-part.going .sx-pill { display: none; }
+    .sx-tap, .sx-spk { display: none; }
+    .sx-part.on .sx-own { display: none; }
+    .sx-part.hid, .sx-crumbs.hid, .sx-tap.hid, .sx-fog { display: none; }
+    .sx-fog.show { display: inline; cursor: pointer; }
+    .sx-fog-in { animation: sxFog 5s ease-in-out infinite alternate; }
+    @keyframes sxFog { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+    .sx-rise, .fg-l, .fg-r { transform-box: fill-box; transform-origin: 50% 100%; }
+    .sx-part.ready .sx-spk, .sx-tap.ready { display: inline; }
+    .sx-tap-in { animation: sxTap .8s ease-in-out infinite alternate; }
+    @keyframes sxTap { from { transform: translateY(-8px); } to { transform: translateY(6px); } }
+    .sx-tw { animation: sxTw 1.3s ease-in-out infinite; }
+    @keyframes sxTw { 0%, 100% { transform: scale(.3) rotate(0); opacity: .2; } 50% { transform: scale(1.25) rotate(45deg); opacity: 1; } }
+    .bm-sp { transform-box: fill-box; animation: bmRise 3.6s linear infinite; opacity: 0; }
+    @keyframes bmRise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 80% { opacity: .8; } 100% { transform: translateY(-330px); opacity: 0; } }
+    .bm-st { animation: bmFlow 1.6s linear infinite; }
+    @keyframes bmFlow { from { transform: translateY(0); } to { transform: translateY(-26px); } }
+    .bm-glow { animation: bmGlow 2.4s ease-in-out infinite alternate; }
+    @keyframes bmGlow { from { opacity: .55; } to { opacity: 1; } }
+    .bm-pool { animation: bmGlow 1.8s ease-in-out infinite alternate; }
+    .sx-toast { position: fixed; left: 50%; top: calc(18% + env(safe-area-inset-top)); z-index: 40; width: max-content; max-width: 86vw; transform: translateX(-50%); opacity: 0; pointer-events: none; text-align: center;
+      padding: 12px 22px 13px; border-radius: 24px; background: linear-gradient(#fff6df, #ffd86b); color: #5a3512; font-weight: 900; font-size: 1.05rem; line-height: 1.2; box-shadow: 0 5px 0 #5a3512, 0 12px 26px rgba(0, 0, 0, .35); border: 3px solid #5a3512; }
+    .sx-toast small { display: block; margin-top: 3px; font-size: .78rem; font-weight: 800; opacity: .8; }
+    .gb { display: none; position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; font-style: normal; font-weight: 900; font-size: .75rem; line-height: 20px; text-align: center; color: #5a3512; background: #ffd23f; border: 2px solid #5a3512; box-shadow: 0 0 12px 3px rgba(255, 210, 63, .8); animation: sxPulse .7s ease-in-out infinite alternate; }
+    .hm-dock .gb { top: 4px; right: calc(50% - 26px); }
+    #home.gift-on .gb { display: block; }
+    .tp { position: fixed; left: 10px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25; max-width: calc(100vw - 20px); font-family: inherit; }
+    .tp button { font: inherit; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .tp-tg { border: 2px dashed #fff1cf; border-radius: 99px; padding: 6px 13px; background: rgba(24, 16, 40, .78); color: #fff1cf; font-size: .78rem; }
+    .tp-box { display: none; margin-top: 6px; padding: 8px; border-radius: 16px; background: rgba(24, 16, 40, .88); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); color: #fff; }
+    .tp.open .tp-box { display: grid; gap: 6px; }
+    .tp-row { display: flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 800; }
+    .tp-n { width: 22px; text-align: center; color: #ffd23f; font-weight: 900; }
+    .tp-t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 8em; }
+    .tp-p { width: 36px; text-align: right; color: #7ee0a0; }
+    .tp-row button, .tp-act button { border: 0; border-radius: 9px; padding: 6px 7px; background: #fff1cf; color: #5a3512; font-size: .72rem; box-shadow: 0 2px 0 #5a3512; }
+    .tp-row button:active, .tp-act button:active { transform: translateY(2px); box-shadow: none; }
+    .tp-row button[data-d="1"] { background: #ffd23f; }
+    .tp-act { display: flex; gap: 6px; margin-top: 2px; }
+    .tp-act button { flex: 1; background: #f3c1b8; }
+    @media (prefers-reduced-motion: reduce) { .sx-next, .sx-stage > svg, .sx-bob, .sx-cr-in, .sx-tw, .sx-tap-in, .bm-sp, .bm-st, .bm-glow, .bm-pool, .sx-tip.hot, .gb { animation: none !important; } .bm-sp { opacity: .7; } }
+  `;
+  document.head.append(css2);
+
+  let view = 'sections';
+  const NS = 'http://www.w3.org/2000/svg';
+  const snd = (n, o) => { if (MG.snd && MG.snd.play) MG.snd.play(n, o); };
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* нет хранилища */ } };
+  const lvlDone = (lv) => lv.modes.reduce((a, m) => a + Math.min(goalOf(m.id), getSolved(m.id)), 0);
+  const lvlGoal = (lv) => lv.modes.reduce((a, m) => a + goalOf(m.id), 0);
+  const fracOf = (lv) => { const g = lvlGoal(lv); return g ? lvlDone(lv) / g : 0; };
+  const pkey = (sec, pt) => `mg.isle.${sec.id}.${pt.lvl}`;               // '1' — кусок уже прикреплён
+  const isOn = (sec, pt) => lsGet(pkey(sec, pt)) === '1';
+  /* насколько далеко висит кусок: 0% — далеко, 99% — почти у берега, 100% — ждёт тапа рядом */
+  const FAR = 170, NEAR = 50, READY = 24;
+  const offFor = (p, on) => (on ? 0 : p >= 1 ? READY : NEAR + (FAR - NEAR) * (1 - p));
+  const scFor = (p, on) => (on || p >= 1 ? 1 : 0.84 + 0.12 * p);
+  const unit = (pt) => { const l = Math.hypot(pt.dx, pt.dy) || 1; return [pt.dx / l, pt.dy / l]; };
+  const now = {};                                                        // `${si}.${k}` → { off, sc }
+  const secBox = (si) => root.querySelector(`.sx-sec[data-s="${si}"]`);
+
+  /* прикреплённый кусок: его земля становится частью общей монолитной земли основы */
+  const fuse = (box, k, on) => box.querySelectorAll(`.sx-m[data-k="${k}"]`).forEach((e) => { e.style.display = on ? '' : 'none'; });
+  function place(si, k, off, sc) {
+    const sec = SECTIONS[si], pt = sec.parts[k], [ux, uy] = unit(pt), box = secBox(si);
+    if (!box) return;
+    const tf = `translate(${(ux * off).toFixed(1)}px, ${(uy * off).toFixed(1)}px)`;
+    box.querySelector(`.sx-part[data-k="${k}"]`).style.transform = `${tf} scale(${sc.toFixed(3)})`;
+    box.querySelector(`.sx-tap[data-k="${k}"]`).style.transform = tf;
+    // камешки между берегом и куском: тем больше видно, чем шире щель
+    const B = sec.base, x0 = pt.cx + (B.cx - pt.cx) * 0.3, y0 = pt.cy + (B.cy - pt.cy) * 0.3 + 30 * pt.s;
+    box.querySelectorAll(`.sx-crumbs[data-k="${k}"] .sx-cr`).forEach((c, j) => {
+      const t = [0.3, 0.58, 0.84][j], jit = [12, -14, 8][j];
+      c.setAttribute('transform', `translate(${(x0 + ux * off * t - uy * jit).toFixed(1)} ${(y0 + uy * off * t + ux * jit).toFixed(1)})`);
+      c.setAttribute('opacity', Math.max(0, Math.min(1, (off - 36) / 40)).toFixed(2));
+    });
+    now[`${si}.${k}`] = { off, sc };
+  }
+  const EASE = {
+    back: (t) => 1 + 2.2 * (t - 1) ** 3 + 1.2 * (t - 1) ** 2,
+    out: (t) => 1 - (1 - t) ** 3,
+    in: (t) => t * t * t,
+  };
+  const tweenTok = {};
+  function tween(si, k, to, toSc, dur, ease) {
+    return new Promise((res) => {
+      const s = now[`${si}.${k}`] || { off: to, sc: toSc }, t0 = performance.now(), id = `${si}.${k}`, tok = (tweenTok[id] = (tweenTok[id] || 0) + 1);
+      if (reduced() || dur <= 0) { place(si, k, to, toSc); res(); return; }
+      const step = (t) => {
+        if (tweenTok[id] !== tok) { res(); return; }                 // кусок уже повели новой анимацией
+        const u = Math.min(1, (t - t0) / dur), e = ease(u);
+        place(si, k, s.off + (to - s.off) * e, s.sc + (toSc - s.sc) * e);
+        if (u < 1) requestAnimationFrame(step); else res();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  /* обновить острова разделов; animate — куски, чей процент вырос, подлетают ближе на глазах */
+  function refreshSections(animate, quick) {
+    let gifts = 0;
+    SECTIONS.forEach((sec, si) => {
+      const box = secBox(si);
+      if (!box) return;
+      box.querySelector('.sx-ring').innerHTML = ringSvg(sec.levels.reduce((a, l) => a + lvlDone(l), 0), sec.levels.reduce((a, l) => a + lvlGoal(l), 0));
+      let delay = quick ? 60 : 450, ready = 0, on = 0, hidden = [], news = 0;
+      const willOpen = animate && !reduced() ? sec.parts.filter((pt) => !pt.soon && lsGet(`${pkey(sec, pt)}.shown`) !== '1' && (isOn(sec, pt) || fracOf(sec.levels[pt.lvl]) > 0 || fracOf(sec.levels[sec.base.lvl || 0]) >= (pt.open || 0) - 1e-9)).length : 0;
+      const baseP = fracOf(sec.levels[sec.base.lvl || 0]);
+      const bp = box.querySelector('.sx-bpill');
+      const building = !sec.levels.some((l) => l.modes.length);         // раздел ещё без режимов
+      bp.style.display = baseP >= 1 || building ? 'none' : '';
+      if (building) box.querySelector('.sx-ring .tt').textContent = 'скоро'; bp.querySelector('text').textContent = `${Math.floor(baseP * 100)}%`;
+      sec.parts.forEach((pt, k) => {
+        if (pt.soon) { box.querySelector(`.sx-fog[data-k="${k}"]`).classList.add('show'); hidden.push(pt); return; }   // остров ещё строится
+        const p = fracOf(sec.levels[pt.lvl]), c = isOn(sec, pt), el = box.querySelector(`.sx-part[data-k="${k}"]`);
+        /* ещё не открыт: вместо куска облако */
+        const shownK = `${pkey(sec, pt)}.shown`, cr = box.querySelector(`.sx-crumbs[data-k="${k}"]`), tpk = box.querySelector(`.sx-tap[data-k="${k}"]`), fg = box.querySelector(`.sx-fog[data-k="${k}"]`);
+        if (!(c || p > 0 || baseP >= (pt.open || 0) - 1e-9)) {
+          [el, cr, tpk].forEach((e) => e.classList.add('hid')); fg.classList.add('show'); fuse(box, k, false);
+          if (c) lsSet(pkey(sec, pt), '0');
+          lsSet(shownK, '0'); lsSet(`${pkey(sec, pt)}.seen`, '0');
+          hidden.push(pt);
+          return;
+        }
+        const fresh = lsGet(shownK) !== '1';
+        lsSet(shownK, '1');
+        if (!fresh || !animate || reduced()) { [el, cr, tpk].forEach((e) => e.classList.remove('hid')); fg.classList.remove('show'); }
+        if (c && p < 1) lsSet(pkey(sec, pt), '0');                       // прогресс сброшен — кусок снова отколот
+        const att = c && p >= 1;
+        el.classList.toggle('on', att); el.classList.toggle('ready', !att && p >= 1); el.classList.remove('going');
+        fuse(box, k, att);
+        box.querySelector(`.sx-tap[data-k="${k}"]`).classList.toggle('ready', !att && p >= 1);
+        el.querySelector('.sx-pill text').textContent = `${Math.floor(p * 100)}%`;
+        if (att) on++; else if (p >= 1) ready++;
+        const seenK = `${pkey(sec, pt)}.seen`, seen = parseFloat(lsGet(seenK));
+        const to = offFor(p, att), sc = scFor(p, att);
+        if (fresh && animate && !reduced()) {                             // появление: сразу на своё место по проценту
+          place(si, k, to, sc);
+          reveal(si, k, delay, willOpen > 1); news++; delay += quick ? 300 : 700;
+        } else if (animate && !att && seen < p && !reduced()) {
+          place(si, k, offFor(seen, false), scFor(seen, false));
+          const d = delay; delay += quick ? 120 : 380;
+          setTimeout(() => {
+            snd('whoosh', { dur: 0.6 });
+            tween(si, k, to, sc, 1300, EASE.back).then(() => { if (p >= 1) snd('spark'); });
+          }, d);
+        } else place(si, k, to, sc);
+        lsSet(seenK, String(p));
+      });
+      gifts += ready;
+      const tip = box.querySelector('.sx-tip');
+      tip.classList.toggle('hot', ready > 0);
+      if (news > 1) setTimeout(() => toast(`Открыты новые острова: ${news}!<small>${sec.title}</small>`), (quick ? 60 : 450) + 620);
+      const opening = hidden.filter((pt) => !pt.soon), nextOpen = opening.length ? Math.min(...opening.map((pt) => pt.open || 0)) : 0;
+      tip.textContent = building ? 'Раздел строится — задачи появятся совсем скоро'
+        : ready ? (ready > 1 ? 'Куски острова готовы — нажми на них!' : 'Кусок острова готов — нажми на него!')
+        : opening.length ? `Реши «${sec.levels[sec.base.lvl || 0].title}» на ${Math.round(nextOpen * 100)}% — откроется новый остров`
+        : on === sec.parts.length ? 'Все части острова на месте!' : 'Решай задачи — и куски острова подлетят ближе';
+    });
+    root.classList.toggle('gift-on', gifts > 0);
+  }
+
+  /* кусок впервые появляется: облако расходится, остров всплывает снизу */
+  function reveal(si, k, d, many) {
+    const sec = SECTIONS[si], pt = sec.parts[k], box = secBox(si), lv = sec.levels[pt.lvl];
+    const el = box.querySelector(`.sx-part[data-k="${k}"]`), cr = box.querySelector(`.sx-crumbs[data-k="${k}"]`), tp = box.querySelector(`.sx-tap[data-k="${k}"]`), fg = box.querySelector(`.sx-fog[data-k="${k}"]`);
+    [el, cr, tp].forEach((e) => e.classList.add('hid'));
+    fg.classList.add('show');
+    setTimeout(() => {
+      if (!el.isConnected) return;
+      snd('whoosh', { dur: 0.7 });
+      const o = { duration: 700, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' };
+      const a1 = fg.querySelector('.fg-l').animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(-90px, 6px) scale(1.2)', opacity: 0 }], o);
+      fg.querySelector('.fg-r').animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(90px, -6px) scale(1.2)', opacity: 0 }], o);
+      fg.querySelector('.fg-s').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+      [el, cr, tp].forEach((e) => e.classList.remove('hid'));
+      el.querySelector('.sx-rise').animate([
+        { transform: 'translateY(170px) scale(.4)', opacity: 0 },
+        { transform: 'translateY(-16px) scale(1.05)', opacity: 1, offset: 0.62 },
+        { transform: 'translateY(5px) scale(.98)', offset: 0.82 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 1150, easing: 'cubic-bezier(.25,.8,.35,1)' });
+      cr.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, delay: 400, fill: 'backwards' });
+      setTimeout(() => {
+        snd('spark'); snd('pop');
+        burst(box, pt.cx + unit(pt)[0] * (now[`${si}.${k}`] || { off: 0 }).off, pt.cy + unit(pt)[1] * (now[`${si}.${k}`] || { off: 0 }).off - 60 * pt.s, 9);
+        if (!many) toast(`Открыт новый остров!<small>${lv.n}. ${lv.title}</small>`);
+      }, 620);
+      a1.onfinish = () => { fg.classList.remove('show'); fg.querySelectorAll('.fg-l, .fg-r, .fg-s').forEach((g) => g.getAnimations().forEach((a) => a.cancel())); };
+    }, d);
+  }
+  /* звёзды разлетаются из точки (x, y) острова раздела */
+  function burst(box, x, y, n) {
+    if (reduced()) return;
+    const fx = box.querySelector('.sx-fx');
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI * (0.05 + 0.9 * i / Math.max(1, n - 1)), r = 110 + Math.random() * 90;
+      const g = document.createElementNS(NS, 'g'); g.setAttribute('transform', `translate(${x.toFixed(0)} ${y.toFixed(0)})`);
+      const s = document.createElementNS(NS, 'path'); s.setAttribute('d', STAR4); s.setAttribute('fill', i % 3 ? '#ffe27a' : '#fff'); s.setAttribute('stroke', '#c98a0a'); s.setAttribute('stroke-width', '2');
+      g.append(s); fx.append(g);
+      s.style.transformBox = 'fill-box'; s.style.transformOrigin = 'center';
+      s.animate([{ opacity: 1, transform: 'translate(0, 0) scale(.4)' }, { opacity: 1, transform: `translate(${(Math.cos(a) * r * 0.7).toFixed(0)}px, ${(Math.sin(a) * r * 0.7).toFixed(0)}px) scale(1.2) rotate(90deg)`, offset: 0.6 }, { opacity: 0, transform: `translate(${(Math.cos(a) * r).toFixed(0)}px, ${(Math.sin(a) * r + 30).toFixed(0)}px) scale(.5) rotate(180deg)` }],
+        { duration: 1000, easing: 'cubic-bezier(.2,.8,.4,1)' }).onfinish = () => g.remove();
+    }
+  }
+
+  /* награда: кусок подлетает и защёлкивается */
+  async function attach(si, k) {
+    if (busy) return; busy = true;
+    const sec = SECTIONS[si], pt = sec.parts[k], box = secBox(si), el = box.querySelector(`.sx-part[data-k="${k}"]`);
+    const c0 = now[`${si}.${k}`] || { off: READY, sc: 1 };
+    el.classList.remove('ready'); el.classList.add('going');
+    box.querySelector(`.sx-tap[data-k="${k}"]`).classList.remove('ready');
+    snd('whoosh', { dur: 0.5 });
+    await tween(si, k, c0.off + 34, 1.04, 260, EASE.out);              // замах
+    await tween(si, k, 0, 1, 300, EASE.in);                              // рывок к берегу
+    lsSet(pkey(sec, pt), '1');
+    el.classList.remove('going'); el.classList.add('on');
+    fuse(box, k, true);
+    impact(si, k);
+    const lv = sec.levels[pt.lvl];
+    setTimeout(() => {
+      const all = sec.parts.every((q) => isOn(sec, q));
+      toast(all ? `Все части острова на месте!<small>${sec.title}</small>` : `Остров присоединён!<small>${lv.n}. ${lv.title}</small>`);
+      refreshSections(false);
+      busy = false;
+    }, 380);
+  }
+  function impact(si, k) {
+    const sec = SECTIONS[si], pt = sec.parts[k], B = sec.base, box = secBox(si);
+    const x = pt.cx + (B.cx - pt.cx) * 0.42, y = pt.cy + (B.cy - pt.cy) * 0.42 + 8;
+    snd('smash'); snd('crumble'); setTimeout(() => snd('win'), 170);
+    try { if (navigator.vibrate) navigator.vibrate(35); } catch (e) { /* нет вибрации */ }
+    if (reduced()) return;
+    const fx = box.querySelector('.sx-fx'), world = box.querySelector('.sx-world');
+    world.animate([{ transform: 'translate(0, 0)' }, { transform: 'translate(-8px, 6px)' }, { transform: 'translate(7px, -5px)' }, { transform: 'translate(-4px, 3px)' }, { transform: 'translate(2px, -1px)' }, { transform: 'translate(0, 0)' }], { duration: 440, easing: 'ease-out' });
+    const el = box.querySelector(`.sx-part[data-k="${k}"]`);
+    el.animate([{ scale: '1.06 .94' }, { scale: '.97 1.03' }, { scale: '1 1' }], { duration: 420, easing: 'ease-out' });
+    const mk = (tag, a, parent = fx) => { const e = document.createElementNS(NS, tag); Object.entries(a).forEach(([n, v]) => e.setAttribute(n, v)); parent.append(e); return e; };
+    const fin = (e, kf, o) => { e.style.transformBox = 'fill-box'; e.style.transformOrigin = 'center'; e.animate(kf, o).onfinish = () => e.remove(); };
+    fin(mk('circle', { cx: x, cy: y, r: 110, fill: `url(#s${si}gl)` }), [{ opacity: 1, transform: 'scale(.4)' }, { opacity: 0, transform: 'scale(2.2)' }], { duration: 650, easing: 'ease-out' });
+    fin(mk('circle', { cx: x, cy: y, r: 24, fill: 'none', stroke: '#ffe27a', 'stroke-width': 9 }), [{ opacity: 1, transform: 'scale(.3)' }, { opacity: 0, transform: 'scale(8)' }], { duration: 750, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    for (let i = 0; i < 14; i++) {
+      const a = Math.PI * (i / 13) + (Math.random() - 0.5) * 0.3, r = 70 + Math.random() * 80;
+      fin(mk('circle', { cx: x + (Math.random() - 0.5) * 50, cy: y + Math.random() * 16, r: 9 + Math.random() * 9, fill: i % 2 ? '#efe2c9' : '#d6c19b', stroke: '#8a6f4a', 'stroke-width': 2 }),
+        [{ opacity: 0.95, transform: 'translate(0, 0) scale(.4)' }, { opacity: 0, transform: `translate(${(Math.cos(a) * r).toFixed(0)}px, ${(Math.sin(a) * r * 0.35 - 10).toFixed(0)}px) scale(1.7)` }],
+        { duration: 800 + Math.random() * 300, easing: 'cubic-bezier(.15,.7,.3,1)' });
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI * (0.08 + 0.84 * i / 11), r = 130 + Math.random() * 110;
+      const g = mk('g', { transform: `translate(${x} ${y})` });
+      const s = mk('path', { d: STAR4, fill: i % 3 ? '#ffe27a' : '#fff', stroke: '#c98a0a', 'stroke-width': 2 }, g);
+      s.style.transformBox = 'fill-box'; s.style.transformOrigin = 'center';
+      s.animate([{ opacity: 1, transform: 'translate(0, 0) scale(.4) rotate(0)' }, { opacity: 1, transform: `translate(${(Math.cos(a) * r * 0.7).toFixed(0)}px, ${(Math.sin(a) * r * 0.7).toFixed(0)}px) scale(1.3) rotate(90deg)`, offset: 0.6 }, { opacity: 0, transform: `translate(${(Math.cos(a) * r).toFixed(0)}px, ${(Math.sin(a) * r + 40).toFixed(0)}px) scale(.6) rotate(180deg)` }],
+        { duration: 1100, easing: 'cubic-bezier(.2,.8,.4,1)' }).onfinish = () => g.remove();
+    }
+  }
+  function toast(html) {
+    const t = root.querySelector('.sx-toast');
+    if (!t) return;
+    t.innerHTML = html;
+    t.getAnimations().forEach((a) => a.cancel());
+    t.animate([
+      { opacity: 0, transform: 'translate(-50%, 18px) scale(.7)' },
+      { opacity: 1, transform: 'translate(-50%, 0) scale(1.08)', offset: 0.12 },
+      { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.2 },
+      { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.86 },
+      { opacity: 0, transform: 'translate(-50%, -16px) scale(.95)' },
+    ], { duration: 2800, easing: 'ease-out' });
+  }
+
+  /* переходы: раздел ↔ его острова (зум) */
+  function setView(v) { view = v; root.dataset.view = v; }
+  function resetZoom() {
+    if (openI < 0) return;
+    isleEls().forEach((s) => s.classList.remove('open', 'gone', 'fade', 'sw', 'sw-in'));
+    root.querySelector('.hm-col').classList.remove('zoomed');
+    openI = -1;
+  }
+  async function enterSection(si, lvl, ev) {
+    if (busy) return; busy = true;
+    const sx = root.querySelector('.sx-col'), col = root.querySelector('.hm-col');
+    snd('pin');
+    if (!reduced()) {
+      const r = sx.getBoundingClientRect();
+      sx.style.transformOrigin = ev ? `${ev.clientX - r.left}px ${ev.clientY - r.top}px` : '50% 50%';
+      await sx.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.7)', opacity: 0 }], { duration: 380, easing: 'cubic-bezier(.55,0,.85,.35)' }).finished.catch(() => {});
+    }
+    setView('islands'); refresh(); openIsle(lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0);   // тап по основе — остров I
+    if (!reduced()) col.animate([{ transform: 'scale(.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 460, easing: 'cubic-bezier(.2,.9,.3,1)' });
+    busy = false;
+  }
+  async function goSections() {
+    closeSheet();
+    if (busy || view === 'sections') return;
+    busy = true;
+    const sx = root.querySelector('.sx-col'), col = root.querySelector('.hm-col');
+    if (!reduced()) await col.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(.8)', opacity: 0 }], { duration: 280, easing: 'cubic-bezier(.5,0,.8,.4)' }).finished.catch(() => {});
+    resetZoom();
+    setView('sections'); root.scrollTop = 0;
+    if (!reduced()) { sx.style.transformOrigin = '50% 45%'; sx.animate([{ transform: 'scale(1.5)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 480, easing: 'cubic-bezier(.2,.9,.3,1)' }); }
+    busy = false;
+    refreshSections(true);
+  }
+  /* ---------- ТЕСТ: панель прогресса, чтобы смотреть анимации кусков (убрать перед релизом) ---------- */
+  function setLvlFrac(lv, f) {
+    lv.modes.forEach((m) => lsSet(`mg.solved.${m.id}`, String(Math.round(goalOf(m.id) * Math.max(0, Math.min(1, f))))));
+  }
+  function testPanel() {
+    const sec = SECTIONS[0];
+    const row = (lvl) => { const lv = sec.levels[lvl]; return `<div class="tp-row" data-l="${lvl}"><span class="tp-n">${lv.n}</span><span class="tp-t">${lv.title}</span><b class="tp-p"></b>
+      <button type="button" data-d="-0.25">−25</button><button type="button" data-d="0.1">+10</button><button type="button" data-d="0.25">+25</button><button type="button" data-d="1">100%</button></div>`; };
+    return `<div class="tp"><button type="button" class="tp-tg">Тест прогресса ▲</button><div class="tp-box">
+      ${[0, ...sec.parts.map((pt) => pt.lvl)].sort((a, b) => a - b).map(row).join('')}
+      <div class="tp-act"><button type="button" data-a="detach">Отколоть куски</button><button type="button" data-a="zero">Всё на 0%</button></div></div></div>`;
+  }
+  function tpSync(sx) {
+    const sec = SECTIONS[0];
+    sx.querySelectorAll('.tp-row').forEach((r) => { r.querySelector('.tp-p').textContent = `${Math.floor(fracOf(sec.levels[+r.dataset.l]) * 100)}%`; });
+  }
+  function bindTestPanel(sx) {
+    const tp = sx.querySelector('.tp'), sec = SECTIONS[0];
+    tp.addEventListener('click', (e) => {
+      e.stopPropagation();                                              // не открывать раздел
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.classList.contains('tp-tg')) { const o = tp.classList.toggle('open'); b.textContent = o ? 'Тест прогресса ▼' : 'Тест прогресса ▲'; tpSync(sx); return; }
+      if (busy) return;
+      if (b.dataset.a === 'detach') sec.parts.forEach((pt) => { lsSet(pkey(sec, pt), '0'); lsSet(`${pkey(sec, pt)}.seen`, '0'); });
+      else if (b.dataset.a === 'zero') { sec.levels.forEach((lv) => setLvlFrac(lv, 0)); sec.parts.forEach((pt) => lsSet(pkey(sec, pt), '0')); }
+      else {
+        const lv = sec.levels[+b.closest('.tp-row').dataset.l], d = +b.dataset.d;
+        setLvlFrac(lv, d === 1 ? 1 : fracOf(lv) + d);
+      }
+      refresh(); refreshSections(true, true); tpSync(sx);
+    });
+  }
+  function buildSections() {
+    const sx = document.createElement('div');
+    sx.className = 'sx-col';
+    sx.innerHTML = `<div class="hm-title">Математические игры</div><p class="hm-sub">Выбери раздел</p>
+      ${SECTIONS.map((sec, si) => `<section class="sx-sec" data-s="${si}" aria-label="${sec.title}">
+        <div class="sx-head"><div class="sx-ring"></div><div class="sx-name">${sec.title}</div></div>
+        <div class="sx-stage">${sectionSvg(sec, si)}</div>
+        <p class="sx-tip"></p>${si < SECTIONS.length - 1 ? `<button class="sx-next" type="button" data-to="${si + 1}">${SECTIONS[si + 1].title} ↓</button>` : ''}</section>`).join('')}
+      ${testPanel()}`;
+    bindTestPanel(sx);
+    sx.querySelectorAll('.sx-next').forEach((b) => b.addEventListener('click', (e) => {   // прокрутить к следующему разделу
+      e.stopPropagation();
+      const t = sx.querySelector(`.sx-sec[data-s="${b.dataset.to}"]`);
+      root.scrollTo({ top: t.offsetTop - 20, behavior: reduced() ? 'auto' : 'smooth' });
+    }));
+    sx.querySelectorAll('.sx-sec').forEach((box) => box.addEventListener('click', (e) => {
+      const tp = e.target.closest('.sx-tap'), si = +box.dataset.s;
+      if (!SECTIONS[si].levels.some((l) => l.modes.length)) {           // раздел ещё без режимов
+        snd('pop'); toast(`Скоро!<small>Раздел «${SECTIONS[si].title}» строится</small>`); return;
+      }
+      const part = e.target.closest('.sx-part') || (tp && box.querySelector(`.sx-part[data-k="${tp.dataset.k}"]`));
+      const fg = e.target.closest('.sx-fog.show');                       // облако: остров ещё не открыт, но его режимы доступны
+      if (fg) { enterSection(si, SECTIONS[si].parts[+fg.dataset.k].lvl, e); return; }
+      if (part && part.classList.contains('ready')) { attach(si, +part.dataset.k); return; }
+      if (part) { enterSection(si, SECTIONS[si].parts[+part.dataset.k].lvl, e); return; }   // открыть именно этот остров
+      const gm = e.target.closest('.sx-m');                              // земля прикреплённого куска (в общей земле)
+      if (gm) { enterSection(si, SECTIONS[si].parts[+gm.dataset.k].lvl, e); return; }
+      enterSection(si, -1, e);
+    }));
+    return sx;
+  }
+
   let built = false;
-  function show() {
+  /* v: 'sections' | 'islands'; mode — из какого режима вернулись (открываем его остров) */
+  function show(v, mode) {
     if (!built) { build(); built = true; } else refresh();
+    if (v === 'sections') resetZoom();
+    setView(v || view);
     root.hidden = false;
     document.body.classList.add('is-home');
+    if (view === 'islands') {
+      const li = mode ? LEVELS.findIndex((l) => l.modes.some((m) => m.id === mode)) : -1;
+      openIsle(li >= 0 ? li : openI >= 0 ? openI : 0);
+    }
     root.scrollTop = 0;
+    if (view === 'sections') refreshSections(true);
     startOrbit(); startJaws(); startRocket();
   }
   function hide() { root.hidden = true; const sh = root.querySelector('.hm-sheet'); if (sh) sh.classList.remove('show'); document.body.classList.remove('is-home'); }

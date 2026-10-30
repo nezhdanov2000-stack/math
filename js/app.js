@@ -54,10 +54,12 @@
     try { history.replaceState(null, '', `#${h}`); } catch (e) { /* file:// в некоторых браузерах */ }
   }
 
-  function showHome() {
+  /* view: 'sections' — самое главное меню (разделы), 'islands' — острова раздела */
+  function showHome(view) {
+    const from = curMode;                      // из какого режима выходим — откроем его остров
     leaveCurrent();
     Object.values(sections).forEach((s) => { s.hidden = true; });
-    MG.home.show();
+    MG.home.show(view, from);
     setHash('home');
   }
 
@@ -75,9 +77,9 @@
   }
 
   document.getElementById('skip').addEventListener('click', () => MG.active && MG.active.skip());
-  document.getElementById('home-btn').addEventListener('click', showHome);
+  document.getElementById('home-btn').addEventListener('click', () => showHome('islands'));   // из режима — к его острову
 
   MG.go = activate;
   const h0 = location.hash.slice(1);
-  if (sections[h0] || h0 === 'big') activate(h0); else showHome();
+  if (sections[h0] || h0 === 'big') activate(h0); else showHome('sections');   // запуск — меню разделов
 })();
