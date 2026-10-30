@@ -41,9 +41,10 @@
    *   tap        — сдвиг подсказки «Нажми!» по высоте (в единицах острова 400×300);
    *   open       — с какого прогресса основы кусок появляется (до этого на его месте облако).
    *                Кусок появляется и раньше, если у его подраздела уже есть хоть одна решённая задача. */
-  /* раздел «Десятичные дроби»: пока только острова-заглушки, режимы появятся позже */
+  /* раздел «Десятичные дроби»: остров I (стройка) открыт — режим «Сложение и вычитание» (кран),
+   * остальные острова пока заглушки. Отдельного экрана островов у раздела нет: тап по стройке сразу открывает режим. */
   const DEC_LEVELS = [
-    { n: 'I', title: 'Сложение и вычитание', modes: [] },
+    { n: 'I', title: 'Сложение и вычитание', modes: [{ id: 'decadd', name: 'Сложение и вычитание', icon: 'crane', x: 50, y: 50 }] },
     { n: 'II', title: 'Умножение', modes: [] },
     { n: 'III', title: 'Деление', modes: [] },
     { n: 'IV', title: 'Уравнения', modes: [] },
@@ -161,6 +162,7 @@
       </g>
       <g fill="#8a7d77" stroke="#4a4140" stroke-width="2"><path d="M104 232 l8 -9 l12 5 l-2 10z"/></g>
       ${gear(224, 64, 11, '#b79cf0')}
+      ${gear(224, 141, 11, '#b79cf0').replace('class="spin"', 'class="spin" style="animation-direction:reverse"')}
       <g stroke="#3a2a14" stroke-width="2.6" stroke-linejoin="round">
         
         <g class="leaf lf-l" style="transform-origin:190px 104px"><rect x="190" y="98" width="36" height="9" rx="2" fill="#c98f4a"/><path d="M199 98 v9 M208 98 v9 M217 98 v9" stroke-width="1.6" fill="none"/></g>
@@ -763,7 +765,7 @@
   const GOAL = 10;
   /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
   /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
-  const goalOf = (id) => (['cancel', 'ext', 'factor'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
+  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;
@@ -835,7 +837,12 @@
     if (root.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     root.querySelectorAll('.deco.jaw').forEach((el, i) => {
       const W = el.parentElement.clientWidth, D = W * 0.46;
-      const dur = [7000, 9500, 5800, 8200, 6600][i % 5], ph = [-3500, 0, -2000, -5500, -1200][i % 5];
+      const dur = [7000, 9500, 5800, 8200, 6600][i % 5], total = dur * 1.6;
+      // фаза старта: чётные стартуют на первом участке пути (вправо), нечётные — на обратном (влево)
+      const ph = -total * (([0.15, 0.35, 0.6, 0.25, 0.8][i % 5]) * 0.5 + (i % 2) * 0.5);
+      // рты открываются по очереди: сдвигаем «чавканье» каждого на свою долю периода (.52s)
+      const svg = el.querySelector('svg');
+      if (svg) svg.style.animationDelay = `${-(i * 0.52) / 5}s`;
       const n = Math.max(3, Math.round(D / 34)), h = Math.max(9, W * 0.05), per = 8, kf = [];
       for (let leg = 0; leg < 2; leg++) {
         const f = leg ? 1 : -1;
@@ -848,7 +855,7 @@
         }
       }
       kf[0].offset = 0; kf[kf.length - 1].offset = 1;
-      jawAnims.push(el.animate(kf, { duration: dur * 1.6, delay: ph, iterations: Infinity, easing: 'linear' }));
+      jawAnims.push(el.animate(kf, { duration: total, delay: ph, iterations: Infinity, easing: 'linear' }));
     });
   }
   /* ракета взлетает из леса справа и уходит вверх за край экрана */
@@ -1091,7 +1098,8 @@
       tip.textContent = building ? 'Раздел строится — задачи появятся совсем скоро'
         : ready ? (ready > 1 ? 'Куски острова готовы — нажми на них!' : 'Кусок острова готов — нажми на него!')
         : opening.length ? `Реши «${sec.levels[sec.base.lvl || 0].title}» на ${Math.round(nextOpen * 100)}% — откроется новый остров`
-        : on === sec.parts.length ? 'Все части острова на месте!' : 'Решай задачи — и куски острова подлетят ближе';
+        : on === sec.parts.length ? 'Все части острова на месте!'
+        : sec.parts.every((pt) => pt.soon) ? `Нажми на стройку — режим «${sec.levels[sec.base.lvl || 0].title}» открыт` : 'Решай задачи — и куски острова подлетят ближе';
     });
     root.classList.toggle('gift-on', gifts > 0);
   }
@@ -1222,6 +1230,12 @@
       sx.style.transformOrigin = ev ? `${ev.clientX - r.left}px ${ev.clientY - r.top}px` : '50% 50%';
       await sx.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.7)', opacity: 0 }], { duration: 380, easing: 'cubic-bezier(.55,0,.85,.35)' }).finished.catch(() => {});
     }
+    if (SECTIONS[si].levels !== LEVELS) {                              // раздел без экрана островов: сразу режим острова
+      const lv = SECTIONS[si].levels[lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0];
+      busy = false;
+      if (lv && lv.modes.length && MG.go) MG.go(lv.modes[0].id);
+      return;
+    }
     setView('islands'); refresh(); openIsle(lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0);   // тап по основе — остров I
     if (!reduced()) col.animate([{ transform: 'scale(.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 460, easing: 'cubic-bezier(.2,.9,.3,1)' });
     busy = false;
@@ -1293,7 +1307,11 @@
       }
       const part = e.target.closest('.sx-part') || (tp && box.querySelector(`.sx-part[data-k="${tp.dataset.k}"]`));
       const fg = e.target.closest('.sx-fog.show');                       // облако: остров ещё не открыт, но его режимы доступны
-      if (fg) { enterSection(si, SECTIONS[si].parts[+fg.dataset.k].lvl, e); return; }
+      if (fg) {
+        const lv = SECTIONS[si].levels[SECTIONS[si].parts[+fg.dataset.k].lvl];
+        if (!lv.modes.length) { snd('pop'); toast(`Скоро!<small>Остров «${lv.title}» строится</small>`); return; }
+        enterSection(si, SECTIONS[si].parts[+fg.dataset.k].lvl, e); return;
+      }
       if (part && part.classList.contains('ready')) { attach(si, +part.dataset.k); return; }
       if (part) { enterSection(si, SECTIONS[si].parts[+part.dataset.k].lvl, e); return; }   // открыть именно этот остров
       const gm = e.target.closest('.sx-m');                              // земля прикреплённого куска (в общей земле)
@@ -1306,6 +1324,8 @@
   let built = false;
   /* v: 'sections' | 'islands'; mode — из какого режима вернулись (открываем его остров) */
   function show(v, mode) {
+    const decSi = SECTIONS.findIndex((sec) => sec.levels !== LEVELS && sec.levels.some((l) => l.modes.some((m) => m.id === mode)));
+    if (decSi >= 0) v = 'sections';                                    // из режима раздела без экрана островов — к его большому острову
     if (!built) { build(); built = true; } else refresh();
     if (v === 'sections') resetZoom();
     setView(v || view);
@@ -1317,6 +1337,7 @@
     }
     root.scrollTop = 0;
     if (view === 'sections') refreshSections(true);
+    if (decSi >= 0) { const t = root.querySelector(`.sx-sec[data-s="${decSi}"]`); if (t) root.scrollTop = t.offsetTop - 20; }
     startOrbit(); startJaws(); startRocket();
   }
   function hide() { root.hidden = true; const sh = root.querySelector('.hm-sheet'); if (sh) sh.classList.remove('show'); document.body.classList.remove('is-home'); }

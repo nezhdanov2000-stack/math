@@ -63,6 +63,17 @@
       <path d="M31 22 L38.5 31 L30 43" fill="none" stroke="#cfd8e3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
       <circle cx="18" cy="43" r="2.2" fill="#ef4444" stroke="#3b4656" stroke-width="1"/>
       <circle cx="30" cy="43" r="2.2" fill="#ef4444" stroke="#3b4656" stroke-width="1"/></svg>`,
+    crane: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M32 3 L36 11 H28Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="1.8"/>
+      <path d="M32 3 L5 11 M32 3 L44 11" stroke="#4a4f5c" stroke-width="1.3" fill="none"/>
+      <path d="M29 16 L35 22 M35 16 L29 22 M29 24 L35 30 M35 24 L29 30 M29 32 L35 38 M35 32 L29 38" stroke="#2f6fc4" stroke-width="1.5"/>
+      <rect x="29" y="15" width="6" height="26" fill="none" stroke="#1d4f8f" stroke-width="2.2"/>
+      <rect x="3" y="11" width="42" height="5" rx="1.2" fill="#3f84d8" stroke="#1d4f8f" stroke-width="1.8"/>
+      <rect x="38" y="16" width="7" height="6" rx="1" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="1.5"/>
+      <path d="M10 16 V27" stroke="#33384a" stroke-width="1.5"/>
+      <path d="M7 27 h6 l-1.2 3 h-3.6Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.3"/>
+      <path d="M10 30 v2.5 q0 4 -3.5 4" fill="none" stroke="#4a4f5c" stroke-width="2"/>
+      <path d="M23 45 L28 40 H36 L41 45Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="1.8"/></svg>`,
   };
 
   /* иконки инструментов со своими модулями (модули подключены раньше tools.js) */
@@ -88,6 +99,7 @@
     box: { label: 'Коробка', tip: 'накрывает слагаемые — получаются скобки; нажми на скобки, и коробка откроется', hot: [16, 22] },
     maw: { label: 'Пасть', tip: 'дробь раскрывает рот и выплёвывает целое — из числителя уходит один знаменатель', hot: [16, 26] },
     claw: { label: 'Клешня', tip: 'отщипывает единицу от целого', hot: [16, 29] },
+    crane: { label: 'Кран', tip: 'переносит числа на строительные леса: запятая встаёт точно под запятой', hot: [7, 36] },
   };
 
   const SETS = {
@@ -104,6 +116,7 @@
     br: ['box', 'joker', 'press', 'bolt', 'rain', 'hammer', 'glove', 'rocket'],
     mixmd: ['teeth', 'fan', 'bridge', 'hammer', 'glove'],
     mixed: ['heli', 'hammer', 'maw', 'joker', 'press', 'bolt', 'glove'],
+    decadd: ['crane'],
   };
 
   /* курсоры из тех же иконок */
