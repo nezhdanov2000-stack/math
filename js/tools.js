@@ -74,6 +74,16 @@
       <path d="M7 27 h6 l-1.2 3 h-3.6Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.3"/>
       <path d="M10 30 v2.5 q0 4 -3.5 4" fill="none" stroke="#4a4f5c" stroke-width="2"/>
       <path d="M23 45 L28 40 H36 L41 45Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="1.8"/></svg>`,
+    dozer: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="12" y="22" width="26" height="10" rx="2.5" fill="#f6c13a" stroke="#7a5a0a" stroke-width="1.8"/>
+      <rect x="24" y="11" width="13" height="12" rx="2" fill="#f6c13a" stroke="#7a5a0a" stroke-width="1.8"/>
+      <rect x="26.5" y="13.5" width="8" height="6" rx="1.2" fill="#cfe4f5" stroke="#7a5a0a" stroke-width="1.2"/>
+      <path d="M12 28 L7 31" stroke="#4a4f5c" stroke-width="2.4"/>
+      <path d="M3 19 Q8 28 3 39 L8 39 Q11 29 8 19Z" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="1.6"/>
+      <path d="M37 13 L46 13 L44.5 24 L38.5 24Z" fill="#7b4bc4" stroke="#4a4f5c" stroke-width="1.6"/>
+      <path d="M45 24 q1.2 3 0 5" fill="none" stroke="#7b4bc4" stroke-width="2.2"/>
+      <rect x="10" y="32" width="31" height="9" rx="4.5" fill="#3b3f4a" stroke="#22252c" stroke-width="1.6"/>
+      <circle cx="15" cy="36.5" r="2.2" fill="#6b7080"/><circle cx="36" cy="36.5" r="2.2" fill="#6b7080"/><circle cx="25.5" cy="36.5" r="1.8" fill="#6b7080"/></svg>`,
   };
 
   /* иконки инструментов со своими модулями (модули подключены раньше tools.js) */
@@ -99,6 +109,7 @@
     box: { label: 'Коробка', tip: 'накрывает слагаемые — получаются скобки; нажми на скобки, и коробка откроется', hot: [16, 22] },
     maw: { label: 'Пасть', tip: 'дробь раскрывает рот и выплёвывает целое — из числителя уходит один знаменатель', hot: [16, 26] },
     claw: { label: 'Клешня', tip: 'отщипывает единицу от целого', hot: [16, 29] },
+    dozer: { label: 'Бульдозер', tip: 'красит ряд: умножает верхнее число на одну цветную цифру нижнего', hot: [5, 30] },
     crane: { label: 'Кран', tip: 'переносит числа на строительные леса: запятая встаёт точно под запятой', hot: [7, 36] },
   };
 
@@ -117,6 +128,7 @@
     mixmd: ['teeth', 'fan', 'bridge', 'hammer', 'glove'],
     mixed: ['heli', 'hammer', 'maw', 'joker', 'press', 'bolt', 'glove'],
     decadd: ['crane'],
+    decmul: ['dozer'],
   };
 
   /* курсоры из тех же иконок */

@@ -5,7 +5,7 @@
  *    кран опускает число на леса. Если запятая не над жёлтой меткой (не «запятая под запятой»),
  *    число шатается, запятая краснеет, и кран уносит его обратно. Второе число встаёт на первое.
  *    В вычитании большее число должно быть сверху — иначе кран меняет их местами.
- * 3) Пустые разряды справа заполняются нулями, у целого числа появляется запятая.
+ * 3) Пустые разряды не заполняются: пустое место в столбике считается нулём.
  * 4) Камера опускается: виден только пример в столбик, снизу выезжает планшет с клавишами.
  *    Игрок пишет ответ справа налево, разряд за разрядом; запятую ставит сам (клавиша «,»).
  *    Переносы (сложение) и «занять у соседа» (вычитание) рисуются над столбиком.
@@ -51,6 +51,8 @@
     .dc-num .dc-c { width: var(--cc); transition: color .2s, opacity .2s; }
     .dc-num .dc-c.gh { opacity: 0; }
     .dc-num.free { cursor: grab; }
+    .dc-num.dc-ghost, .dc-op.dc-ghost { z-index: 2; color: #b9b9b2; opacity: .6; pointer-events: none; }
+    .dc-op { transition: color .3s, opacity .3s; }
     .dc-num.carry { z-index: 5; filter: drop-shadow(0 7px 4px rgba(0,0,0,.2)); }
     .dc-num.carry .dc-c { color: #e8a21a; }
     .dc-num.carry .dc-c.gh { opacity: .65; }
@@ -84,6 +86,18 @@
     .dc-res .dc-num { position: static; }
     .dc-res .dc-op { position: static; }
     .dc-res .ans { color: var(--ok); }
+    .dc-site.noscaf .dc-scaf { opacity: 0; transform: translateY(30px) scaleY(.2); transition: transform .45s ease-in, opacity .35s .1s; }
+    .dc-blk { position: absolute; left: 0; top: 0; z-index: 4; box-sizing: border-box; display: grid; place-items: center; border: 3px solid var(--e); border-radius: 6px; background: #efe9dd; color: var(--t); font-weight: 900; font-size: calc(var(--cw) * .9); line-height: 1; box-shadow: inset 0 -4px 0 rgba(0,0,0,.08); }
+    .dc-blk.fd { background: #c9ccd3; }
+    .dc-blk .win { width: 42%; height: 62%; border-radius: 50%; background: #a9d4f0; border: 2px solid #4a4f5c; box-shadow: inset 3px 3px 0 rgba(255,255,255,.55); transition: background .25s, box-shadow .25s; }
+    .dc-blk .win.sq { width: 52%; height: 52%; border-radius: 4px; background: linear-gradient(#a9d4f0 0 46%, #4a4f5c 46% 54%, #a9d4f0 54%); }
+    .dc-blk .win.lit { background: #ffe27a; box-shadow: inset 2px 2px 0 rgba(255,255,255,.7), 0 0 10px 3px rgba(255,210,63,.75); }
+    .dc-chip { position: absolute; z-index: 6; width: 9px; height: 9px; border-radius: 2px; pointer-events: none; }
+    .dc-boom { position: absolute; z-index: 7; pointer-events: none; overflow: visible; }
+    .dc-roof .smk { transform-box: fill-box; transform-origin: center; animation: dcSmoke 1.6s ease-out infinite; opacity: 0; }
+    @keyframes dcSmoke { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 20% { opacity: .9; } 100% { opacity: 0; transform: translate(8px, -26px) scale(1.4); } }
+    .dc-roof { position: absolute; left: 0; top: 0; z-index: 4; overflow: visible; }
+    .dc-dust { position: absolute; z-index: 6; border-radius: 50%; background: #e7dcc6; border: 2px solid #b9a882; pointer-events: none; }
     .dc-gnd { opacity: 0; transform: translateY(40px); transition: transform .5s cubic-bezier(.3,1.3,.5,1), opacity .3s; }
     .dc-site.up .dc-gnd { opacity: 1; transform: none; }
     .dc-site.snap .dc-gnd { transition: none; }
@@ -218,7 +232,8 @@
 
   /* ---------- сцена ---------- */
   let site = null, crane = null, CE = null;      // CE — элементы крана: тележка, трос, крюк
-  const C = { tx: 0, hx: 0, hy: 0, tgt: null, tween: null, carry: null, in: false };
+  const C = { tx: 0, hx: 0, hy: 0, tgt: null, tween: null, carry: null, in: false, ball: false };
+  function setBall(on) { C.ball = on; if (CE) { CE.ball.style.display = on ? '' : 'none'; CE.hook.style.display = on ? 'none' : ''; } }
   const place = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)`; };
   const span = (cls, t) => { const s = document.createElement('span'); s.className = cls; s.textContent = t; return s; };
 
@@ -276,6 +291,7 @@
       <rect x="${tl - 22}" y="${JB + 7}" width="17" height="11" rx="2" fill="#cfe4f5" stroke="#1d4f8f" stroke-width="1.6"/>
       <g class="dc-tro"><rect x="-12" y="${JB - 2}" width="24" height="9" rx="2.5" fill="#4a4f5c"/><circle cx="-7" cy="${JB + 8}" r="2.6" fill="#33384a"/><circle cx="7" cy="${JB + 8}" r="2.6" fill="#33384a"/></g>
       <line class="dc-cable" stroke="#33384a" stroke-width="1.8"/>
+      <g class="dc-ball" style="display:none"><path d="M0 0 v6" stroke="#4a4f5c" stroke-width="3"/><circle cx="0" cy="20" r="15" fill="#5b616e" stroke="#2b2f3a" stroke-width="2.6"/><circle cx="-5" cy="14" r="4.5" fill="#fff" opacity=".35"/></g>
       <g class="dc-hook"><path d="M-9 -19 h18 l-3.5 8 h-11Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.8"/><path d="M0 -11 v5 q0 6 -6 6" fill="none" stroke="#4a4f5c" stroke-width="2.8" stroke-linecap="round"/></g>
     </svg>`;
   }
@@ -290,13 +306,15 @@
     world.style.setProperty('--rh', `${G.rh}px`);
     site.innerHTML = siteSvg();
     crane.innerHTML = craneSvg();
-    CE = { tro: crane.querySelector('.dc-tro'), cable: crane.querySelector('.dc-cable'), hook: crane.querySelector('.dc-hook') };
+    CE = { tro: crane.querySelector('.dc-tro'), cable: crane.querySelector('.dc-cable'), hook: crane.querySelector('.dc-hook'), ball: crane.querySelector('.dc-ball') };
+    CE.ball.style.display = C.ball ? '' : 'none'; CE.hook.style.display = C.ball ? 'none' : '';
     if (!C.carry && !C.tween) { C.hx = G.restX; C.hy = G.restY; C.tx = C.hx; }
     /* пример наверху */
     const tk = st.task, wA = lenOf(tk.A) * G.cw + G.cc, wS = G.cw * 1.1, wB = lenOf(tk.B) * G.cw + G.cc;
     const x0 = Math.max(4, Math.round((G.vw - 40 - (wA + wS + wB)) / 2));
     st.items[0].home = { x: x0, y: G.exprTop };
     st.items[1].home = { x: x0 + wA + wS, y: G.exprTop };
+    st.items.forEach((it) => place(it.gh, it.home.x, it.home.y));
     place(st.opEl, x0 + wA, G.exprTop);
     st.items.forEach((it) => {
       if (it.where === 'expr') { it.x = it.home.x; it.y = it.home.y; place(it.el, it.x, it.y); }
@@ -322,7 +340,7 @@
     if (!G || !CE) return;
     if (C.tween) {
       const w = C.tween, p = Math.min(1, (now - w.t0) / w.ms), e = ease(p);
-      C.hx = w.x0 + (w.x1 - w.x0) * e; C.hy = w.y0 + (w.y1 - w.y0) * e;
+      C.hx = w.x0 + (w.x1 - w.x0) * e; C.hy = w.y0 + (w.y1 - w.y0) * e + (w.arc || 0) * Math.sin(Math.PI * e);   // arc — шар идёт дугой, как маятник
       if (p >= 1) { C.tween = null; w.done(); }
     } else if (C.tgt) {
       C.hx += (C.tgt.x - C.hx) * 0.32; C.hy += (C.tgt.y - C.hy) * 0.32;
@@ -333,7 +351,8 @@
     const sw = Math.max(-14, Math.min(14, (C.hx - C.tx) * 0.35));
     CE.tro.setAttribute('transform', `translate(${C.tx.toFixed(1)} 0)`);
     CE.cable.setAttribute('x1', C.tx.toFixed(1)); CE.cable.setAttribute('y1', G.JB + 8);
-    CE.cable.setAttribute('x2', C.hx.toFixed(1)); CE.cable.setAttribute('y2', (C.hy - 19).toFixed(1));
+    CE.cable.setAttribute('x2', C.hx.toFixed(1)); CE.cable.setAttribute('y2', (C.hy - (C.ball ? 0 : 19)).toFixed(1));
+    if (C.ball) CE.ball.setAttribute('transform', `translate(${C.hx.toFixed(1)} ${C.hy.toFixed(1)}) rotate(${(-sw * 1.2).toFixed(1)})`);
     CE.hook.setAttribute('transform', `translate(${C.hx.toFixed(1)} ${C.hy.toFixed(1)}) rotate(${(-sw * 0.6).toFixed(1)})`);
     if (C.carry) {
       const it = C.carry;
@@ -341,11 +360,11 @@
       it.el.style.transform = `translate(${it.x.toFixed(1)}px, ${it.y.toFixed(1)}px) rotate(${(-sw * 0.5).toFixed(1)}deg)`;
     }
   }
-  function moveHook(x, y, ms) {
+  function moveHook(x, y, ms, arc = 0) {
     return new Promise((done) => {
       if (C.tween) C.tween.done();
       const d = Math.hypot(x - C.hx, y - C.hy);
-      C.tween = { x0: C.hx, y0: C.hy, x1: x, y1: y, t0: performance.now(), ms: T(ms || Math.max(180, Math.min(650, d * 1.6))), done };
+      C.tween = { x0: C.hx, y0: C.hy, x1: x, y1: y, arc, t0: performance.now(), ms: T(ms || Math.max(180, Math.min(650, d * 1.6))), done };
     });
   }
   let craneP = null;
@@ -373,7 +392,7 @@
 
   /* ---------- раунд ---------- */
   function clearWorld() {
-    world.querySelectorAll('.dc-num, .dc-op, .dc-sign, .dc-ac, .dc-mark, .dc-band, .dc-say, .dc-res').forEach((e) => e.remove());
+    world.querySelectorAll('.dc-num, .dc-op, .dc-sign, .dc-ac, .dc-mark, .dc-band, .dc-say, .dc-res, .dc-blk, .dc-roof, .dc-dust, .dc-chip, .dc-boom').forEach((e) => e.remove());
   }
 
   function newRound() {
@@ -384,11 +403,15 @@
     after.classList.remove('show');
     clearWorld();
     C.carry = null; C.tgt = null; if (C.tween) C.tween.done();
-    craneOut();
-    site.classList.add('snap'); site.classList.remove('up'); void site.offsetWidth; site.classList.remove('snap');
+    craneOut(); setBall(false);
+    site.classList.add('snap'); site.classList.remove('up', 'noscaf'); void site.offsetWidth; site.classList.remove('snap');
     if (MG.tools.current() === 'crane') MG.tools.clear();
     const st = { task, items: [], phase: 'place', busy: false, drag: null, cells: [], marks: [], cam: false };
-    st.items = [task.A, task.B].map((op) => { const el = numEl(op); el.classList.add('free'); world.append(el); return { op, el, where: 'expr', slot: -1, x: 0, y: 0 }; });
+    st.items = [task.A, task.B].map((op) => {
+      const gh = numEl(op); gh.classList.add('dc-ghost'); world.append(gh);   // серая тусклая копия: видно, какое число забрали
+      const el = numEl(op); el.classList.add('free'); world.append(el);
+      return { op, el, gh, where: 'expr', slot: -1, x: 0, y: 0 };
+    });
     st.opEl = Object.assign(document.createElement('div'), { className: 'dc-op', textContent: fmtSign(task.sign) });
     world.append(st.opEl);
     state = st;
@@ -520,7 +543,7 @@
     st.signEl = Object.assign(document.createElement('div'), { className: 'dc-sign', textContent: fmtSign(tk.sign) });
     world.append(st.signEl);
     placeSign(st);
-    st.opEl.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: T(300), fill: 'forwards' });
+    st.opEl.classList.add('dc-ghost');                           // знак тоже становится серым, как взятые числа
     await sleep(200);
     if (state !== st) return;
     st.signEl.classList.add('on');
@@ -544,30 +567,7 @@
       await sleep(600);
       if (state !== st) return;
     }
-    /* пустые разряды справа — нули; у целого числа появляется запятая */
-    let zeros = 0;
-    for (const it of [top, bot]) {
-      const gh = it.el.querySelector('.dc-c.gh');
-      if (gh && tk.F) {
-        gh.classList.remove('gh');
-        gh.animate([{ scale: '.2' }, { scale: '1.3' }, { scale: '1' }], { duration: T(380), easing: 'ease-out' });
-        snd('tick');
-        await sleep(300);
-        if (state !== st) return;
-      }
-      for (let j = it.op.frac.length; j < tk.F; j++) {
-        if (!zeros) { hint.set('Пустые разряды справа заполняем нулями'); bubble('Пустые разряды заполняем нулями', 2000); }
-        const z = span('dc-d zero', '0');
-        it.el.append(z);
-        z.animate([{ scale: '.2', opacity: 0 }, { scale: '1.25', opacity: 1 }, { scale: '1' }], { duration: T(380), easing: 'ease-out' });
-        snd('pop');
-        zeros++;
-        await sleep(330);
-        if (state !== st) return;
-      }
-    }
-    if (zeros) await sleep(500);
-    if (state !== st) return;
+    /* нули в пустые разряды не дописываем: пустое место в столбике считается нулём */
     /* шаги счёта — уже по тому, как числа стоят в столбике */
     st.steps = solve(top.op, bot.op, tk.sign).steps;
     st.top = top; st.bot = bot;
@@ -712,6 +712,204 @@
     stage.style.setProperty('--dc-after', `${view.offsetTop + G.exprTop + G.rh + 26}px`);
   }
 
+  /* финал как на главном острове: столбик превращается в два дома (целая и дробная части),
+   * ответ — фундамент, пустые места и нули — окна; окна загораются, потом кран приезжает
+   * с шаром-бабой и одним махом сносит оба дома слева направо */
+  async function houses(st) {
+    const bw = G.cw - 2, bh = G.rh - 2;
+    const blocks = [];
+    const make = (q, y, ch, look) => {
+      const b = document.createElement('div');
+      b.className = `dc-blk${look.fd ? ' fd' : ''}`;
+      b.style.setProperty('--e', look.e); b.style.setProperty('--t', look.t);
+      Object.assign(b.style, { width: `${bw}px`, height: `${bh}px`, left: `${qx(q) - bw / 2}px`, top: `${y + 1}px` });   // left/top, а не transform: иначе scale/rotate крутят блок вокруг угла мира
+      if (ch === null) b.innerHTML = `<i class="win${look.fd ? ' sq' : ''}"></i>`; else b.textContent = ch;
+      world.append(b);
+      blocks.push({ b, cx: qx(q), y, e: look.e });
+      return b;
+    };
+    /* разряды строки столбика: q → { ch, el } (сам элемент цифры — он превратится в блок) */
+    const digitsOf = (it) => {
+      const m = new Map(), sp = [...it.el.children], ci = sp.findIndex((e) => e.classList.contains('dc-c'));
+      sp.forEach((e, i) => { if (i !== ci) m.set(i < ci ? ci - 1 - i : -(i - ci), { ch: e.textContent, el: e }); });
+      return m;
+    };
+    const ans = new Map(st.cells.filter((c) => c.s.kind === 'd').map((c) => [c.s.q, { ch: c.s.exp, el: c.el }]));
+    const top = digitsOf(st.top), bot = digitsOf(st.bot);
+    const qHi = Math.max(...[...ans.keys(), ...top.keys(), ...bot.keys()]), qLo = -st.task.F;
+    /* леса разбирают; знак, запятые и пометки исчезают. Цифры остаются на месте — вокруг них вырастают стены */
+    site.classList.add('noscaf');
+    const fade = [...world.querySelectorAll('.dc-sign, .dc-mark, .dc-band, .dc-say, .dc-ac.cm')];
+    [st.top, st.bot].forEach((it) => fade.push(...it.el.querySelectorAll('.dc-c')));
+    fade.forEach((e) => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(300), fill: 'forwards' }));
+    snd('whoosh', { dur: 0.5 });
+    await sleep(380);
+    if (state !== st) return;
+    /* дома стоят на земле: потом весь столбик опускается так, чтобы фундамент встал на траву */
+    const off = G.ground - 1 - (G.DY + G.rh);
+    const floors = [
+      { y0: G.ansY, y: G.DY + off, map: ans, look: { e: '#6b7080', t: '#2f333d', fd: true } },
+      { y0: rowTop(0), y: rowTop(0) + off, map: bot, look: { e: '#3f9a45', t: '#2f7a35' } },
+      { y0: rowTop(1), y: rowTop(1) + off, map: top, look: { e: '#d0473d', t: '#b8322a' } },
+    ];
+    let d = 0;
+    floors.forEach((f) => {
+      for (let q = qHi; q >= qLo; q--) {
+        const g = f.map.get(q);
+        const b = make(q, f.y0, g ? g.ch : null, f.look);
+        const k = blocks[blocks.length - 1];
+        k.y0 = f.y0; k.y = f.y;
+        if (g) {                                                    // цифра та же — у неё появляются стены
+          const col = getComputedStyle(g.el).color;
+          b.animate([{ backgroundColor: 'rgba(239,233,221,0)', borderColor: 'rgba(0,0,0,0)', boxShadow: 'none', color: col, scale: '1' },
+            { backgroundColor: f.look.fd ? '#c9ccd3' : '#efe9dd', borderColor: f.look.e, color: col, scale: '1.12', offset: 0.6 },
+            { backgroundColor: f.look.fd ? '#c9ccd3' : '#efe9dd', borderColor: f.look.e, color: f.look.t, scale: '1' }],
+          { duration: T(420), delay: T(d), easing: 'ease-out', fill: 'backwards' });
+          g.el.style.visibility = 'hidden';
+        } else {                                                    // пустое место — окно
+          b.animate([{ scale: '.2', opacity: 0 }, { scale: '1.15', opacity: 1, offset: 0.6 }, { scale: '1' }], { duration: T(420), delay: T(d), easing: 'ease-out', fill: 'backwards' });
+        }
+        setTimeout(() => { if (state === st) snd('tick'); }, T(d + 120));
+        d += 60;
+      }
+      d += 100;
+    });
+    await sleep(d + 450);
+    if (state !== st) return;
+    /* весь дом опускается на землю */
+    blocks.forEach((k) => {
+      const dy = k.y - k.y0;
+      k.b.animate([{ translate: '0 0' }, { translate: `0 ${dy + 6}px`, offset: 0.7 }, { translate: `0 ${dy - 4}px`, offset: 0.86 }, { translate: `0 ${dy}px` }],
+        { duration: T(560), easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' });
+    });
+    snd('whoosh', { dur: 0.5 });
+    await sleep(400);
+    if (state !== st) return;
+    snd('smash');
+    shake();
+    puff(qx(qHi) - bw / 2, G.ground - 4, 3); puff(qx(qLo) + bw / 2, G.ground - 4, 3);
+    await sleep(200);
+    if (state !== st) return;
+    blocks.forEach((k) => {                                         // закрепить новое место (дальше блоки разлетаются от него)
+      k.b.style.top = `${k.y + 1}px`;
+      k.b.getAnimations().forEach((a) => a.cancel());
+    });
+    await sleep(250);
+    if (state !== st) return;
+    /* крыши падают сверху; над целым домом — труба с дымом */
+    const roofY = rowTop(1) + off + 1;
+    const roof = (x1, x2, chimney) => {
+      const h = G.cw * 0.85, w = x2 - x1 + 12;
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      r.setAttribute('class', 'dc-roof'); r.setAttribute('width', w); r.setAttribute('height', h + 30);
+      r.setAttribute('viewBox', `0 -28 ${w} ${h + 30}`);
+      const cx = w * 0.72, cy = h * 0.28;
+      r.innerHTML = `${chimney ? `<circle class="smk" cx="${cx + 4}" cy="${cy - 14}" r="5" fill="#d8d8d8"/><circle class="smk" style="animation-delay:-.55s" cx="${cx + 4}" cy="${cy - 14}" r="6" fill="#e6e6e6"/><circle class="smk" style="animation-delay:-1.1s" cx="${cx + 4}" cy="${cy - 14}" r="4" fill="#cfcfcf"/>
+        <rect x="${cx - 4}" y="${cy - 12}" width="12" height="${h * 0.45}" fill="#9b5e2a" stroke="#5a2a1a" stroke-width="2.2"/>` : ''}
+        <path d="M2 ${h + 1} L${w / 2} 2 L${w - 2} ${h + 1}Z" fill="#e0663d" stroke="#5a2a1a" stroke-width="2.8" stroke-linejoin="round"/>
+        <path d="M10 ${h - 4} H${w - 10}" stroke="#b9472a" stroke-width="2" stroke-linecap="round"/>
+        <rect x="${w / 2 - 7}" y="${h * 0.42}" width="14" height="${h * 0.36}" rx="2" fill="#a9d4f0" stroke="#5a2a1a" stroke-width="1.8"/>`;
+      r.style.transform = `translate(${x1 - 6}px, ${roofY - h - 28}px)`;
+      world.append(r);
+      r.animate([{ translate: '0 -170px', opacity: 0 }, { translate: '0 6px', opacity: 1, offset: 0.7 }, { translate: '0 -5px', offset: 0.85 }, { translate: '0 0' }], { duration: T(520), easing: 'cubic-bezier(.5,0,.6,1)' });
+      blocks.push({ b: r, cx: (x1 + x2) / 2, y: roofY - h, e: '#5a2a1a', roof: true });
+      setTimeout(() => { if (state !== st) return; snd('pop'); puff(x1, roofY, 3); puff(x2, roofY, 3); }, T(370));
+    };
+    roof(qx(qHi) - bw / 2, qx(0) + bw / 2, true);
+    await sleep(260);
+    roof(qx(-1) - bw / 2, qx(qLo) + bw / 2, false);
+    await sleep(700);
+    if (state !== st) return;
+    /* в окнах загорается свет */
+    const wins = [...world.querySelectorAll('.dc-blk .win')];
+    wins.forEach((w, i) => setTimeout(() => { if (state === st) { w.classList.add('lit'); snd('tick'); } }, T(i * 110)));
+    await sleep(wins.length * 110 + 600);
+    if (state !== st) return;
+    /* кран с шаром-бабой */
+    const sceneCam = Math.max(0, Math.min(G.camY, G.ground + 20 - G.vh));
+    world.style.transform = `translateY(${-sceneCam}px)`;
+    setBall(true);
+    C.hx = G.restX; C.hy = G.restY; C.tx = C.hx;
+    craneIn();
+    await sleep(900);
+    if (state !== st) return;
+    const left = qx(qHi) - bw / 2, right = qx(qLo) + bw / 2, midY = rowTop(0) + off - 6;
+    await moveHook(Math.max(20, left - G.cw * 2.4), roofY - G.rh * 1.6, 800);    // шар отводят назад
+    if (state !== st) return;
+    await sleep(250);
+    /* удар: шар проходит дугой сквозь оба дома, блоки разлетаются по мере того, как шар до них доходит */
+    let hits = 0, alive = true;
+    const watch = () => {
+      if (!alive || state !== st) return;
+      blocks.forEach((k) => {
+        if (k.hit || C.hx + 15 < k.cx - G.cw * 0.5) return;
+        k.hit = true; blast(k);
+        if (!(hits++)) { snd('smash'); snd('boom'); shake(); boom(C.hx + 14, C.hy + 20); }
+      });
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    setTimeout(() => { if (state === st) { snd('crumble'); shake(); } }, T(380));
+    await moveHook(right + G.cw * 1.8, midY - 30, 950, G.rh * 1.2);
+    if (state !== st) return;
+    blocks.forEach((k) => { if (!k.hit) { k.hit = true; blast(k); } });
+    alive = false;
+    await moveHook(right + G.cw * 1.1, midY - 70, 450);                          // шар качается обратно
+    await moveHook(right + G.cw * 1.5, midY - 50, 450);
+    await sleep(600);
+    if (state !== st) return;
+    craneAway();
+    /* обломки и всё, что осталось от столбика, убираем совсем — чтобы не мигнули при уходе стройки */
+    world.querySelectorAll('.dc-num:not(.dc-ghost), .dc-sign, .dc-ac, .dc-mark, .dc-band, .dc-say, .dc-blk, .dc-roof, .dc-dust, .dc-chip, .dc-boom').forEach((e) => e.remove());
+    await sleep(700);
+    setBall(false);
+
+    function blast(k) {
+      const i = blocks.indexOf(k);
+      const dx = 50 + ((i * 37) % 110), up = 60 + ((i * 53) % 90), rot = (((i * 71) % 300) - 150) * 2;
+      const fall = G.ground - k.y - G.rh * 0.8;
+      k.b.animate([{ translate: '0 0', rotate: '0deg', opacity: 1 },
+        { translate: `${dx * 0.45}px ${-up}px`, rotate: `${rot * 0.4}deg`, opacity: 1, offset: 0.35 },
+        { translate: `${dx}px ${fall}px`, rotate: `${rot}deg`, opacity: 1, offset: 0.75 },
+        { translate: `${dx * 1.12}px ${fall - 14}px`, rotate: `${rot * 1.1}deg`, opacity: 1, offset: 0.86 },
+        { translate: `${dx * 1.2}px ${fall}px`, rotate: `${rot * 1.15}deg`, opacity: 0 }],
+      { duration: T(1300 + (i % 4) * 120), easing: 'cubic-bezier(.25,.6,.6,1)', fill: 'forwards' });
+      for (let j = 0; j < 3; j++) {                                              // мелкие осколки
+        const c = document.createElement('div');
+        c.className = 'dc-chip'; c.style.background = k.e;
+        c.style.left = `${k.cx}px`; c.style.top = `${k.y + G.rh / 2}px`;
+        world.append(c);
+        const a = -Math.PI / 2 + (Math.random() - 0.3) * 1.8, v = 50 + Math.random() * 90;
+        c.animate([{ translate: '0 0', rotate: '0deg', opacity: 1 }, { translate: `${Math.cos(a) * v + 20}px ${Math.sin(a) * v}px`, rotate: '200deg', opacity: 1, offset: 0.45 },
+          { translate: `${Math.cos(a) * v * 1.4 + 30}px ${Math.sin(a) * v + 120}px`, rotate: '480deg', opacity: 0 }], { duration: T(900 + Math.random() * 400), easing: 'ease-out', fill: 'forwards' });
+      }
+      puff(k.cx, k.y + G.rh / 2, 1);
+    }
+  }
+  function puff(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div'), sz = 16 + Math.random() * 18;
+      p.className = 'dc-dust';
+      Object.assign(p.style, { width: `${sz}px`, height: `${sz}px`, left: `${x - sz / 2 + (Math.random() - 0.5) * 20}px`, top: `${y - sz / 2 + (Math.random() - 0.5) * 14}px` });
+      world.append(p);
+      p.animate([{ scale: '.3', opacity: 0 }, { scale: '1', opacity: .95, offset: 0.15 }, { scale: '2.2', opacity: 0, translate: `${(Math.random() - 0.3) * 40}px -20px` }],
+        { duration: T(800 + Math.random() * 400), easing: 'ease-out', fill: 'forwards' }).onfinish = () => p.remove();
+    }
+  }
+  function shake() {
+    world.animate([{ translate: '0 0' }, { translate: '-7px 4px' }, { translate: '6px -3px' }, { translate: '-4px 2px' }, { translate: '2px -1px' }, { translate: '0 0' }], { duration: T(380), easing: 'ease-out' });
+  }
+  function boom(x, y) {
+    const r = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    r.setAttribute('class', 'dc-boom'); r.setAttribute('width', 120); r.setAttribute('height', 120); r.setAttribute('viewBox', '-60 -60 120 120');
+    let pts = '';
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, rr = i % 2 ? 22 : 52; pts += `${(Math.cos(a) * rr).toFixed(1)},${(Math.sin(a) * rr).toFixed(1)} `; }
+    r.innerHTML = `<polygon points="${pts}" fill="#ffd23f" stroke="#e8700a" stroke-width="3" stroke-linejoin="round"/><circle r="16" fill="#fff6c8"/>`;
+    r.style.left = `${x - 60}px`; r.style.top = `${y - 60}px`;
+    world.append(r);
+    r.animate([{ scale: '.2', opacity: 0, rotate: '0deg' }, { scale: '1.1', opacity: 1, rotate: '20deg', offset: 0.25 }, { scale: '1.5', opacity: 0, rotate: '40deg' }], { duration: T(600), easing: 'ease-out', fill: 'forwards' }).onfinish = () => r.remove();
+  }
+
   async function finish(st) {
     st.phase = 'done';
     closeTab();
@@ -725,10 +923,12 @@
     const tk = st.task;
     solved++;
     setStats(lvlOf(), solved);
-    await sleep(1100);
+    await sleep(1000);
     if (state !== st) return;
-    /* стройка уходит: столбик, леса, земля; камера возвращается к примеру */
-    const gone = [...world.querySelectorAll('.dc-num, .dc-sign, .dc-ac, .dc-mark, .dc-band, .dc-say')];
+    await houses(st);
+    if (state !== st) return;
+    /* стройка уходит: остатки, земля; камера возвращается к примеру */
+    const gone = [...world.querySelectorAll('.dc-num:not(.dc-ghost), .dc-sign, .dc-ac, .dc-mark, .dc-band, .dc-say, .dc-blk, .dc-roof, .dc-dust')];
     gone.forEach((e) => e.animate([{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '0 30px' }], { duration: T(450), easing: 'ease-in', fill: 'forwards' }));
     site.classList.remove('up');
     st.cam = false;
@@ -737,7 +937,6 @@
     await sleep(1000);
     if (state !== st) return;
     gone.forEach((e) => e.remove());
-    st.opEl.remove();
     /* пример с ответом — на прежнем месте */
     const res = document.createElement('div');
     res.className = 'dc-res';
@@ -748,9 +947,24 @@
     world.append(res);
     st.resEl = res;
     placeRes(st);
-    res.animate([{ opacity: 0 }, { opacity: 1 }], { duration: T(350), easing: 'ease-out' });
-    ansEl.animate([{ scale: '.3', opacity: 0 }, { scale: '1.15', opacity: 1 }, { scale: '1' }], { duration: T(500), delay: T(200), easing: 'ease-out', fill: 'backwards' });
-    setTimeout(() => { if (state === st) burst(ansEl, '#16a34a', 14); }, T(450));
+    /* серые числа примера не пропадают: они чернеют и сдвигаются на место в строке, а справа появляется «= ответ» */
+    const sc = parseFloat((res.style.transform.match(/scale\(([\d.]+)\)/) || [0, 1])[1]) || 1;
+    const from = [st.items[0].gh, st.opEl, st.items[1].gh];
+    const kids = [...res.children];
+    let d2 = 0;
+    from.forEach((g, i) => {
+      const c = kids[i], gr = g.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      c.style.transformOrigin = '0 0';
+      c.animate([{ transform: `translate(${(gr.left - cr.left) / sc}px, ${(gr.top - cr.top) / sc}px) scale(${(gr.width / cr.width).toFixed(3)})`, color: '#b9b9b2', opacity: 0.6 },
+        { transform: `translate(${(gr.left - cr.left) / sc}px, ${(gr.top - cr.top) / sc}px) scale(${(gr.width / cr.width).toFixed(3)})`, color: '#1d1d1f', opacity: 1, offset: 0.45 },
+        { transform: 'none', color: '#1d1d1f', opacity: 1 }], { duration: T(800), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
+      g.remove();
+    });
+    snd('tick');
+    d2 = 750;
+    kids[3].animate([{ scale: '.3', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(350), delay: T(d2), easing: 'ease-out', fill: 'backwards' });
+    ansEl.animate([{ scale: '.3', opacity: 0 }, { scale: '1.15', opacity: 1 }, { scale: '1' }], { duration: T(500), delay: T(d2 + 200), easing: 'ease-out', fill: 'backwards' });
+    setTimeout(() => { if (state === st) { snd('pop'); burst(ansEl, '#16a34a', 14); } }, T(d2 + 450));
     resultText.textContent = `${str(tk.A)} ${fmtSign(tk.sign)} ${str(tk.B)} = ${tk.ans}`;
     after.classList.add('show');
     if (solved >= TOTAL) setTimeout(offerDone, T(900));

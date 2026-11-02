@@ -45,7 +45,7 @@
    * остальные острова пока заглушки. Отдельного экрана островов у раздела нет: тап по стройке сразу открывает режим. */
   const DEC_LEVELS = [
     { n: 'I', title: 'Сложение и вычитание', modes: [{ id: 'decadd', name: 'Сложение и вычитание', icon: 'crane', x: 50, y: 50 }] },
-    { n: 'II', title: 'Умножение', modes: [] },
+    { n: 'II', title: 'Умножение', modes: [{ id: 'decmul', name: 'Умножение в столбик', icon: 'dozer', x: 50, y: 50 }] },
     { n: 'III', title: 'Деление', modes: [] },
     { n: 'IV', title: 'Уравнения', modes: [] },
   ];
@@ -619,12 +619,14 @@
     .inv-det { display: flex; gap: 14px; align-items: center; min-height: 92px; padding: 12px; margin-bottom: 12px; border-radius: 18px; background: rgba(0, 0, 0, .3); box-shadow: inset 0 0 0 2px rgba(255, 210, 140, .2); }
     .inv-det .ic { width: 64px; height: 64px; flex: none; padding: 8px; box-sizing: border-box; border-radius: 16px; background: radial-gradient(circle at 50% 35%, #6a4a2c, #35200f); box-shadow: inset 0 0 0 2px #ffd27a, 0 0 14px rgba(255, 200, 100, .35); }
     .inv-det .ic svg { width: 100%; height: 100%; display: block; }
+    .inv-det > div { min-width: 0; overflow-wrap: anywhere; }
     .inv-det h3 { margin: 0 0 3px; font-size: 1.1rem; font-weight: 900; color: #ffd86b; }
     .inv-det span { display: block; font-size: .8rem; font-weight: 600; line-height: 1.3; opacity: .92; }
     .inv-det em { display: block; margin-top: 5px; font-style: normal; font-size: .72rem; font-weight: 800; color: #9fd8ff; }
-    .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
-    .slot { position: relative; aspect-ratio: 1; padding: 11px; border: 0; border-radius: 16px; cursor: pointer; background: radial-gradient(circle at 50% 30%, #5c3f25, #2e1b0d 80%); box-shadow: inset 0 0 0 2px #7b5532, inset 0 -5px 0 rgba(0,0,0,.35), 0 3px 0 #150c05; transition: transform .15s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
-    .slot svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+    .inv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(6px, 2vw, 9px); width: 100%; }
+    .hm-sheet .pn { overflow-x: hidden; }
+    .slot { position: relative; aspect-ratio: 1; min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden; padding: clamp(6px, 2.4vw, 11px); border: 0; border-radius: 16px; cursor: pointer; background: radial-gradient(circle at 50% 30%, #5c3f25, #2e1b0d 80%); box-shadow: inset 0 0 0 2px #7b5532, inset 0 -5px 0 rgba(0,0,0,.35), 0 3px 0 #150c05; transition: transform .15s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+    .slot svg { width: 100%; height: 100%; max-width: 100%; max-height: 100%; display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
     .slot b { position: absolute; right: 5px; bottom: 4px; font-size: .62rem; font-weight: 900; color: #ffe9c4; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
     .slot:active { transform: scale(.93); }
     .slot.sel { box-shadow: inset 0 0 0 3px #ffd86b, 0 0 16px rgba(255, 210, 100, .6), 0 3px 0 #150c05; }
@@ -765,7 +767,7 @@
   const GOAL = 10;
   /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
   /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
-  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
+  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;

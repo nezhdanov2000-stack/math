@@ -97,8 +97,9 @@
   }
 
   function divStep(ov) {
-    const nums = ov.querySelectorAll('.pv1 .pvn');
-    const n = +nums[0].textContent, d = +nums[1].textContent;
+    const info = MG.modes.ext.info && MG.modes.ext.info();      // числа берём из режима: ответ теперь пишется на экране, а не на планшете
+    if (!info) { hide(); return; }
+    const n = info.n, d = info.d;
     const key = (dg) => ov.querySelector(`.k[data-d="${dg}"]`);
     const pane = ov.querySelector('.pane:not([hidden])');
     if (!pane) { hide(); return; }
