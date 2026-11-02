@@ -46,8 +46,9 @@
   const DEC_LEVELS = [
     { n: 'I', title: 'Сложение и вычитание', modes: [{ id: 'decadd', name: 'Сложение и вычитание', icon: 'crane', x: 50, y: 50 }] },
     { n: 'II', title: 'Умножение', modes: [{ id: 'decmul', name: 'Умножение в столбик', icon: 'dozer', x: 50, y: 50 }] },
-    { n: 'III', title: 'Деление', modes: [] },
-    { n: 'IV', title: 'Уравнения', modes: [] },
+    { n: 'III', title: 'Умножение на 10, 100, 1000', modes: [{ id: 'dec10', name: 'Умножение на 10, 100, 1000', icon: 'harpoon', x: 50, y: 50 }] },
+    { n: 'IV', title: 'Деление', modes: [] },
+    { n: 'V', title: 'Уравнения', modes: [] },
   ];
   const SECTIONS = [
     { id: 'fr', title: 'Обыкновенные дроби', levels: LEVELS,
@@ -61,9 +62,10 @@
     { id: 'dec', title: 'Десятичные дроби', levels: DEC_LEVELS,
       base: { lvl: 0, art: 'crane', cx: 500, cy: 470, s: 1.3 },
       parts: [
-        { lvl: 3, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
+        { lvl: 2, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
         { lvl: 1, soon: true, cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1 },
-        { lvl: 2, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
+        { lvl: 3, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
+        { lvl: 4, soon: true, cx: 300, cy: 404, s: 0.72, dx: -0.45, dy: -0.9, back: true },
       ] },
   ];
 
@@ -767,7 +769,7 @@
   const GOAL = 10;
   /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
   /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
-  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
+  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul', 'dec10'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;

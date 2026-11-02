@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=256">
+  <link rel="stylesheet" href="css/style.css?v=280">
 </head>
 <body>
   <main id="home" hidden></main>
@@ -295,45 +295,58 @@
     </div>
   </main>
 
+  <!-- Десятичные дроби: умножение на 10, 100, 1000 (гарпунное ружьё) -->
+  <main class="stage" id="mode-dec10" hidden>
+    <p class="hint" id="hp-hint"></p>
+
+    <div class="hp-view" id="hp-view"><div class="hp-world" id="hp-world"></div></div>
+
+    <div class="after" id="hp-after">
+      <div class="result"><span class="check">✓</span><span id="hp-resultText"></span></div>
+      <button id="hp-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
   <!-- Версия ?v= одна на все файлы: при релизе меняй её здесь (замена по файлу) и CACHE в sw.js. -->
-  <script src="js/core.js?v=256"></script>
-  <script src="js/sound.js?v=256"></script>
-  <script src="js/lightning.js?v=256"></script>
-  <script src="js/rocket-fx.js?v=256"></script>
-  <script src="js/ice.js?v=256"></script>
-  <script src="js/press.js?v=256"></script>
-  <script src="js/axe.js?v=256"></script>
-  <script src="js/heli.js?v=256"></script>
-  <script src="js/tread.js?v=256"></script>
-  <script src="js/joker.js?v=256"></script>
-  <script src="js/bridge.js?v=256"></script>
-  <script src="js/fan.js?v=256"></script>
-  <script src="js/rain.js?v=256"></script>
-  <script src="js/teeth.js?v=256"></script>
-  <script src="js/maw.js?v=256"></script>
-  <script src="js/conveyor.js?v=256"></script>
-  <script src="js/cups.js?v=256"></script>
-  <script src="js/tools.js?v=256"></script>
-  <script src="js/fractions.js?v=256"></script>
-  <script src="js/clip.js?v=256"></script>
-  <script src="js/progress.js?v=256"></script>
-  <script src="js/coach.js?v=256"></script>
-  <script src="js/mul.js?v=256"></script>
-  <script src="js/div.js?v=256"></script>
-  <script src="js/wf.js?v=256"></script>
-  <script src="js/mq.js?v=256"></script>
-  <script src="js/pp.js?v=256"></script>
-  <script src="js/sh.js?v=256"></script>
-  <script src="js/br.js?v=256"></script>
-  <script src="js/factor.js?v=256"></script>
-  <script src="js/common.js?v=256"></script>
-  <script src="js/borrow.js?v=256"></script>
-  <script src="js/mixed.js?v=256"></script>
-  <script src="js/ext.js?v=256"></script>
-  <script src="js/dec.js?v=256"></script>
-  <script src="js/decmul.js?v=256"></script>
-  <script src="js/home.js?v=256"></script>
-  <script src="js/app.js?v=256"></script>
+  <script src="js/core.js?v=280"></script>
+  <script src="js/sound.js?v=280"></script>
+  <script src="js/lightning.js?v=280"></script>
+  <script src="js/rocket-fx.js?v=280"></script>
+  <script src="js/ice.js?v=280"></script>
+  <script src="js/press.js?v=280"></script>
+  <script src="js/axe.js?v=280"></script>
+  <script src="js/heli.js?v=280"></script>
+  <script src="js/tread.js?v=280"></script>
+  <script src="js/joker.js?v=280"></script>
+  <script src="js/bridge.js?v=280"></script>
+  <script src="js/fan.js?v=280"></script>
+  <script src="js/rain.js?v=280"></script>
+  <script src="js/teeth.js?v=280"></script>
+  <script src="js/maw.js?v=280"></script>
+  <script src="js/conveyor.js?v=280"></script>
+  <script src="js/cups.js?v=280"></script>
+  <script src="js/tools.js?v=280"></script>
+  <script src="js/fractions.js?v=280"></script>
+  <script src="js/clip.js?v=280"></script>
+  <script src="js/progress.js?v=280"></script>
+  <script src="js/coach.js?v=280"></script>
+  <script src="js/mul.js?v=280"></script>
+  <script src="js/div.js?v=280"></script>
+  <script src="js/wf.js?v=280"></script>
+  <script src="js/mq.js?v=280"></script>
+  <script src="js/pp.js?v=280"></script>
+  <script src="js/sh.js?v=280"></script>
+  <script src="js/br.js?v=280"></script>
+  <script src="js/factor.js?v=280"></script>
+  <script src="js/common.js?v=280"></script>
+  <script src="js/borrow.js?v=280"></script>
+  <script src="js/mixed.js?v=280"></script>
+  <script src="js/ext.js?v=280"></script>
+  <script src="js/dec.js?v=280"></script>
+  <script src="js/decmul.js?v=280"></script>
+  <script src="js/dec10.js?v=280"></script>
+  <script src="js/home.js?v=280"></script>
+  <script src="js/app.js?v=280"></script>
   <script>
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

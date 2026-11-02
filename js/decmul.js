@@ -26,8 +26,10 @@
   const hint = MG.hinter($('#dm-hint'));
 
   /* цвета цифр нижнего множителя: единицы, десятки, сотни */
-  const COL = ['#7b4bc4', '#e0362d', '#2f9bd6'];
-  const CNAME = ['Фиолетовая', 'Красная', 'Синяя'];
+  const COL = ['#7b4bc4', '#f08a1c', '#2f9bd6'];
+  const EDGE = ['#3f2378', '#8f4a06', '#1a5f8c'];
+  const CNAME = ['Фиолетовая', 'Оранжевая', 'Синяя'];
+  const RED = '#e0362d';                                       // краска валиков: цифры после запятой
   const PLACE = ['единицы', 'десятки', 'сотни'];
 
   const css = document.createElement('style');
@@ -68,6 +70,23 @@
     .dm-ex { position: absolute; left: 0; top: 0; z-index: 3; display: flex; align-items: center; height: var(--rh); white-space: nowrap; transform-origin: 0 50%; }
     .dm-ex span { display: block; width: var(--cw); text-align: center; font-weight: 900; font-size: calc(var(--cw) * .95); line-height: var(--rh); color: #1d1d1f; }
     .dm-ex .ans { color: var(--ok); }
+    .dm-ex .ans.raw { color: #1d1d1f; }
+    .dm-ex span.c { width: calc(var(--cw) * .45); }
+    .dm-ex span.c.dim { opacity: .35; }
+    .dm-ex span { position: relative; height: var(--rh); transition: color .4s, opacity .3s; }
+    .dm-ex span.red { color: ${RED} !important; }
+    .dm-ex span.gray { color: #b9b9b2; }
+    .dm-ex span.blob::before { content: ''; position: absolute; left: 14%; right: 14%; top: 26%; bottom: 18%; z-index: -1; border-radius: 52% 48% 57% 43% / 46% 58% 42% 54%; background: ${RED}; opacity: .85; animation: dmBlob .35s cubic-bezier(.3,1.5,.5,1) both; }
+    .dm-ex span.blob.gone::before { transition: opacity .35s, scale .35s; opacity: 0; scale: .3; animation: none; }
+    .dm-ex span.src { cursor: pointer; touch-action: none; }
+    .dm-roller { position: absolute; left: 0; top: 0; z-index: 8; pointer-events: none; transform-origin: 50% 0; }
+    .dm-roller svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .dm-roller .cyl { transition: fill .3s; }
+    .dm-roller.wet .cyl { fill: ${RED}; }
+    .dm-roller.idle { animation: dmBob 1.4s ease-in-out infinite; }
+    body[data-tool="roller"] .stage, body[data-tool="roller"] .stage .src { cursor: var(--cur-roller, pointer) !important; }
+    @keyframes dmBlob { from { scale: .2; opacity: 0; } }
+    @keyframes dmBob { 50% { translate: 0 -3px; } }
     #mode-decmul .after { position: absolute; left: 50%; top: var(--dm-after, 50%); z-index: 7; width: min(92%, 380px); translate: -50% 10px; min-height: 0; }
     #mode-decmul .after.show { translate: -50% 0; }
     body[data-tool="dozer"] .stage, body[data-tool="dozer"] .stage .dm-d.pick { cursor: var(--cur-dozer, pointer) !important; }
@@ -78,12 +97,13 @@
   document.head.append(css);
 
   /* бульдозер смотрит влево: отвал спереди (слева); перед отвалом он катит банку с краской (как на наброске) */
-  const DOZER = (w) => `<svg viewBox="0 0 66 46" width="${w}" height="${w * 46 / 66}" stroke-linejoin="round" stroke-linecap="round">
+  /* цвет бульдозера = цвет его ряда (вместо банки с краской); без цвета — жёлтый */
+  const DOZER = (w, c = '#f6c13a', e = '#7a5a0a') => `<svg viewBox="0 0 66 46" width="${w}" height="${w * 46 / 66}" stroke-linejoin="round" stroke-linecap="round">
     <g class="body">
-      <rect x="15" y="20" width="38" height="14" rx="3" fill="#f6c13a" stroke="#7a5a0a" stroke-width="2"/>
-      <rect x="33" y="5" width="18" height="16" rx="2.5" fill="#f6c13a" stroke="#7a5a0a" stroke-width="2"/>
-      <rect x="36" y="8" width="12" height="8" rx="1.5" fill="#cfe4f5" stroke="#7a5a0a" stroke-width="1.5"/>
-      <path d="M20 22 h10 M20 27 h10" stroke="#c8961e" stroke-width="1.6"/>
+      <rect x="15" y="20" width="38" height="14" rx="3" fill="${c}" stroke="${e}" stroke-width="2"/>
+      <rect x="33" y="5" width="18" height="16" rx="2.5" fill="${c}" stroke="${e}" stroke-width="2"/>
+      <rect x="36" y="8" width="12" height="8" rx="1.5" fill="#cfe4f5" stroke="${e}" stroke-width="1.5"/>
+      <path d="M20 22 h10 M20 27 h10" stroke="#fff" stroke-opacity=".45" stroke-width="1.6"/>
       <path d="M15 27 L8 31" stroke="#4a4f5c" stroke-width="3"/>
       <path d="M3 16 Q9 27 3 41 L10 41 Q15 28 10 16Z" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="2"/>
       <rect x="53" y="22" width="8" height="10" rx="1.5" fill="#9aa1ad" stroke="#4a4f5c" stroke-width="1.6"/>
@@ -99,6 +119,12 @@
     <path d="M7.5 10 Q7 17 9.5 19.5 Q12 17 11.5 10Z" fill="${color}"/>
     <ellipse cx="15" cy="9" rx="11" ry="3.2" fill="${color}" stroke="#4a4f5c" stroke-width="1.8"/>
   </svg>`;
+
+  /* валик: сверху цилиндр, вниз ручка */
+  const ROLLER = `<svg viewBox="0 0 32 40" stroke-linejoin="round" stroke-linecap="round">
+    <rect class="cyl" x="2" y="2" width="24" height="9" rx="4" fill="#fff" stroke="#4a4f5c" stroke-width="2"/>
+    <path d="M26 6.5 H30 V16 H15 V21" fill="none" stroke="#4a4f5c" stroke-width="2"/>
+    <rect x="12" y="20" width="6" height="16" rx="2.5" fill="#c98f4a" stroke="#6b4423" stroke-width="1.6"/></svg>`;
 
   /* ---------- примеры ---------- */
   const TOTAL = 8;
@@ -137,20 +163,38 @@
     return { a, b, A, B, m, rows, sum, total, S, cols };
   }
 
+  /* десятичная дробь из строки «4,9» → считаем как целое 49, f — цифр после запятой */
+  const decOf = (str) => { const [i, f = ''] = str.split(','); return { str, f: f.length, n: +(i + f) }; };
+  function makeDec(sa, sb) {
+    const A = decOf(sa), B = decOf(sb), t = makeTask(A.n, B.n);
+    t.dA = sa; t.dB = sb; t.F = A.f + B.f;
+    const P = t.S.padStart(t.F + 1, '0');
+    t.ans = t.F ? `${P.slice(0, P.length - t.F)},${P.slice(P.length - t.F)}` : t.S;
+    return t;
+  }
+  const dig = (lo = 0) => String(ri(lo, 9));
+  const nz = () => String(ri(1, 9));
+  const m29 = () => String(ri(2, 9));
+  /* стадии: обезьяна — целые; человек — десятичная × целое; профессор — десятичная × десятичная
+   * (второй пример — уже с нулями на месте озёр); робот — только с нулями */
   function pick() {
-    const L = lvlOf();
+    const L = lvlOf(), second = solved % 2 === 1;
     if (solved === 0 && !lastKey) return makeTask(546, 2);
-    if (L === 4 && solved === 6) return makeTask(546, 732);
-    for (let i = 0; i < 200; i++) {
-      let a, b;
-      if (L === 1) { a = numN(ri(2, 3)); b = multN(1); }
-      else if (L === 2) { a = numN(2); b = multN(2); }
-      else if (L === 3) { a = numN(3); b = multN(2); }
-      else { a = numN(3); b = multN(3); }
-      if (`${a}x${b}` === lastKey) continue;
-      return makeTask(a, b);
+    for (let i = 0; i < 400; i++) {
+      let t;
+      if (L === 1) t = makeTask(numN(ri(2, 3)), multN(1));
+      else if (L === 2) t = makeDec(`${nz()},${ri(0, 1) ? dig() + nz() : nz()}`, m29());
+      else if (L === 3 && !second) t = makeDec(`${nz()},${nz()}`, `${m29()},${m29()}`);
+      else if (L === 3) t = makeDec(`0,${nz()}`, `0,${m29()}`);
+      else t = makeDec(`0,${ri(0, 1) ? '0' + nz() : nz() + nz()}`, `0,${ri(0, 2) ? m29() : m29() + m29()}`);
+      const key = `${t.dA || t.a}x${t.dB || t.b}`;
+      if (key === lastKey) continue;
+      if (t.F && /0$/.test(t.S)) continue;                                     // ответ без нулей на конце
+      if (t.F && L >= 3 && (L === 4 || second) && t.S.length >= t.F) continue; // нужны «пустые озёра» — нули
+      if (t.F && L === 3 && !second && t.S.length < t.F) continue;
+      return t;
     }
-    return makeTask(546, 7);
+    return L === 1 ? makeTask(546, 7) : makeDec('0,2', '0,3');
   }
 
   /* ---------- геометрия ---------- */
@@ -164,7 +208,7 @@
     let cw = Math.min(46, (vw - 12) / (tk.cols + 3.9), (vw - 30) / (tk.A.length + tk.B.length + 3.2), (budget - 26) / (R * 1.28 + 0.6));
     cw = Math.max(22, Math.floor(cw));
     const rh = Math.round(cw * 1.28);
-    const exTop = 26;
+    const exTop = Math.round(cw * 1.2) + 14;                  // над примером место для валиков
     const colTop = exTop + rh + 46;
     const right = Math.min(Math.round((vw + tk.cols * cw + cw) / 2), Math.round(vw - 2.6 * cw - 4));   // справа место для банки и бульдозера
     const Y = { a: colTop, b: colTop + rh };
@@ -219,18 +263,19 @@
   function newRound() {
     window.dispatchEvent(new Event('mg:round'));
     const task = pick();
-    lastKey = `${task.a}x${task.b}`;
+    lastKey = `${task.dA || task.a}x${task.dB || task.b}`;
     closeTab();
     after.classList.remove('show');
     clearWorld();
-    if (MG.tools.current() === 'dozer') MG.tools.clear();
+    if (MG.tools.current()) MG.tools.clear();
     const st = { task, phase: 'wait', busy: false, cells: {}, cam: false, rigs: [], marks: [] };
     state = st;
-    /* пример наверху: 546 × 732 */
+    /* пример наверху: 546 × 732 или 4,9 × 9,6 */
     const ex = mk('dm-ex');
-    task.A.split('').forEach((d) => ex.append(Object.assign(document.createElement('span'), { textContent: d })));
+    const num = (str) => str.split('').map((ch) => { const sp = Object.assign(document.createElement('span'), { textContent: ch }); if (ch === ',') sp.className = 'c'; ex.append(sp); return sp; });
+    st.exA = num(task.dA || task.A);
     ex.append(Object.assign(document.createElement('span'), { textContent: '×' }));
-    task.B.split('').forEach((d) => ex.append(Object.assign(document.createElement('span'), { textContent: d })));
+    st.exB = num(task.dB || task.B);
     st.ex = ex;
     world.style.transform = '';
     layout(st);
@@ -249,9 +294,15 @@
     st.times = at(mk('dm-sign', '×'), 'x', 'b');
     st.line1 = mk('dm-line');
     placeAll(st);
-    const exSpans = [...st.ex.children];
+    const digitsR = (arr) => arr.filter((sp) => sp.textContent !== ',').reverse();
+    const srcA = digitsR(st.exA), srcB = digitsR(st.exB);
+    if (task.F) {                                                              // запятые пока не нужны — бледнеют
+      [...st.exA, ...st.exB].filter((sp) => sp.textContent === ',').forEach((sp) => sp.classList.add('dim'));
+      setTimeout(() => { if (state === st) bubble('Умножаем как целые числа — про запятые вспомним в конце', G.Y.b + G.rh + 70, 2800); }, T(500));
+    }
     [...st.aEls, ...st.bEls].forEach((el, i) => {
-      const src = exSpans[i < st.aEls.length ? i : i + 1].getBoundingClientRect(), dst = el.getBoundingClientRect();
+      const isA = i < st.aEls.length, j = isA ? st.aEls.length - 1 - i : st.bEls.length - 1 - (i - st.aEls.length);
+      const src = (isA ? srcA : srcB)[j].getBoundingClientRect(), dst = el.getBoundingClientRect();
       el.animate([{ transform: `translate(${src.left - dst.left}px, ${src.top - dst.top}px)`, color: '#1d1d1f' }, { transform: 'none' }],
         { duration: T(700), delay: T(i * 50), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
     });
@@ -278,19 +329,20 @@
     sayT = setTimeout(() => { b.classList.add('out'); setTimeout(() => b.remove(), 320); }, T(ms));
   }
 
-  /* ---------- бульдозер с банкой ---------- */
-  const CANW = () => G.cw * 0.78, DOZW = () => G.cw * 1.55;
-  /* банка ряда k встаёт в клетку разряда k−1: для единиц — справа от столбика, для десятков — в пустую клетку единиц (это и есть сдвиг) */
+  /* ---------- цветной бульдозер ---------- */
+  const DOZW = () => G.cw * 1.55;
+  /* бульдозер ряда k встаёт отвалом в клетку разряда k−1: для единиц — справа от столбика,
+   * для десятков — в пустую клетку единиц (это и есть сдвиг) */
   function placeRig(rg, where, instant) {
     rg._at = where;
     if (instant) rg.classList.add('snap');
-    const cwid = CANW(), h = Math.max(cwid * 34 / 30, DOZW() * 46 / 66);
+    const h = DOZW() * 46 / 66;
     rg.style.top = `${G.Y[`p${rg._k}`] + G.rh - h + 1}px`;
     rg.style.height = `${h}px`;
-    rg.style.left = `${where === 'in' ? G.vw + 30 : where === 'away' ? G.vw + 60 : qx(rg._k - 1) - cwid / 2}px`;
+    rg.style.left = `${where === 'in' ? G.vw + 30 : where === 'away' ? G.vw + 60 : qx(rg._k - 1) - G.cw * 0.45}px`;
     if (instant) { void rg.offsetWidth; rg.classList.remove('snap'); }
   }
-  const canCenter = (rg) => { const c = rg.querySelector('.can').getBoundingClientRect(), w = world.getBoundingClientRect(); return { x: c.left - w.left + c.width / 2, y: c.top - w.top + c.height * 0.25 }; };
+  const canCenter = (rg) => { const c = rg.getBoundingClientRect(), w = world.getBoundingClientRect(); return { x: c.left - w.left + c.width * 0.14, y: c.top - w.top + c.height * 0.3 }; };   // отвал
 
   async function startRow(st, k) {
     const tk = st.task, row = tk.rows[k], r = `p${k}`;
@@ -309,7 +361,7 @@
     /* бульдозер выкатывает банку краски цвета цифры и останавливается */
     const rg = mk('dm-rig');
     rg._k = k;
-    rg.innerHTML = CAN(COL[k], CANW()) + DOZER(DOZW());
+    rg.innerHTML = DOZER(DOZW(), COL[k], EDGE[k]);
     st.rigs.push(rg);
     placeRig(rg, 'in', true);
     rg.classList.add('go');
@@ -323,7 +375,7 @@
     const cc = canCenter(rg);
     puff(cc.x - G.cw * 0.4, G.Y[r] + G.rh - 6);
     if (k > 0) {
-      bubble(`${CNAME[k]} ${row.d} — это ${PLACE[k]}: банка встаёт в клетку ${k === 1 ? 'единиц' : 'десятков'}, ${k === 1 ? 'её' : 'клетки справа'} не красим`, G.Y[r] + G.rh + 62, 3200);
+      bubble(`${CNAME[k]} ${row.d} — это ${PLACE[k]}: бульдозер встаёт в клетку ${k === 1 ? 'единиц' : 'десятков'}, ${k === 1 ? 'её' : 'клетки справа'} не красим`, G.Y[r] + G.rh + 62, 3200);
       await sleep(500);
       if (state !== st) return;
     }
@@ -504,11 +556,10 @@
     if (state !== st) return;
     ans.forEach((c, i) => setTimeout(() => { c.style.color = 'var(--ok)'; c.animate([{ scale: '1' }, { scale: '1.25' }, { scale: '1' }], { duration: T(320) }); }, T(i * 60)));
     burst(ans[ans.length - 1], '#16a34a', 14);
-    solved++;
-    setStats(lvlOf(), solved);
+    if (!tk.F) { solved++; setStats(lvlOf(), solved); }
     await sleep(1000);
     if (state !== st) return;
-    /* бульдозеры с банками уезжают */
+    /* цветные бульдозеры уезжают */
     st.rigs.forEach((rg, i) => setTimeout(() => { rg.classList.add('go'); rg.style.transitionDuration = '.9s'; placeRig(rg, 'away'); }, T(i * 150)));
     if (st.rigs.length) snd('whoosh', { dur: 0.8 });
     await sleep(1000 + st.rigs.length * 150);
@@ -572,8 +623,17 @@
     if (state !== st) return;
     const eq = Object.assign(document.createElement('span'), { textContent: '=' });
     st.ex.append(eq);
-    const ansSpans = tk.S.split('').map((d) => { const s = Object.assign(document.createElement('span'), { className: 'ans', textContent: d }); st.ex.append(s); return s; });
+    const ansSpans = tk.S.split('').map((d) => { const s = Object.assign(document.createElement('span'), { className: tk.F ? 'ans raw' : 'ans', textContent: d }); st.ex.append(s); return s; });
+    st.eq = eq; st.exAns = ansSpans;
     placeEx(st);
+    if (tk.F) {                                                                // запятую ставят валики
+      eq.animate([{ scale: '.3', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(350), easing: 'ease-out', fill: 'backwards' });
+      ansSpans.forEach((sp, i) => sp.animate([{ scale: '.3', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(400), delay: T(200 + i * 60), easing: 'ease-out', fill: 'backwards' }));
+      await sleep(600 + ansSpans.length * 60);
+      if (state !== st) return;
+      startRoll(st);
+      return;
+    }
     eq.animate([{ scale: '.3', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(350), easing: 'ease-out', fill: 'backwards' });
     ansSpans.forEach((s, i) => s.animate([{ scale: '.3', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(400), delay: T(200 + i * 60), easing: 'ease-out', fill: 'backwards' }));
     setTimeout(() => { if (state === st) { snd('pop'); burst(ansSpans[ansSpans.length - 1], '#16a34a', 14); } }, T(300 + ansSpans.length * 60));
@@ -589,6 +649,171 @@
   }
   function shake() {
     world.animate([{ translate: '0 0' }, { translate: '-7px 4px' }, { translate: '6px -3px' }, { translate: '-4px 2px' }, { translate: '0 0' }], { duration: T(360), easing: 'ease-out' });
+  }
+
+  /* ---------- валики: запятая в ответе ----------
+   * Выбираешь валик — цифры после запятой у множителей краснеют, над каждой висит белый валик.
+   * Тап по красной цифре: валик прокатывается по ней и набирает краску, едет под ответ к следующей
+   * клетке справа налево и красит её снизу вверх. Цифр не хватает — красит пустое место (красное пятно).
+   * Когда покрашено столько клеток, сколько красных цифр, слева от краски встаёт запятая,
+   * пятна становятся нулями, а если до запятой ничего нет — появляется 0 (сначала серый, потом чернеет). */
+  const wRect = (el) => { const r = el.getBoundingClientRect(), w = world.getBoundingClientRect(); return { x: r.left - w.left, y: r.top - w.top, w: r.width, h: r.height }; };
+  const exScale = (st) => parseFloat((st.ex.style.transform.match(/scale\(([\d.]+)\)/) || [0, 1])[1]) || 1;
+  function startRoll(st) {
+    st.phase = 'roll'; st.busy = false; st.painted = 0; st.slots = [];
+    hint.set('Выбери валик — он поставит запятую');
+    bubble('Где же запятая? Выбери валик', G.exTop + G.rh * 2.6, 2600);
+    if (MG.tools.current() === 'roller') showRollers(st);
+  }
+  const rollerSize = (st) => { const w = G.cw * 0.78 * exScale(st); return { w, h: w * 40 / 32 }; };
+  function putRoller(rl, x, y) { rl.style.transform = `translate(${x}px, ${y}px)`; rl._x = x; rl._y = y; }
+  function showRollers(st) {
+    if (st.rollOn) return;
+    st.rollOn = true;
+    const frac = (arr) => { const i = arr.findIndex((sp) => sp.textContent === ','); return i < 0 ? [] : arr.slice(i + 1); };
+    st.src = [...frac(st.exA), ...frac(st.exB)];
+    const { w, h } = rollerSize(st);
+    st.src.forEach((sp, i) => {
+      const rl = mk('dm-roller idle'); rl.innerHTML = ROLLER;
+      Object.assign(rl.style, { width: `${w}px`, height: `${h}px` });
+      const r = wRect(sp);
+      putRoller(rl, r.x + r.w / 2 - w * 0.44, r.y - h * 0.95);
+      sp._roller = rl;
+      setTimeout(() => {
+        if (state !== st) return;
+        sp.classList.add('red', 'src');
+        rl.animate([{ opacity: 0, translate: '0 -14px' }, { opacity: 1, translate: '0 0' }], { duration: T(350), easing: 'ease-out', fill: 'backwards' });
+        snd('pop');
+      }, T(i * 140));
+    });
+    hint.set('Нажимай на красные цифры — валик перенесёт краску в ответ');
+    bubble(`Нажми на красную цифру — ${st.task.F === 1 ? 'она одна' : `их ${st.task.F}`}`, G.exTop + G.rh * 2.6, 2600);
+  }
+
+  world.addEventListener('pointerdown', (e) => {
+    const st = state;
+    const sp = e.target.closest('.dm-ex span');
+    if (st && st.phase === 'roll' && st.ready && !st.busy) { e.preventDefault(); paintAll(st); return; }   // финальный тап — в любом месте
+    if (!st || st.phase !== 'roll' || !sp) return;
+    if (!st.rollOn) {                                                        // валиков ещё нет — нужен инструмент
+      if (st.exA.includes(sp) || st.exB.includes(sp)) MG.tools.need('roller');
+      return;
+    }
+    if (st.ready && !st.busy) { e.preventDefault(); paintAll(st); return; }   // финальный тап — где угодно
+    if (!sp.classList.contains('src') || st.busy) return;
+    e.preventDefault();
+    roll(st, sp);
+  });
+
+  async function roll(st, sp) {
+    st.busy = true;
+    sp.classList.remove('src');
+    const rl = sp._roller, { w, h } = rollerSize(st), r = wRect(sp);
+    rl.classList.remove('idle');
+    /* 1) прокатывается по красной цифре сверху вниз и набирает краску */
+    snd('tick');
+    const x0 = rl._x, yTop = rl._y, yBot = r.y + r.h * 0.9;
+    await rl.animate([{ transform: `translate(${x0}px, ${yTop}px)` }, { transform: `translate(${x0}px, ${yBot}px)` }], { duration: T(450), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
+    if (state !== st) return;
+    putRoller(rl, x0, yBot); rl.getAnimations().forEach((a) => a.cancel());
+    rl.classList.add('wet');
+    sp.animate([{ scale: '1' }, { scale: '1.15 .9' }, { scale: '1' }], { duration: T(300) });
+    /* 2) клетка ответа: следующая справа налево; если цифр не хватает — пустое место слева */
+    const n = st.painted;
+    let target;
+    if (n < st.exAns.length) target = st.exAns[st.exAns.length - 1 - n];
+    else {
+      target = Object.assign(document.createElement('span'), { className: 'ans raw empty', textContent: '' });
+      st.exAns[0].before(target);
+      st.exAns.unshift(target);
+      placeEx(st);
+      st.rollers = st.rollers || [];
+      st.rollers.forEach((o) => { const tr = wRect(o._cell); putRoller(o, tr.x + tr.w / 2 - w * 0.44, tr.y + tr.h * 0.9); });   // строка сдвинулась — ждущие валики следом
+    }
+    st.painted += 1;
+    st.slots.push(target);
+    const tr = wRect(target), x1 = tr.x + tr.w / 2 - w * 0.44, yUnder = tr.y + tr.h * 0.9, yOver = tr.y - h * 0.95;
+    /* 3) едет под эту клетку */
+    snd('whoosh', { dur: 0.4 });
+    await rl.animate([{ transform: `translate(${x0}px, ${yBot}px)` }, { transform: `translate(${(x0 + x1) / 2}px, ${Math.max(yBot, yUnder) + h * 0.6}px)`, offset: 0.5 }, { transform: `translate(${x1}px, ${yUnder}px)` }],
+      { duration: T(650), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
+    if (state !== st) return;
+    /* 4) встаёт под клетку и ждёт остальных — красят все вместе */
+    putRoller(rl, x1, yUnder); rl.getAnimations().forEach((a) => a.cancel());
+    rl._cell = target;
+    (st.rollers = st.rollers || []).push(rl);
+    snd('tick');
+    st.busy = false;
+    if (st.painted < st.task.F) return;
+    /* все собрались — ждут финального тапа */
+    st.ready = true;
+    st.rollers.forEach((o) => o.classList.add('idle'));
+    hint.set('Нажми — валики покрасят ответ');
+    bubble('Все валики на месте — нажми, и они покрасят ответ', G.exTop + G.rh * 2.6, 2600);
+  }
+
+  async function paintAll(st) {
+    st.ready = false; st.busy = true;
+    const { h } = rollerSize(st);
+    st.rollers.forEach((o) => o.classList.remove('idle'));
+    world.querySelectorAll('.dc-say').forEach((e) => e.remove());
+    /* все валики разом прокатываются снизу вверх и красят ответ */
+    snd('whoosh', { dur: 0.5 });
+    await Promise.all(st.rollers.map((o) => {
+      const tr2 = wRect(o._cell), yo = tr2.y - h * 0.95;
+      return o.animate([{ transform: `translate(${o._x}px, ${o._y}px)` }, { transform: `translate(${o._x}px, ${yo}px)` }], { duration: T(550), easing: 'ease-in-out', fill: 'forwards' })
+        .finished.catch(() => {}).then(() => { putRoller(o, o._x, yo); o.getAnimations().forEach((a) => a.cancel()); });
+    }));
+    if (state !== st) return;
+    st.rollers.forEach((o) => {
+      const c = o._cell;
+      if (c.classList.contains('empty')) c.classList.add('blob'); else c.classList.add('red');
+      c.animate([{ scale: '1' }, { scale: '1.2' }, { scale: '1' }], { duration: T(300) });
+    });
+    snd('pop');
+    await sleep(600);
+    if (state !== st) return;
+    rollDone(st);
+  }
+
+  async function rollDone(st) {
+    st.phase = 'done'; st.busy = true;
+    const tk = st.task;
+    /* слева от краски встаёт запятая */
+    const left = st.slots[st.slots.length - 1], cut = st.exAns.indexOf(left);
+    const comma = Object.assign(document.createElement('span'), { className: 'ans raw c', textContent: ',' });
+    left.before(comma);
+    let zero = null;
+    if (cut === 0) { zero = Object.assign(document.createElement('span'), { className: 'ans raw gray', textContent: '0' }); comma.before(zero); }
+    placeEx(st);
+    (st.rollers || []).forEach((rl) => rl.animate([{ opacity: 1 }, { opacity: 0, translate: '0 -12px' }], { duration: T(350), fill: 'forwards' }));
+    comma.animate([{ scale: '0' }, { scale: '1.6' }, { scale: '1' }], { duration: T(450), easing: 'ease-out', fill: 'backwards' });
+    snd('pop');
+    if (zero) zero.animate([{ scale: '.2', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(400), delay: T(200), easing: 'ease-out', fill: 'backwards' });
+    await sleep(600);
+    if (state !== st) return;
+    /* красные пятна становятся нулями */
+    const blobs = st.exAns.filter((sp) => sp.classList.contains('blob'));
+    blobs.forEach((sp, i) => setTimeout(() => {
+      if (state !== st) return;
+      sp.classList.add('gone', 'red'); sp.textContent = '0';
+      sp.animate([{ scale: '.3' }, { scale: '1.3' }, { scale: '1' }], { duration: T(380) });
+      snd('pop');
+    }, T(i * 280)));
+    if (blobs.length) bubble('На пустых местах — нули', G.exTop + G.rh * 2.6, 1500);
+    await sleep(blobs.length * 280 + (blobs.length ? 1300 : 200));
+    if (state !== st) return;
+    if (zero) { zero.classList.remove('gray'); zero.animate([{ scale: '1' }, { scale: '1.25' }, { scale: '1' }], { duration: T(350) }); snd('tick'); }   // 0 целых чернеет
+    world.querySelectorAll('.dm-roller').forEach((e) => e.remove());
+    st.src.forEach((sp) => sp.classList.remove('red'));                       // у множителей краска смыта — красные только цифры после запятой в ответе
+    st.ex.querySelectorAll('.c.dim').forEach((sp) => sp.classList.remove('dim'));
+    burst(comma, '#16a34a', 14);
+    solved++;
+    setStats(lvlOf(), solved);
+    resultText.textContent = `${tk.dA} × ${tk.dB} = ${tk.ans}`;
+    after.classList.add('show');
+    if (solved >= TOTAL) setTimeout(offerDone, T(900));
+    setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
 
   function offerDone() {
@@ -611,8 +836,15 @@
     newRound();
   });
   window.addEventListener('toolchange', (e) => {
-    if (MG.active !== MG.modes.decmul || e.detail.tool !== 'dozer') return;
+    if (MG.active !== MG.modes.decmul) return;
     const st = state;
+    if (e.detail.tool === 'roller') {
+      if (st && st.phase === 'roll') showRollers(st);
+      else if (st && st.phase !== 'done' && st.phase !== 'wait') bubble(st.task.F ? 'Валик понадобится в конце — когда будет ответ' : 'В этом примере нет запятых — валик не нужен', (st.cam ? G.camY : 0) + G.exTop + G.rh * 2.6, 2200);
+      else if (st && st.phase === 'wait') bubble(st.task.F ? 'Валик понадобится в конце — сначала бульдозер' : 'В этом примере нет запятых — валик не нужен', G.exTop + G.rh * 2.6, 2200);
+      return;
+    }
+    if (e.detail.tool !== 'dozer') return;
     if (st && st.phase === 'wait') showColumn(st);
   });
   let rt = 0;
@@ -625,7 +857,8 @@
     total: TOTAL,
     levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
     start() {
-      if (MG.tools.current() === 'dozer') MG.tools.clear();
+      if (MG.tools.current()) MG.tools.clear();
+      if (state && state.phase === 'roll') { state = null; }                // валики начинаем заново с нового примера
       if (!state) newRound();
       else { setStats(lvlOf(), solved); layout(state); if ((state.phase === 'row' || state.phase === 'sum') && !state.tab) openTab(state, state.phase === 'sum' ? 'Сложи ряды:' : `${state.task.a} × ${state.row.d} =`); if (state.tab) paintCur(state); sayPick(); }
     },

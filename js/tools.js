@@ -74,6 +74,27 @@
       <path d="M7 27 h6 l-1.2 3 h-3.6Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.3"/>
       <path d="M10 30 v2.5 q0 4 -3.5 4" fill="none" stroke="#4a4f5c" stroke-width="2"/>
       <path d="M23 45 L28 40 H36 L41 45Z" fill="#2f6fc4" stroke="#1d4f8f" stroke-width="1.8"/></svg>`,
+    harpoon: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round"><g transform="translate(24 23) rotate(25) scale(0.58) translate(-41 -27)">
+      <g fill="none" stroke="#1d1d1f" stroke-width="3.6"><path d="M1.5 21 H15"/><path d="M1.5 21 L8 26.5"/></g>
+      <rect x="16" y="16.5" width="46" height="9" rx="3" fill="#7b8494" stroke="#2b2f3a" stroke-width="2.8"/>
+      <path d="M20 19 H56" stroke="#d3d9e3" stroke-width="2.4"/>
+      <path d="M29 16.5 V25.5 M53 16.5 V25.5" stroke="#4a4f5c" stroke-width="3"/>
+      <rect x="12" y="15" width="6" height="12" rx="2" fill="#5b616e" stroke="#2b2f3a" stroke-width="2.8"/>
+      <path d="M21 16.5 V12.5 H25 V16.5" fill="#5b616e" stroke="#2b2f3a" stroke-width="2.2"/>
+      <path d="M57 15.5 H75 Q81 15.5 81 21.5 V24.5 Q81 26.5 79 26.5 H72 L69.7 40 Q69.2 42 67.2 42 H61.7 Q59.7 42 60.1 40 L62.7 26.5 H57Z" fill="#ff8a1f" stroke="#a84a00" stroke-width="2.8"/>
+      <path d="M64 18.8 H77" stroke="#ffd2a1" stroke-width="2.8" opacity=".85"/>
+      <path d="M63.6 27.6 L61.3 39.8 H64.4 L66.7 27.6Z" fill="#e8690a"/>
+      <path d="M69.6 28 L67.9 37.5" stroke="#ffd2a1" stroke-width="2.24" opacity=".75"/>
+      <path d="M62.6 27.8 Q62.1 30.2 60 30.7" fill="none" stroke="#1d1d1f" stroke-width="2.52"/>
+      <circle cx="42" cy="25.5" r="7.5" fill="#d8dbe2" stroke="#2b2f3a" stroke-width="2.8"/>
+      <path d="M42 19 V32 M35.5 25.5 H48.5" stroke="#6b7080" stroke-width="1.6"/>
+      <circle cx="42" cy="25.5" r="2.4" fill="#2b2f3a"/>
+      <path d="M42 25.5 L47 20.5" stroke="#2b2f3a" stroke-width="2.4"/><circle cx="47.5" cy="20" r="2.4" fill="#e0362d" stroke="#2b2f3a" stroke-width="1.3"/></g></svg>`,
+    roller: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="5" y="6" width="30" height="12" rx="5" fill="#e0362d" stroke="#4a4f5c" stroke-width="2.2"/>
+      <path d="M8 10 h20" stroke="#fff" stroke-opacity=".55" stroke-width="2"/>
+      <path d="M35 12 H41 V25 H23 V30" fill="none" stroke="#4a4f5c" stroke-width="2.4"/>
+      <rect x="19.5" y="29" width="7" height="16" rx="3" fill="#c98f4a" stroke="#6b4423" stroke-width="1.8"/></svg>`,
     dozer: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
       <rect x="12" y="22" width="26" height="10" rx="2.5" fill="#f6c13a" stroke="#7a5a0a" stroke-width="1.8"/>
       <rect x="24" y="11" width="13" height="12" rx="2" fill="#f6c13a" stroke="#7a5a0a" stroke-width="1.8"/>
@@ -109,6 +130,8 @@
     box: { label: 'Коробка', tip: 'накрывает слагаемые — получаются скобки; нажми на скобки, и коробка откроется', hot: [16, 22] },
     maw: { label: 'Пасть', tip: 'дробь раскрывает рот и выплёвывает целое — из числителя уходит один знаменатель', hot: [16, 26] },
     claw: { label: 'Клешня', tip: 'отщипывает единицу от целого', hot: [16, 29] },
+    harpoon: { label: 'Гарпун', tip: 'заряди единицу (гарпун) и нули (обороты катушки), выстрели в запятую и подтяни её вправо на столько цифр, сколько нулей', hot: [4, 10] },
+    roller: { label: 'Валик', tip: 'переносит краску с цифр после запятой у множителей на ответ — запятая встаёт слева от покрашенных цифр', hot: [20, 12] },
     dozer: { label: 'Бульдозер', tip: 'красит ряд: умножает верхнее число на одну цветную цифру нижнего', hot: [5, 30] },
     crane: { label: 'Кран', tip: 'переносит числа на строительные леса: запятая встаёт точно под запятой', hot: [7, 36] },
   };
@@ -128,7 +151,8 @@
     mixmd: ['teeth', 'fan', 'bridge', 'hammer', 'glove'],
     mixed: ['heli', 'hammer', 'maw', 'joker', 'press', 'bolt', 'glove'],
     decadd: ['crane'],
-    decmul: ['dozer'],
+    decmul: ['dozer', 'roller'],
+    dec10: ['harpoon'],
   };
 
   /* курсоры из тех же иконок */

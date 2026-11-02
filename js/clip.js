@@ -243,6 +243,11 @@
     .clip-w { position: fixed; left: 50%; translate: -50% 0; width: min(94vw, 360px); z-index: 61; box-sizing: border-box; visibility: hidden; --pen: #161616; --hand: 'Caveat', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive; font-family: var(--hand); color: #161616; display: flex; flex-direction: column; justify-content: center;  }
     .clip-w .sk { filter: url(#clPencil); }
     .clip-ov.dock.dv .clip { padding-top: 40px; }
+    .clip-ov.dock .clip { padding-bottom: 0; bottom: -1px; }
+    .clip-ov.dock .clip .paper { margin-bottom: -30px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); border-radius: 8px 8px 0 0; }
+    .clip-ov.dock .k, .clip-ov.dock.dv .k { height: clamp(44px, 7.2vh, 58px); }
+    .clip-w .cw-body { justify-content: flex-start; overflow: visible; }
+    .clip-w .cw-body .sk { margin: auto 0; }
     @keyframes clDockIn { from { translate: -50% 105%; } }
     @keyframes clDockOut { to { translate: -50% 105%; } }
     @media (max-height: 700px) { .clip-ov.dock .k, .clip-ov.dock.dv .k { height: 46px; font-size: 2.3rem; } }
@@ -416,11 +421,21 @@
         const sc = (parseFloat(getComputedStyle(fromEl).fontSize) / parseFloat(getComputedStyle(head).fontSize)) || 1;
         return { head, t: `translate(${(sr.left + sr.width / 2) - (tr.left + tr.width / 2)}px, ${(sr.top + sr.height / 2) - (tr.top + tr.height / 2)}px) scale(${sc})` };
       };
+      /* вычисления не должны залезать под планшет: если не помещаются — слегка уменьшаются */
+      const fit = () => {
+        const body = work.querySelector('.cw-body'), head = work.querySelector('.cw-head');
+        body.style.scale = '1';
+        const avail = work.clientHeight - head.offsetHeight - 30, nat = body.scrollHeight;
+        body.style.transformOrigin = '50% 0';
+        body.style.scale = String(Math.min(1, Math.max(0.5, avail / Math.max(1, nat))));
+      };
+      if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(work.querySelector('.cw-body .sk'));
       let flown = false;
       const cam = () => {
         const tabTop = innerHeight - board.offsetHeight;
         const top = Math.max(150, innerHeight * 0.17);
-        work.style.top = `${top}px`; work.style.height = 'auto'; work.style.minHeight = `${Math.min(300, Math.max(200, tabTop - top - 14))}px`;
+        work.style.top = `${top}px`; work.style.height = `${Math.max(160, tabTop - 16 - top)}px`;
+        fit();
         if (flown) return;
         flown = true;
         const v = flipVec();
@@ -531,11 +546,40 @@
               const dn = document.createElement('span');
               dn.className = 'ldg drop'; dn.textContent = digs[s.end + 1]; dn.style.gridColumn = `${s.end + 2}`;
               c.el.parentElement.append(dn);
+              dropNext = { dn, idx: s.end + 1 };
             }
           }
           ci += 1;
           if (ci >= cells.length) { finish([quotient, remainder]); return; }
           mount(cells[ci]); refreshRows(cells[ci].i); paintCell();
+          if (dropNext) { flyDigit(dropNext.dn, dropNext.idx); dropNext = null; }
+        }
+        /* следующая цифра «спадает» серой копией с делимого и на месте синеет */
+        let dropNext = null;
+        function flyDigit(dn, idx) {
+          const src = ld.querySelectorAll('.lt .ldg, .ad-drow .ldg')[idx];
+          if (!src) return;
+          dn.style.animation = 'none';
+          const T0 = performance.now(), DUR = 700;
+          const mix = (a, b, t) => a.map((v, k) => Math.round(v + (b[k] - v) * t));
+          const C0 = [22, 22, 22], C1 = [150, 150, 155], C2 = [61, 99, 217];
+          const ease = (t) => t * t * (3 - 2 * t);
+          const step = (now) => {
+            if (!dn.isConnected) return;
+            const t = Math.min(1, (now - T0) / DUR);
+            dn.style.transform = 'none';
+            const a = src.getBoundingClientRect(), b = dn.getBoundingClientRect();
+            const k = b.width && dn.offsetWidth ? b.width / dn.offsetWidth : 1;
+            const q = 1 - ease(t);                          // доля пути, которую ещё осталось пролететь
+            const dx = (a.left + a.width / 2 - (b.left + b.width / 2)) / k, dy = (a.top + a.height / 2 - (b.top + b.height / 2)) / k;
+            const peel = Math.sin(Math.min(1, t * 1.6) * Math.PI) * 10;       // цифра «отклеивается» и подхватывается
+            dn.style.transform = `translate(${dx * q}px, ${dy * q}px) rotate(${(-peel * q).toFixed(1)}deg)`;
+            dn.style.color = `rgb(${mix(t < 0.45 ? C0 : C1, t < 0.45 ? C1 : C2, t < 0.45 ? t / 0.45 : (t - 0.45) / 0.55).join(',')})`;
+            if (t < 1) requestAnimationFrame(step); else { dn.style.transform = ''; dn.style.color = ''; }
+          };
+          dn.style.transform = 'none';
+          step(T0);
+          requestAnimationFrame(step);
         }
         function submit() {
           const c = cells[ci]; if (!c || c.ok) return;
