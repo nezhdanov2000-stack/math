@@ -10,6 +10,8 @@
  *     setLift(rem, ms)       — росток растёт: целое и черта поднимаются на своё место
  *     endLift()              — подъём закончен
  *     onReveal()             — росток превращается в цифру 1
+ *     spread                 — (необяз.) ширина полосы дождя в px: облако растягивается над всем числом (decfr.js)
+ *     onRain()               — (необяз.) капли пошли — режим может запустить свою анимацию параллельно
  *   }
  */
 (() => {
@@ -48,7 +50,7 @@
     const { fs } = o;
     const fx = mk('rain-fx', {});
     document.body.append(fx);
-    const cw = fs * 1.25;
+    const cw = Math.max(fs * 1.25, (o.spread || 0) * 1.15);
     const cloud = mk('cloud', { width: `${cw}px`, left: `${o.cx - cw / 2}px`, top: `${o.cloudY - cw * 0.31}px` });
     cloud.innerHTML = cloudSvg(`rc${Math.random().toString(36).slice(2, 7)}`);
     fx.append(cloud);
@@ -64,7 +66,7 @@
     const n = 16;
     for (let i = 0; i < n; i++) {
       const h = fs * (0.2 + Math.random() * 0.12);
-      const x = (o.rainX ?? o.cx) + (Math.random() - 0.5) * cw * 0.5;
+      const x = (o.rainX ?? o.cx) + (Math.random() - 0.5) * (o.spread ? o.spread * 0.95 : cw * 0.5);
       const d = mk('drop', { height: `${h}px`, left: `${x}px`, top: `${top}px` });
       fx.append(d);
       const dist = Math.max(10, o.endY - top - h);
@@ -75,6 +77,7 @@
         { transform: `translateY(${dist}px)`, opacity: 0 },
       ], { duration: T(750 + Math.random() * 250), delay: T(Math.random() * 700), iterations: Infinity, easing: 'linear' }));
     }
+    if (o.onRain) o.onRain();
     await sleep(1300);
 
     // целое садится на черту у земли; в знаменателе появляется земля
@@ -82,7 +85,8 @@
     const sh = fs * 0.26, sw = fs * 0.7;
     o.onStart();
     const wrapTop = dg.top - fs * 2;
-    const wrap = mk('clip', { left: `${dg.left - fs * 0.3}px`, width: `${dg.width + fs * 0.6}px`, top: `${wrapTop}px`, height: `${o.soilTop - wrapTop}px`, overflow: 'hidden' });
+    const wrap = mk('rain-clip', {                  // не «clip»: этот класс занят планшетом clip.js
+      left: `${dg.left - fs * 0.3}px`, width: `${dg.width + fs * 0.6}px`, top: `${wrapTop}px`, height: `${o.soilTop - wrapTop}px`, overflow: 'hidden' });
     const sprout = mk('sprout', { position: 'absolute', left: `${fs * 0.3}px`, top: `${fs * 2}px`, width: `${dg.width}px`, height: `${dg.height}px`,
       font: cs.font, lineHeight: cs.lineHeight, color: '#2f9e44', display: 'flex', alignItems: 'center', justifyContent: 'center',
       translate: `0 ${o.lift}px` });

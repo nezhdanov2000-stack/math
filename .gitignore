@@ -12,3 +12,6 @@ desktop.ini
 # Temporary & AI export archives
 Claude outputs/
 *.zip
+
+# Chat catalog for master chat
+review.txt

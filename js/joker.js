@@ -8,6 +8,18 @@
  *       frac    — элемент дроби, на которую кладут карту
  *       targets — спрятанные (opacity: 0) элементы, где появятся числа: верхние получат число с верха карты, нижние — снизу
  *   Промис завершается, когда числа заняли места.
+ *
+ * Общие возможности, которые режим может включить у себя (по умолчанию выключены, остальные режимы их не видят):
+ *   const sl = MG.joker.slot(host) — карта-джокер в элементе host (например, рядом с примером на планшете):
+ *       sl.set('25') — джокер переворачивается и становится картой с числом; sl.set('') — обратно джокер;
+ *       sl.rect() — где карта на экране;  sl.el — элемент;  sl.hide() — спрятать (карта ушла в руку).
+ *   MG.joker.hold(rect, value, { frac, check, onLay, say, onDrop }) — карта с числом из rect взлетает в руку
+ *       и ходит за пальцем/мышью; тап по дроби frac() — положить:
+ *       check(value) — «проверка множителя»: true — можно; строка — нельзя: карта трясётся и рассыпается,
+ *                 строка показывается подсказкой через say(text); потом зовётся onDrop()
+ *       onLay(card, value) — карта положена (режим сам зовёт MG.joker.lay и пересчитывает дробь)
+ *       тап мимо дроби — карта остаётся в руке, пока выбран джокер; сменили инструмент — карта исчезает (onDrop).
+ *   MG.joker.holding() — есть ли карта в руке.
  */
 (() => {
   'use strict';
@@ -53,6 +65,21 @@
     .jk-card::before { content: ''; position: absolute; left: 12%; right: 12%; top: 50%; border-top: 2px dashed #d6d3d1; }
     .jk-n { position: absolute; left: 0; right: 0; text-align: center; }
     .jk-n.t { top: 9%; }
+    .jk-slot { position: relative; display: inline-block; width: 86px; height: 122px; flex: none; rotate: -6deg; }
+    .jk-slot .f, .jk-slot .b { position: absolute; inset: 0; border-radius: 12px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.3)); }
+    .jk-slot .f svg { width: 100%; height: 100%; display: block; }
+    .jk-slot .b { display: none; box-sizing: border-box; background: #fffdf8; border: 3.5px solid ${INK}; font-family: var(--ui-font, 'Nunito', system-ui, sans-serif); font-weight: 900; line-height: 1; color: ${INK}; }
+    .jk-slot.num .f { display: none; } .jk-slot.num .b { display: block; }
+    .jk-slot .b::before { content: ''; position: absolute; left: 12%; right: 12%; top: 50%; border-top: 2px dashed #d6d3d1; }
+    .jk-slot .b i { position: absolute; left: 0; right: 0; text-align: center; font-style: normal; font-size: 30px; }
+    .jk-slot .b i.t { top: 9%; } .jk-slot .b i.u { bottom: 9%; }
+    .jk-slot .b .st { position: absolute; left: 50%; top: 50%; translate: -50% -50%; font-size: 15px; color: #f59e0b; background: #fffdf8; padding: 0 3px; }
+    .jk-smoke { position: absolute; left: 50%; top: 50%; width: 200%; height: 170%; translate: -50% -50%; pointer-events: none; z-index: 2; overflow: visible; }
+    .jk-smoke circle { transform-box: fill-box; transform-origin: center; }
+    .jk-smoke circle.o { fill: #c3c6d2; stroke: #c3c6d2; stroke-width: 6; }
+    .jk-smoke circle.i { fill: #fbfbfd; }
+    .jk-smoke .ln { stroke: #b8bbc8; stroke-width: 3; stroke-linecap: round; fill: none; }
+    @keyframes jkPop { 0% { scale: .5; } 60% { scale: 1.25; } }
     .jk-n.b { bottom: 9%; }
     .jk-star { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 17%; aspect-ratio: 1; border-radius: 50%; background: #fffdf8; z-index: 1; }
     .jk-star::after { content: '★'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 80%; color: #f59e0b; }
@@ -231,5 +258,115 @@
     };
   }
 
-  MG.joker = { armSticky, icon, face: faceSvg, style: cardStyle, setValue, lay };
+  /* ---------- карта-джокер на планшете: при вводе числа переворачивается в карту с этим числом ---------- */
+  function slot(host) {
+    const el = document.createElement('span');
+    el.className = 'jk-slot';
+    el.innerHTML = `<span class="f">${faceSvg}</span><span class="b"><i class="t"></i><b class="st">★</b><i class="u"></i></span>`;
+    host.append(el);
+    const nums = [...el.querySelectorAll('.b i')];
+    el.animate([{ scale: '.4', opacity: 0 }, { scale: '1.08', opacity: 1, offset: 0.6 }, { scale: '1' }], { duration: MG.T(420), easing: 'ease-out' });
+    /* «техника замены»: хлопок дыма, карта исчезает — на её месте другая */
+    const poof = (big) => {
+      el.querySelectorAll('.jk-smoke').forEach((x) => x.remove());
+      const NS = 'http://www.w3.org/2000/svg';
+      const sv = document.createElementNS(NS, 'svg');
+      sv.setAttribute('class', 'jk-smoke'); sv.setAttribute('viewBox', '-100 -100 200 200');
+      const k = big ? 1 : 0.7;
+      const puffs = [[0, 0, 50], [-40, -34, 36], [38, -38, 38], [-44, 30, 36], [42, 32, 36], [0, -60, 32], [-4, 58, 34], [62, -4, 28], [-64, -4, 28], [-58, -52, 20], [60, 56, 20]];
+      let h = '';
+      for (const cl of ['o', 'i']) puffs.forEach(([x, y, r], n) => { h += `<circle class="${cl}" data-n="${n}" cx="${x * k}" cy="${y * k}" r="${r * k}"/>`; });   // контур снизу, заливка сверху — один пушистый клуб
+      [[0, -1], [0.87, -0.5], [0.87, 0.5], [0, 1], [-0.87, 0.5], [-0.87, -0.5]].forEach(([dx, dy]) => { h += `<path class="ln" d="M${dx * 80 * k} ${dy * 80 * k} L${dx * 98 * k} ${dy * 98 * k}"/>`; });
+      sv.innerHTML = h;
+      el.append(sv);
+      const D = MG.T(big ? 650 : 420);
+      sv.querySelectorAll('circle').forEach((c) => { const n = +c.dataset.n; c.animate(
+        [{ transform: 'scale(.2)', opacity: 1 }, { transform: 'scale(1.1)', opacity: 1, offset: 0.35 }, { transform: `translate(${(n % 3 - 1) * 6}px, -10px) scale(1.25)`, opacity: 0 }],
+        { duration: D + n * 25, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }); });
+      sv.querySelectorAll('.ln').forEach((l) => l.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, offset: 0.2 }, { opacity: 0, transform: 'scale(1.25)' }], { duration: D * 0.6, fill: 'forwards' }));
+      setTimeout(() => sv.remove(), D + 300);
+      return MG.T(big ? 150 : 100);                 // через столько дым закроет карту — тогда её и меняем
+    };
+    let cur = '', swapT = 0;
+    return {
+      el,
+      set(v) {
+        v = String(v || '');
+        if (v === cur) return;
+        const was = cur; cur = v;
+        const big = !v !== !was;                    // джокер ↔ карта с числом — большой хлопок, смена числа — маленький
+        clearTimeout(swapT);
+        swapT = setTimeout(() => {
+          if (v) {
+            const color = (MG.colorOf && MG.colorOf(Number(v))) || INK;
+            nums.forEach((n) => { n.textContent = v; n.style.color = color; n.style.fontSize = `${v.length > 2 ? 24 : 30}px`; });
+          }
+          el.classList.toggle('num', !!v);
+          const card = v ? el.querySelector('.b') : el.querySelector('.f');
+          card.animate([{ scale: '.6', rotate: '8deg' }, { scale: '1.1', rotate: '-3deg', offset: 0.6 }, { scale: '1', rotate: '0deg' }], { duration: MG.T(380), easing: 'cubic-bezier(.3,1.5,.5,1)' });
+        }, poof(big));
+        if (MG.snd && MG.snd.play) MG.snd.play(big ? 'whoosh' : 'pop', { dur: 0.25 });
+      },
+      rect: () => el.getBoundingClientRect(),
+      hide() { el.style.visibility = 'hidden'; },
+    };
+  }
+
+  /* ---------- карта с числом в руке: тап по дроби — положить ---------- */
+  let held = null;
+  function hold(from, v, { frac, check, onLay, say, onDrop }) {
+    if (held) held.drop(false);
+    const s = cardSize();
+    const g = document.createElement('div');
+    g.className = 'ghost';
+    const cx0 = from.left + from.width / 2, cy0 = from.top + from.height / 2;
+    Object.assign(g.style, { position: 'fixed', left: `${cx0 - s.w / 2}px`, top: `${cy0 - s.h / 2}px`, width: `${s.w}px`, height: `${s.h}px`, zIndex: 60, pointerEvents: 'none', transition: 'none' });
+    g.textContent = String(v);
+    document.body.append(g);
+    const card = cardStyle(g);
+    card.getAnimations().forEach((a) => a.cancel());
+    card.animate([{ scale: String(from.height / s.h) }, { scale: '1' }], { duration: MG.T(380), easing: 'cubic-bezier(.3,1.3,.5,1)' });
+    let px = cx0, py = cy0 - 10;
+    const put = () => { g.style.transform = `translate(${px - cx0}px, ${py - cy0}px) scale(1.06) rotate(-4deg)`; };
+    put();
+    const onMove = (e) => { px = e.clientX; py = e.clientY; put(); };
+    window.addEventListener('pointermove', onMove);
+    const off = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('toolchange', onTool); disarm(); held = null; };
+    const poof = (shake) => {
+      const from = g.style.transform || 'none';
+      const kf = shake
+        ? [{ transform: from }, { transform: `${from} translateX(-10px) rotate(-7deg)`, offset: 0.15 }, { transform: `${from} translateX(10px) rotate(7deg)`, offset: 0.3 }, { transform: `${from} translateX(-6px)`, offset: 0.42 }, { transform: `${from} translateX(0)`, opacity: 1, offset: 0.6 }, { transform: `${from} scale(.4) rotate(20deg)`, opacity: 0 }]
+        : [{ transform: from }, { transform: `${from} scale(.5)`, opacity: 0 }];
+      g.animate(kf, { duration: MG.T(shake ? 800 : 260), easing: 'ease-in', fill: 'forwards' }).onfinish = () => g.remove();
+    };
+    const drop = (shake) => { off(); poof(shake); if (onDrop) onDrop(); };
+    const onTool = () => { if (document.body.dataset.tool !== 'joker') drop(false); };
+    window.addEventListener('toolchange', onTool);
+    const arm = () => armSticky((ev) => {
+      if (held !== me) return;
+      if (ev.type !== 'pointerup') { drop(false); return; }
+      const f = frac && frac();
+      const fr = f && f.getBoundingClientRect();
+      const P = 24;
+      const onFrac = fr && ev.clientX > fr.left - P && ev.clientX < fr.right + P && ev.clientY > fr.top - P && ev.clientY < fr.bottom + P;
+      if (!onFrac) {                                   // мимо: карта остаётся в руке (если только не нажали на панель инструментов)
+        const t = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (t && t.closest && t.closest('.toolbar')) { drop(false); if (t.closest('button')) t.closest('button').click(); return; }
+        px = ev.clientX; py = ev.clientY; put(); arm(); return;
+      }
+      const ok = check ? check(v) : true;
+      if (ok !== true) {
+        if (MG.snd && MG.snd.play) MG.snd.play('nope', { dur: 0.3 });
+        drop(true); if (say && typeof ok === 'string') say(ok); return;
+      }
+      off();
+      onLay(g, v);
+    });
+    const me = { g, drop };
+    held = me;
+    arm();
+    return me;
+  }
+
+  MG.joker = { armSticky, icon, face: faceSvg, style: cardStyle, setValue, lay, slot, hold, holding: () => !!held };
 })();

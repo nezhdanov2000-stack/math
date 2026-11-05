@@ -248,6 +248,23 @@
     .clip-ov.dock .k, .clip-ov.dock.dv .k { height: clamp(44px, 7.2vh, 58px); }
     .clip-w .cw-body { justify-content: flex-start; overflow: visible; }
     .clip-w .cw-body .sk { margin: auto 0; }
+    .clip-ov.dock.mul .paper { padding-top: 14px; }
+    .clip-ov.dock.mul .msg { min-height: 1.1em; margin-bottom: 4px; font-size: 1.15rem; }
+    .clip-w.mul .cw-head { flex-wrap: nowrap; }
+    .clip-w.mul .cw-head .clip-ans { gap: 8px; }
+    .clip-w.mul .mw { font-family: var(--ui-font, 'Nunito', system-ui, sans-serif); font-weight: 900; font-size: 2.3rem; margin-right: -6px; }
+    .clip-w.mul .clip-ans .pvn { display: inline-flex; align-items: center; gap: 2px; }
+    .clip-w.mul .mb { min-width: 1.15em; height: 1.15em; font-size: .85em; }
+    .clip-w.mul .mb.bad { animation: clShake .4s; }
+    .clip-w.mul .mrow { display: flex; align-items: center; justify-content: center; gap: 18px; margin: auto 0; }
+    .clip-w.mul .mrow .sk { margin: 0; }
+    .clip-w.mul .mslot { display: inline-flex; }
+    .clip-w.mul .mres { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 2.2rem; line-height: 1; color: #8a8178; opacity: 0; transition: opacity .2s, color .2s; }
+    .clip-w.mul .mres.on { opacity: 1; }
+    .clip-w.mul .mres.good { color: #16a34a; }
+    .clip-w.mul .mres .pvf { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+    .clip-w.mul .mres .pvl { align-self: stretch; border-top: 2.5px solid currentColor; margin: 2px 0; }
+    .clip-w.mul .mres .mw { font-size: 2.2rem; color: inherit; }
     @keyframes clDockIn { from { translate: -50% 105%; } }
     @keyframes clDockOut { to { translate: -50% 105%; } }
     @media (max-height: 700px) { .clip-ov.dock .k, .clip-ov.dock.dv .k { height: 46px; font-size: 2.3rem; } }
@@ -670,6 +687,116 @@
     });
   }
 
+  /* ============================================================
+   * Планшет «на что умножаем»: MG.clip.askMul(n, d, fromEl, { w }) → Promise<число | null>.
+   * Дробь с экрана переезжает в карточку над планшетом: n/d = n·□ / d·□ = ?/?,
+   * множитель набирается на клавишах планшета. Проверки здесь нет — её делает тот, кто спросил.
+   * opt.slot(el) — место слева от результата (туда режим кладёт карту-джокер), opt.onType(строка) — после каждой цифры.
+   * Пока планшет открыт, ov.dataset.v — набранное число (для подсказки-пальца).
+   * ============================================================ */
+  function askMul(n, d, fromEl, opt = {}) {
+    return new Promise((resolve) => {
+      const ov = document.createElement('div');
+      ov.className = 'clip-ov dock dv mul';
+      ov.dataset.v = '';
+      ov.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="clPencil" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/></filter></svg>
+        <div class="clip" role="dialog" aria-label="Впиши множитель"><div class="metal"></div>
+        <div class="paper"><button class="cls" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path class="ink2" pathLength="1" d="M5.500 6.500C9.500 9.500 14 14 19 19.500" stroke="#d6362d" stroke-width="1.400"/><path class="ink" pathLength="1" d="M5 5.500C9 9 14 13.500 18.500 19" stroke="#d6362d" stroke-width="3"/><path class="ink b" pathLength="1" d="M19 5C15 9 10.500 14 5.500 19.500" stroke="#d6362d" stroke-width="3"/></svg></button><div class="msg"></div><div class="pad">${[7, 8, 9, 4, 5, 6, 1, 2, 3].map((d) => `<button class="k" type="button" data-d="${d}">${d}</button>`).join('')}<button class="k go" type="button" aria-label="Принять"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="ink2" pathLength="1" d="M4.500 13.500C7 14.500 8.500 16.500 10 19.500 12.500 13 16 8.500 21 5" stroke="#2a8f55" stroke-width="1.400"/><path class="ink" pathLength="1" d="M4 12.500C6.500 13.500 8.500 16 9.800 19 12 12.500 15.500 8 20.500 4.500" stroke="#2a8f55" stroke-width="3.200"/></svg></button><button class="k" type="button" data-d="0">0</button><button class="k er" type="button" data-d="x" aria-label="Стереть"><svg viewBox="0 0 24 24" fill="none" stroke="#5a463c" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.500 3.500 12 9 18.500H20.500V5.500Z"/><path d="M12.500 9.500 17 14.500M17 9.500 12.500 14.500"/></svg></button></div></div></div>`;
+      const board = ov.querySelector('.clip');
+      board.append(ov.querySelector('.cls'));
+      document.body.append(ov);
+      const W = opt.w ? `<span class="mw">${opt.w}</span>` : '';
+      const work = document.createElement('div');
+      work.className = 'clip-w mul';
+      work.innerHTML = `<div class="cw-head">${W}<span class="pvf cw-f"><span class="pvn">${n}</span><span class="pvl"></span><span class="pvn">${d}</span></span>
+        <span class="clip-ans"><span class="pe">=</span>${W}<span class="pvf"><span class="pvn">${n}·<span class="pvb on mb"></span></span><span class="pvl"></span><span class="pvn">${d}·<span class="pvb on mb"></span></span></span></span></div>
+        <div class="cw-body"><div class="mrow"><span class="mslot"></span><div class="sk"><div class="mres"><span class="pe">=</span>${W}<span class="pvf"><span class="pvn rn"></span><span class="pvl"></span><span class="pvn rd"></span></span></div></div></div></div>`;
+      ov.append(work);
+      const slotEl = work.querySelector('.mslot');
+      if (opt.slot) { work.querySelector('.mres').remove(); opt.slot(slotEl); } else slotEl.remove();   // с картой — без результата рядом
+      const EASE = 'cubic-bezier(.3,1.15,.4,1)';
+      const flipVec = () => {
+        const head = work.querySelector('.cw-f');
+        if (!fromEl || !head) return null;
+        const src = fromEl.querySelector('.fd-fr, .fr') || fromEl;
+        const sr = src.getBoundingClientRect(), tr = head.getBoundingClientRect();
+        const sc = (parseFloat(getComputedStyle(src).fontSize) / parseFloat(getComputedStyle(head).fontSize)) || 1;
+        return { head, t: `translate(${(sr.left + sr.width / 2) - (tr.left + tr.width / 2)}px, ${(sr.top + sr.height / 2) - (tr.top + tr.height / 2)}px) scale(${sc})` };
+      };
+      let flown = false;
+      const cam = () => {
+        const tabTop = innerHeight - board.offsetHeight;
+        const top = Math.max(150, innerHeight * 0.17);
+        work.style.top = `${top}px`; work.style.height = `${Math.max(120, tabTop - 12 - top)}px`;
+        { const body = work.querySelector('.cw-body'), head = work.querySelector('.cw-head');   // не помещается — чуть уменьшаем
+          body.style.scale = '1'; body.style.transformOrigin = '50% 0';
+          const avail = work.clientHeight - head.offsetHeight - 24, nat = body.scrollHeight;
+          body.style.scale = String(Math.min(1, Math.max(0.55, avail / Math.max(1, nat)))); }
+        if (flown) return;
+        flown = true;
+        const v = flipVec();
+        work.style.visibility = 'visible';
+        if (v) v.head.animate([{ transform: v.t }, { transform: 'none' }], { duration: 650, easing: EASE });
+        work.querySelectorAll('.cw-body, .clip-ans, .mw').forEach((e) => e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 380, fill: 'backwards' }));
+        if (fromEl) { fromEl.style.transition = 'none'; fromEl.style.opacity = '0'; }
+      };
+      requestAnimationFrame(cam);
+      const msg = ov.querySelector('.msg');
+      const mbs = [...work.querySelectorAll('.mb')], rn = work.querySelector('.rn'), rd = work.querySelector('.rd'), mres = work.querySelector('.mres');
+      const maxLen = opt.maxLen || 3;
+      let val = '', done = false;
+      const P10 = [10, 100, 1000];
+      const paint = () => {
+        ov.dataset.v = val;
+        mbs.forEach((b) => { b.textContent = val; });
+        const m = Number(val);
+        if (mres) {
+          rn.textContent = val ? n * m : '';
+          rd.textContent = val ? d * m : '';
+          mres.classList.toggle('on', !!val);
+          mres.classList.toggle('good', !!val && P10.includes(d * m));
+        }
+        if (opt.onType) opt.onType(val);
+      };
+      const type = (dg) => {
+        msg.textContent = '';
+        if (dg === 'x') val = val.slice(0, -1);
+        else if (val.length < maxLen) val = (val + dg).replace(/^0+/, '');
+        paint();
+      };
+      const close = (res) => {
+        if (done) return; done = true;
+        document.removeEventListener('keydown', onKey, true);
+        ov.classList.add('out');
+        const v = flipVec();
+        work.querySelectorAll('.cw-body, .clip-ans, .mw').forEach((e) => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' }));
+        if (v) v.head.animate([{ transform: 'none' }, { transform: v.t }], { duration: 420, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
+        setTimeout(() => { if (fromEl) { fromEl.style.opacity = ''; fromEl.style.transition = ''; } work.style.visibility = 'hidden'; }, v ? 400 : 0);
+        setTimeout(() => ov.remove(), 450);
+        resolve(res);
+      };
+      const submit = () => {
+        if (!val) { msg.textContent = 'Впиши множитель'; mbs.forEach((x) => { x.classList.remove('bad'); void x.offsetWidth; x.classList.add('bad'); }); return; }
+        const bad = opt.check ? opt.check(Number(val)) : '';
+        if (bad) { msg.textContent = bad; mbs.forEach((x) => { x.classList.remove('bad'); void x.offsetWidth; x.classList.add('bad'); }); return; }
+        close(Number(val));
+      };
+      function onKey(e) {
+        if (/^\d$/.test(e.key)) { type(e.key); e.preventDefault(); }
+        else if (e.key === 'Backspace') { type('x'); e.preventDefault(); }
+        else if (e.key === 'Enter') { submit(); e.preventDefault(); }
+        else if (e.key === 'Escape') { close(null); e.preventDefault(); }
+        e.stopPropagation();
+      }
+      document.addEventListener('keydown', onKey, true);
+      ov.querySelectorAll('.k[data-d]').forEach((k) => k.addEventListener('click', () => type(k.dataset.d)));
+      ov.querySelector('.go').addEventListener('click', submit);
+      ov.querySelector('.cls').addEventListener('click', () => close(null));
+      ov.addEventListener('pointerdown', (e) => { if (e.target === ov) close(null); });
+      paint();
+    });
+  }
+
   /* тестовый переключатель: ручное разбиение сразу, без 50 % прогресса */
   const KEYT = 'mg.test.manual';
   const forced = () => { try { return localStorage.getItem(KEYT) === '1'; } catch (e) { return false; } };
@@ -677,5 +804,5 @@
   /* ручной режим: включён тестовой кнопкой или решено 2 задачи (стадия «человек»), начиная с 3-й */
   const isManual = (from = 2) => forced() || !(MG.active === MG.modes.cancel) || (parseInt((document.getElementById('solved') || {}).textContent, 10) || 0) >= from;
 
-  MG.clip = { ask, askDiv, forced, setForced, isManual };
+  MG.clip = { ask, askDiv, askMul, forced, setForced, isManual };
 })();

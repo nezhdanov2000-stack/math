@@ -149,9 +149,9 @@
   /* лампа: включает подсказки с курсором (режимы «Сокращение чисел», «Выделить целое», «Вынесение за скобки», «Общий знаменатель») */
   const KEYL = 'mg.tut.lamp';
   const used = () => { try { return !!localStorage.getItem(KEYL); } catch (e) { return true; } };
-  const HINT_MODES = ['cancel', 'ext', 'factor', 'common'];
+  const HINT_MODES = ['cancel', 'ext', 'factor', 'common', 'decfr', 'frdec'];
   /* на каких примерах подсказка включается сама: начало стадий и знакомство с новым инструментом */
-  const AUTO_ON = { cancel: [0, 2, 4], ext: [0, 2], factor: [0, 2], common: [0, 3, 6] };
+  const AUTO_ON = { cancel: [0, 2, 4], ext: [0, 2], factor: [0, 2], common: [0, 3, 6], decfr: [0, 4, 6], frdec: [0, 2, 4, 6] };
   const hintMode = () => HINT_MODES.find((id) => { const m = document.getElementById('mode-' + id); return !!m && !m.hidden; }) || '';
   const inCancel = () => !!hintMode();
   const nudge = () => lamp.classList.toggle('nudge', !used() && inCancel() && !lamp.classList.contains('on'));

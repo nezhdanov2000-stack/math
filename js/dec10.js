@@ -10,24 +10,33 @@
  *    Цифр не хватает — на пустом месте появляется 0 (серый, потом чернеет). Запятая в конце числа исчезает.
  * 5) Счётчик 0 — пример готов: «12,74 × 10 = 127,4».
  * 8 примеров: обезьяна — × 10 и × 100 (один пример с целым), человек — до 1000, профессор — до 10000,
- * робот — вперемешку до 10000 и с нулями. */
+ * робот — вперемешку до 10000 и с нулями.
+ *
+ * Тот же файл делает и режим «Деление на 10, 100, 1000…» (dec10d): синее ружьё выезжает слева,
+ * гарпун летит вправо, катушка тянет запятую влево; не хватает цифр — слева появляются серые нули (3,5 : 100 = 0,035). */
 (() => {
   'use strict';
   const MG = window.MG;
   const { $, T, sleep, ri, setStats, burst } = MG;
   const snd = (n, o) => { if (MG.snd && MG.snd.play) MG.snd.play(n, o); };
 
-  const view = $('#hp-view');
-  const world = $('#hp-world');
-  const after = $('#hp-after');
-  const resultText = $('#hp-resultText');
-  const nextBtn = $('#hp-next');
+  let cssDone = false;
+  function build(cfg) {
+  const NAME = cfg.name, TOOL = cfg.tool;
+  let D = 1, nR = 0;                                                 // D = 1: умножение, запятая едет вправо; −1: деление, влево. Примеры чередуются
+  const view = $(`#${cfg.p}-view`);
+  const world = $(`#${cfg.p}-world`);
+  const after = $(`#${cfg.p}-after`);
+  const resultText = $(`#${cfg.p}-resultText`);
+  const nextBtn = $(`#${cfg.p}-next`);
   if (!view || !world) return;
-  const hint = MG.hinter($('#hp-hint'));
+  const hint = MG.hinter($(`#${cfg.p}-hint`));
 
+  if (!cssDone) {
+  cssDone = true;
   const css = document.createElement('style');
   css.textContent = `
-    #mode-dec10 { justify-content: flex-start; gap: 6px; position: relative; }
+    .hp-mode { justify-content: flex-start; gap: 6px; position: relative; }
     .hp-view { position: relative; width: min(100%, 460px); flex: 1 1 auto; min-height: 360px; overflow: hidden; }
     .hp-world { position: absolute; inset: 0; }
     .hp-d { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--rh); display: grid; place-items: center; font-weight: 900; font-size: calc(var(--cw) * .88); line-height: 1; color: #1d1d1f; transition: left .6s cubic-bezier(.4,0,.2,1), color .4s, opacity .4s; }
@@ -55,7 +64,7 @@
     .hp-reel.big { scale: 2; }
     .hp-reel svg { display: block; width: 100%; height: 100%; overflow: visible; }
     .hp-reel .reel { transform-box: fill-box; transform-origin: center; }
-    .hp-reel .lay { transition: stroke-dasharray .5s ease-in-out; }
+    .hp-reel .lay { transition: stroke-width .5s ease-in-out, r .5s ease-in-out; }
     .hp-gun.gone { opacity: 0; transition: opacity .4s, transform .5s; transform: translateX(30%); pointer-events: none; }
     .hp-cnt { position: absolute; left: 50%; bottom: calc(100% + 14px); translate: -50% 0; min-width: 24px; height: 24px; padding: 0 5px; box-sizing: border-box; border: 2.5px solid #e0362d; border-radius: 8px; background: #fff; color: #e0362d; font-weight: 900; font-size: 14px; line-height: 19px; text-align: center; pointer-events: none; box-shadow: 0 2px 0 rgba(224,54,45,.35); }
     .hp-arrow { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; }
@@ -68,8 +77,8 @@
     .hp-comma { transform-origin: 50% 82%; transition: left .5s cubic-bezier(.4,0,.2,1), opacity .3s, rotate .35s cubic-bezier(.3,1.6,.5,1), color .3s; }
     .hp-comma.lie { rotate: -90deg; scale: 1.35; }
     .hp-reel.big .hp-cnt { scale: .6; transform-origin: 50% 100%; bottom: calc(100% + 3px); }
-    #mode-dec10 .dc-say { translate: -50% 0; }
-    #mode-dec10 .dc-say::after { top: -6px; bottom: auto; }
+    .hp-mode .dc-say { translate: -50% 0; }
+    .hp-mode .dc-say::after { top: -6px; bottom: auto; }
     .hp-boom { position: absolute; z-index: 7; pointer-events: none; padding: 3px 10px; border: 3px solid #1d1d1f; border-radius: 12px 6px 14px 8px; background: #ffd23f; color: #e0362d; font-weight: 900; font-size: 16px; letter-spacing: .06em; box-shadow: 0 3px 0 #1d1d1f; rotate: -8deg; }
     .hp-fx { position: absolute; z-index: 7; pointer-events: none; overflow: visible; }
     .hp-gun.hot svg, .hp-reel.hot svg { filter: drop-shadow(0 0 7px rgba(255,200,40,.95)); }
@@ -82,11 +91,15 @@
     .hp-res span { display: block; width: var(--cw); text-align: center; font-weight: 900; font-size: calc(var(--cw) * .88); line-height: var(--rh); color: #1d1d1f; }
     .hp-res span.c { width: calc(var(--cw) * .45); }
     .hp-res .ans { color: var(--ok); }
-    #mode-dec10 .after { position: absolute; left: 50%; top: var(--hp-after, 50%); z-index: 7; width: min(92%, 380px); translate: -50% 10px; min-height: 0; }
-    #mode-dec10 .after.show { translate: -50% 0; }
+    .hp-mode .after { position: absolute; left: 50%; top: var(--hp-after, 50%); z-index: 7; width: min(92%, 380px); translate: -50% 10px; min-height: 0; }
+    .hp-mode .after.show { translate: -50% 0; }
     body[data-tool="harpoon"] .stage, body[data-tool="harpoon"] .stage .hp-d.m { cursor: var(--cur-harpoon, pointer) !important; }
+    body[data-tool="harpoonB"] .stage, body[data-tool="harpoonB"] .stage .hp-d.m { cursor: var(--cur-harpoonB, pointer) !important; }
+    .hp-comma.lie-r { rotate: 90deg; scale: 1.35; }
+    .hp-world.dv .hp-gun.gone { transform: translateX(-30%); }
   `;
   document.head.append(css);
+  }
 
   /* ружьё смотрит влево: ствол, жёлтая рукоять, катушка сверху; гарпун торчит из ствола, когда заряжен */
   const GUN = `<svg viewBox="0 0 84 44" stroke-linejoin="round" stroke-linecap="round">
@@ -102,6 +115,9 @@
     <path d="M69.6 28 L67.9 37.5" stroke="#ffd2a1" stroke-width="1.6" opacity=".75"/>
     <path d="M62.6 27.8 Q62.1 30.2 60 30.7" fill="none" stroke="#1d1d1f" stroke-width="1.8"/>
   </svg>`;
+  /* деление: ружьё смотрит вправо, рукоять синяя */
+  const GUN_DIV = GUN.replace(/(<svg[^>]*>)/, '$1<g transform="translate(84 0) scale(-1 1)">').replace('</svg>', '</g></svg>')
+      .replace('fill="#ff8a1f" stroke="#a84a00"', 'fill="#3f8cff" stroke="#1d4f9f"').replace(/#ffd2a1/g, '#d2e5ff').replace('#e8690a', '#2a6fd6');
   /* катушка — отдельно: стоит прямо на стволе, после попадания ружьё уходит, а катушка остаётся и подрастает */
   const REEL = `<svg viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round"><g class="reel">
     <circle cx="12" cy="12" r="10" fill="#d8dbe2" stroke="#2b2f3a" stroke-width="2"/>
@@ -112,6 +128,8 @@
   const REEL_C = [42, 25.5], REEL_D = 15;                           // центр и диаметр катушки в координатах ружья (84×44)
   /* гарпун — это лежащая единица: остриё слева, зубец (флажок единицы) только снизу */
   const ARROW = `<svg viewBox="0 0 24 12" fill="none" stroke="#1d1d1f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5 H23"/><path d="M1.5 5 L7.5 10.5"/></svg>`;
+  const ARROW_DIV = ARROW.replace('<path d="M1.5 5 H23"/><path d="M1.5 5 L7.5 10.5"/>', '<path d="M22.5 5 H1"/><path d="M22.5 5 L16.5 10.5"/>');
+  const sign = () => (D > 0 ? '×' : ':'), word = () => (D > 0 ? 'множителя' : 'делителя');
 
   /* ---------- примеры ---------- */
   const TOTAL = 8;
@@ -123,23 +141,27 @@
     const digits = (ip + fp).split('');
     const p0 = ip.length, isInt = !fp;
     /* ответ */
-    let d = digits.slice(); const p = p0 + z;
+    let d = digits.slice(), p = p0 + D * z;
     while (d.length < p) d.push('0');
-    let I = d.slice(0, p).join('').replace(/^0+(?=\d)/, ''), F = d.slice(p).join('');
+    if (p < 1) { d = Array(1 - p).fill('0').concat(d); p = 1; }       // деление: слева дописываются нули — 0,035
+    let I = d.slice(0, p).join('').replace(/^0+(?=\d)/, ''), F = d.slice(p).join('').replace(/0+$/, '');
     const ans = F ? `${I},${F}` : I;
-    return { str, z, mult: `1${'0'.repeat(z)}`, digits, p0, isInt, ans, N: Math.max(digits.length, p) };
+    const off0 = D < 0 ? Math.max(0, z - p0 + 1) : 0;              // сколько пустых клеток оставить слева
+    return { str, z, mult: `1${'0'.repeat(z)}`, digits, p0, isInt, ans, off0, N: D < 0 ? digits.length + off0 : Math.max(digits.length, p) };
   }
   const nz = () => String(ri(1, 9));
   const dg = () => String(ri(0, 9));
   function randDec(fl) { let f = ''; for (let i = 0; i < fl; i++) f += i === fl - 1 ? nz() : dg(); return `${ri(0, 1) ? ri(1, 99) : ri(1, 9)},${f}`; }
   function pick() {
     const L = lvlOf(), second = solved % 2 === 1;
+    D = nR++ % 2 ? -1 : 1;                                          // умножить — поделить — умножить…
     if (solved === 0 && !lastKey) return makeTask('12,74', 1);
     for (let i = 0; i < 200; i++) {
       let t;
-      if (L === 1) t = second ? makeTask(String(ri(2, 99)), ri(1, 2)) : makeTask(randDec(ri(1, 3)), ri(1, 2));
+      if (L === 1) t = second ? makeTask(String(D < 0 ? ri(2, 999) : ri(2, 99)), ri(1, 2)) : makeTask(randDec(ri(1, 3)), ri(1, 2));
       else if (L === 2) t = makeTask(randDec(ri(1, 3)), ri(2, 3));
       else if (L === 3) t = makeTask(randDec(ri(1, 3)), ri(2, 4));
+      else if (D < 0) t = ri(0, 1) ? makeTask(String(ri(10, 9999)), ri(2, 4)) : makeTask(randDec(ri(1, 2)), ri(3, 4));
       else t = ri(0, 2) ? makeTask(`0,${ri(0, 1) ? '0' : ''}${nz()}${ri(0, 1) ? nz() : ''}`, ri(2, 4)) : makeTask(randDec(1), ri(3, 4));
       if (`${t.str}x${t.mult}` === lastKey) continue;
       return t;
@@ -159,21 +181,24 @@
     const nCells = wide ? tk.N : tk.digits.length;
     const units = wide ? unitsW : nCells + 1.2 + tk.mult.length;
     const total = units * cw - 0.2 * cw;
-    const x0 = Math.round((vw - total) / 2);
     const y = Math.round(Math.min(vh * 0.3, 150));
+    let x0 = Math.round((vw - total) / 2), gx;
+    if (D < 0) { gx = wide ? x0 + 0.2 * cw : 6; if (wide) x0 = Math.round(gx + gunW + 0.6 * cw); }   // деление: ружьё слева
     const xMul = x0 + (nCells + 1.2) * cw;
-    const gx = wide ? xMul + (tk.mult.length + 0.6) * cw : vw - gunW - 6, gy = y + rh / 2 - gunH * 0.48;
-    return { vw, vh, cw, rh, gunW, gunH, x0, y, xMul, gx, gy, nCells };
+    if (D > 0) gx = wide ? xMul + (tk.mult.length + 0.6) * cw : vw - gunW - 6;
+    const gy = y + rh / 2 - gunH * 0.48;
+    return { vw, vh, cw, rh, gunW, gunH, x0, y, xMul, gx, gy, nCells, wide };
   }
-  const cellX = (i) => G.x0 + i * G.cw;
-  const commaX = (b) => G.x0 + b * G.cw;                       // граница между цифрами b−1 и b
+  const offN = () => (G.wide && state ? state.off || 0 : 0);           // деление: пустые клетки слева под будущие нули
+  const cellX = (i) => G.x0 + (i + offN()) * G.cw;
+  const commaX = (b) => G.x0 + (b + offN()) * G.cw;                       // граница между цифрами b−1 и b
 
   /* ---------- элементы ---------- */
   const mk = (cls, txt) => { const e = document.createElement('div'); e.className = cls; if (txt !== undefined) e.textContent = txt; world.append(e); return e; };
   function placeAll(st) {
     world.style.setProperty('--cw', `${G.cw}px`);
     world.style.setProperty('--rh', `${G.rh}px`);
-    world.style.setProperty('--hp-in', `${Math.round(G.vw - G.gx + 30)}px`);   // ружьё и катушка въезжают вместе, одним куском
+    world.style.setProperty('--hp-in', `${D > 0 ? Math.round(G.vw - G.gx + 30) : -Math.round(G.gx + G.gunW + 30)}px`);   // ружьё и катушка въезжают вместе, одним куском
     st.dEls.forEach((el, i) => { el.style.left = `${cellX(i)}px`; el.style.top = `${G.y}px`; });
     st.comma.style.left = `${commaX(st.p) - G.cw * 0.2}px`; st.comma.style.top = `${G.y}px`;
     st.xEl.style.left = `${G.x0 + (G.nCells + 0.1) * G.cw}px`; st.xEl.style.top = `${G.y}px`;
@@ -185,19 +210,21 @@
     view.parentElement.style.setProperty('--hp-after', `${view.offsetTop + G.y + G.rh + 30}px`);
   }
   /* кончик ствола и место гарпуна у запятой */
-  const tipX = () => G.gx + G.gunW * 12 / 84, tipY = () => G.gy + G.gunH * 21 / 44;
-  const reelX = () => G.gx + G.gunW * REEL_C[0] / 84, reelY = () => G.gy + G.gunH * REEL_C[1] / 44;
+  const mxr = (x) => (D > 0 ? x : 84 - x);                          // зеркалим координаты ружья для деления
+  const tipX = () => G.gx + G.gunW * mxr(12) / 84, tipY = () => G.gy + G.gunH * 21 / 44;
+  const reelX = () => G.gx + G.gunW * mxr(REEL_C[0]) / 84, reelY = () => G.gy + G.gunH * REEL_C[1] / 44;
   /* гарпун и леска; st.sag — провис лески (в полёте и когда «звенит» после рывка) */
   function placeArrow(st, x) {
     const aw = G.cw * 0.9, ah = aw / 2;
-    const ax = x !== undefined ? x : commaX(st.p) - aw * 0.12;
-    st.ax = ax;
+    const c = x !== undefined ? x : commaX(st.p);                   // c — точка у запятой (остриё гарпуна)
+    st.ax = c;
+    const ax = D > 0 ? c - aw * 0.12 : c - aw * 0.88;
     const ay = G.y + G.rh * 0.78;
     if (st.arrow) Object.assign(st.arrow.style, { width: `${aw}px`, height: `${ah}px`, left: `${ax}px`, top: `${ay - ah / 2}px` });
     const fx = st.reelOnly ? reelX() : tipX(), fy = st.reelOnly ? reelY() : tipY();
-    let ex = ax + aw * 0.95, ey = ay;
+    let ex = D > 0 ? ax + aw * 0.95 : ax + aw * 0.05, ey = ay;
     if (st.hookK) {                                                   // гарпун исчез — леска привязана к хвостику лежащей запятой
-      const hx = ax + aw * 0.12 + G.cw * 0.22, hy = G.y + G.rh * 0.86;
+      const hx = c + D * G.cw * 0.22, hy = G.y + G.rh * 0.86;
       ex += (hx - ex) * st.hookK; ey += (hy - ey) * st.hookK;
     }
     const mx = (fx + ex) / 2, my = (fy + ey) / 2 + (st.sag || 0);
@@ -240,17 +267,18 @@
     window.dispatchEvent(new Event('mg:round'));
     const task = pick();
     lastKey = `${task.str}x${task.mult}`;
+    world.classList.toggle('dv', D < 0);
     after.classList.remove('show');
     world.replaceChildren();
     if (MG.tools.current()) MG.tools.clear();
-    const st = { task, phase: 'load', busy: false, p: task.p0, loaded: 0, harp: false, cnt: 0 };
+    const st = { task, phase: 'load', busy: false, p: task.p0, loaded: 0, harp: false, cnt: 0, off: task.off0 };
     state = st;
     st.line = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); st.line.setAttribute('class', 'hp-line'); world.append(st.line);
     st.dEls = task.digits.map((d) => mk('hp-d', d));
     st.comma = mk(`hp-comma${task.isInt ? ' hid' : ''}`, ',');
-    st.xEl = mk('hp-x', '×');
+    st.xEl = mk('hp-x', sign());
     st.mEls = task.mult.split('').map((d) => { const e = mk('hp-d m', d); return e; });
-    st.gun = mk('hp-gun'); st.gun.innerHTML = GUN;
+    st.gun = mk('hp-gun'); st.gun.innerHTML = D > 0 ? GUN : GUN_DIV;
     st.reel = mk('hp-reel'); st.reel.innerHTML = `${REEL}<span class="hp-cnt">0</span>`;
     layout(st);
     [...st.dEls, st.xEl, ...st.mEls].forEach((e, i) => e.animate([{ opacity: 0, translate: '0 12px' }, { opacity: 1, translate: '0 0' }], { duration: T(350), delay: T(i * 30), easing: 'ease-out', fill: 'backwards' }));
@@ -273,7 +301,7 @@
     st.wide = true; layout(st, true);                                // пример раздвигается — место для новых цифр и ружья
     st.gun.classList.add('in'); st.reel.classList.add('in');
     snd('whoosh', { dur: 0.6 });
-    bubble('Перетащи в ружьё цифры множителя: единица — гарпун, нули — обороты катушки', 3200);
+    bubble(`Перетащи в ружьё цифры ${word()}: единица — гарпун, нули — обороты катушки`, 3200);
   }
 
   const setCnt = (st) => { st.reel.querySelector('.hp-cnt').textContent = st.cnt; };
@@ -287,7 +315,7 @@
     const el = e.target.closest('.hp-d.m');
     if (el && !el.classList.contains('took') && st.phase === 'load') {
       e.preventDefault();
-      if (!MG.tools.need('harpoon')) return;
+      if (!MG.tools.need(TOOL)) return;
       gunIn(st);
       const r = el.getBoundingClientRect();
       const g = document.createElement('div');
@@ -344,7 +372,7 @@
     const ax = cx, ay = cy - Rd;                                      // точка касания — верх барабана
     const rx = gh * 0.2, ry = gh * 0.29, N = 48;
     const loop = [];                                                  // лента-ноль: от нижней точки, влево и по кругу
-    for (let i = 0; i <= N; i++) { const t = Math.PI / 2 + (i / N) * Math.PI * 2; loop.push([rx * Math.cos(t), ry * Math.sin(t)]); }
+    for (let i = 0; i <= N; i++) { const t = Math.PI / 2 + (i / N) * Math.PI * 2; loop.push([D * rx * Math.cos(t), ry * Math.sin(t)]); }
     const seg = [0]; for (let i = 1; i <= N; i++) seg.push(seg[i - 1] + Math.hypot(loop[i][0] - loop[i - 1][0], loop[i][1] - loop[i - 1][1]));
     const L = seg[N];
     const at = (d) => { let i = 1; while (i < N && seg[i] < d) i++; const k = (d - seg[i - 1]) / ((seg[i] - seg[i - 1]) || 1); return [loop[i - 1][0] + (loop[i][0] - loop[i - 1][0]) * k, loop[i - 1][1] + (loop[i][1] - loop[i - 1][1]) * k]; };
@@ -352,7 +380,7 @@
     const qx = (x0 + c1x) / 2 + (x0 < c1x ? -10 : 10), qy = Math.min(y0, c1y) - 30;
     const dist = Math.hypot(c1x - x0, c1y - y0);
     const tA = T(Math.max(220, Math.min(420, dist * 1.2))), tB = T(620), t0 = performance.now();
-    const dir = [-Math.cos(0.42), -Math.sin(0.42)];                    // куда вытягивается разомкнутый хвост
+    const dir = [-D * Math.cos(0.42), -Math.sin(0.42)];                    // куда вытягивается разомкнутый хвост
     let ticked = false;
     return new Promise((res) => {
       const end = () => { svg.remove(); g.remove(); reelG.style.rotate = ''; res(); };
@@ -368,7 +396,7 @@
         }
         if (!ticked) { ticked = true; snd('tick'); buzz(10); }
         const u = Math.min(1, (el - tA) / tB), f = 1 - Math.pow(1 - u, 2.2);   // намотка: быстро в начале, мягко в конце
-        const rot = f * 360;
+        const rot = D * f * 360;
         reelG.style.rotate = `${rot}deg`;                             // барабан с ручкой крутится
         /* свободная часть ленты: остаток петли, приставленный к барабану и распрямляющийся в хвост */
         const w = f * L, rest = L - w, open = Math.min(1, u * 2.2) * 0.75;
@@ -385,11 +413,11 @@
         /* намотанная часть лежит на ободе */
         const wa = Math.min(f * Math.PI * 2, Math.PI * 1.995), Rw = rr.width * 11.3 / 24;
         wrap.setAttribute('stroke-width', lw.toFixed(2)); wrap.setAttribute('stroke-linecap', 'butt');
-        const a0 = -Math.PI / 2, a1 = a0 + wa;
-        wrap.setAttribute('d', wa > 0.02 ? `M${(cx + Rw * Math.cos(a1)).toFixed(1)} ${(cy + Rw * Math.sin(a1)).toFixed(1)} A${Rw.toFixed(1)} ${Rw.toFixed(1)} 0 ${wa > Math.PI ? 1 : 0} 0 ${(cx + Rw * Math.cos(a0)).toFixed(1)} ${(cy + Rw * Math.sin(a0)).toFixed(1)}` : '');
+        const a0 = -Math.PI / 2, a1 = a0 + D * wa;
+        wrap.setAttribute('d', wa > 0.02 ? `M${(cx + Rw * Math.cos(a1)).toFixed(1)} ${(cy + Rw * Math.sin(a1)).toFixed(1)} A${Rw.toFixed(1)} ${Rw.toFixed(1)} 0 ${wa > Math.PI ? 1 : 0} ${D > 0 ? 0 : 1} ${(cx + Rw * Math.cos(a0)).toFixed(1)} ${(cy + Rw * Math.sin(a0)).toFixed(1)}` : '');
         if (u < 1) { requestAnimationFrame(frame); return; }
         st.reel.querySelector('.lay').style.transition = 'none';
-        st.reel.querySelector('.lay').setAttribute('stroke-dasharray', '100 0');   // лента осталась тонким слоем на барабане
+        st.reel.querySelector('.lay').setAttribute('stroke-dasharray', '100 0'); st.reel.querySelector('.lay').style.strokeWidth = ''; st.reel.querySelector('.lay').style.r = '';   // лента осталась тонким слоем на барабане
         end();
       })(t0);
     });
@@ -401,20 +429,21 @@
     const x0 = parseFloat(g.style.left), y0 = parseFloat(g.style.top), gh = g.getBoundingClientRect().height || 30;
     if (el.textContent === '1') {                                 // единица — гарпун: в дуло
       const gr = st.gun.getBoundingClientRect();
-      const mx = gr.left + gr.width * 12 / 84, my = gr.top + gr.height * 21 / 44;
+      const mx = gr.left + gr.width * mxr(12) / 84, my = gr.top + gr.height * 21 / 44;
       /* единица ложится на бок (против часовой — флажок становится зубцом снизу) и встаёт в дуло остриём вперёд */
       const L = gr.width * 14 / 84, sc = L / (gh * 0.72);
+      const scl = (v) => (D > 0 ? `${v}` : `${-v} ${v}`);               // деление: единица зеркалится — остриё вправо, зубец снизу
       await g.animate([{ left: `${x0}px`, top: `${y0}px`, rotate: '0deg', scale: '1', color: '#1d1d1f' },
-        { left: `${mx - L * 1.6}px`, top: `${my - gh * 0.6}px`, rotate: '-45deg', scale: `${(1 + sc) / 2}`, color: '#1d1d1f', offset: 0.45 },
-        { left: `${mx - L * 1.1}px`, top: `${my + L * 0.12}px`, rotate: '-90deg', scale: `${sc}`, color: '#1d1d1f', offset: 0.75 },
-        { left: `${mx - L * 0.5}px`, top: `${my + L * 0.12}px`, rotate: '-90deg', scale: `${sc}`, color: '#1d1d1f' }],
+        { left: `${mx - D * L * 1.6}px`, top: `${my - gh * 0.6}px`, rotate: `${-45 * D}deg`, scale: scl((1 + sc) / 2), color: '#1d1d1f', offset: 0.45 },
+        { left: `${mx - D * L * 1.1}px`, top: `${my + L * 0.12}px`, rotate: `${-90 * D}deg`, scale: scl(sc), color: '#1d1d1f', offset: 0.75 },
+        { left: `${mx - D * L * 0.5}px`, top: `${my + L * 0.12}px`, rotate: `${-90 * D}deg`, scale: scl(sc), color: '#1d1d1f' }],
       { duration: T(700), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
       if (state !== st) { g.remove(); return; }
       st.harp = true;
       st.gun.classList.add('loaded');                             // на её месте — гарпун того же вида
       g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: T(160), fill: 'forwards' }).onfinish = () => g.remove();
       snd('pop');
-      st.gun.animate([{ translate: '0 0' }, { translate: '5px 0' }, { translate: '0 0' }], { duration: T(250) });
+      st.gun.animate([{ translate: '0 0' }, { translate: `${5 * D}px 0` }, { translate: '0 0' }], { duration: T(250) });
     } else {                                                       // ноль — замкнутая лента: размыкается и наматывается на барабан
       await windZero(st, g, x0, y0, gh);
       if (state !== st) return;
@@ -431,7 +460,7 @@
       world.querySelectorAll('.dc-say').forEach((e) => e.classList.add('out'));
       const fb = document.createElement('button');
       fb.type = 'button'; fb.className = 'hp-fire'; fb.textContent = 'БАХ!';
-      fb.style.left = `${Math.min(G.gx + G.gunW * 0.5, G.vw - 56)}px`; fb.style.top = `${G.gy + G.gunH + 10}px`;
+      fb.style.left = `${Math.max(56, Math.min(G.gx + G.gunW * 0.5, G.vw - 56))}px`; fb.style.top = `${G.gy + G.gunH + 10}px`;
       world.append(fb); st.fire = fb;
       fb.animate([{ scale: '0', opacity: 0 }, { scale: '1.3', opacity: 1, offset: 0.6 }, { scale: '1' }], { duration: T(420), easing: 'ease-out' });
       fb.addEventListener('click', (e) => { e.stopPropagation(); gunTap(st); });
@@ -443,11 +472,11 @@
   /* ---------- выстрел и катушка ---------- */
   async function gunTap(st) {
     if (st.busy || st.loadingN) return;
-    if (!MG.tools.need('harpoon')) return;
+    if (!MG.tools.need(TOOL)) return;
     if (st.phase === 'load') {                                     // не заряжено — щелчок вхолостую
       snd('nope');
       st.gun.animate([{ rotate: '0deg' }, { rotate: '-6deg' }, { rotate: '4deg' }, { rotate: '0deg' }], { duration: T(350) });
-      bubble(st.harp ? 'Сначала заряди все нули' : 'Сначала заряди ружьё: перетащи в него цифры множителя', 2400);
+      bubble(st.harp ? 'Сначала заряди все нули' : `Сначала заряди ружьё: перетащи в него цифры ${word()}`, 2400);
       return;
     }
     if (st.phase === 'aim') { await shoot(st); return; }
@@ -468,9 +497,9 @@
     st.gun.classList.remove('ready');
     st.gun.classList.add('shot');
     /* отдача, вспышка и дымок у дула */
-    st.gun.animate([{ transform: 'none' }, { transform: 'translate(14px, -4px) rotate(-9deg)', offset: 0.25 }, { transform: 'none' }], { duration: T(520), easing: 'cubic-bezier(.2,.8,.3,1)' });
+    st.gun.animate([{ transform: 'none' }, { transform: `translate(${14 * D}px, -4px) rotate(${-9 * D}deg)`, offset: 0.25 }, { transform: 'none' }], { duration: T(520), easing: 'cubic-bezier(.2,.8,.3,1)' });
     sparks(tipX(), tipY(), '#ffb21f', 10, 16);
-    for (let i = 0; i < 3; i++) setTimeout(() => puff(tipX() - 6 - i * 8, tipY() - 4 + (i % 2) * 6, -16 - i * 6), T(i * 70));
+    for (let i = 0; i < 3; i++) setTimeout(() => puff(tipX() - D * (6 + i * 8), tipY() - 4 + (i % 2) * 6, -D * (16 + i * 6)), T(i * 70));
     if (st.fire) {                                                   // кнопка «БАХ!» взрывается
       const fb = st.fire; st.fire = null;
       const r = fb.getBoundingClientRect(), wr = world.getBoundingClientRect();
@@ -481,8 +510,8 @@
       puff(bx - 14, by, -18); puff(bx + 14, by, 18);
     }
     /* гарпун летит к запятой, леска разматывается с провисом */
-    st.arrow = mk('hp-arrow'); st.arrow.innerHTML = ARROW;
-    const aw = G.cw * 0.9, from = tipX() - aw, to = commaX(st.p) - aw * 0.12;
+    st.arrow = mk('hp-arrow'); st.arrow.innerHTML = D > 0 ? ARROW : ARROW_DIV;
+    const aw = G.cw * 0.9, from = tipX() - D * aw * 0.88, to = commaX(st.p);
     st.sag = 0;
     placeArrow(st, from);
     const t0 = performance.now(), dur = T(420);
@@ -500,7 +529,7 @@
     buzz(25);
     const ay = G.y + G.rh * 0.78;
     sparks(commaX(st.p), ay, '#e0362d', 8, 15);
-    st.comma.classList.add('hook', 'lie');                          // запятая ложится на бок
+    st.comma.classList.add('hook', D > 0 ? 'lie' : 'lie-r');                          // запятая ложится на бок
     st.comma.animate([{ scale: '1' }, { scale: '1.5' }, { scale: '1' }], { duration: T(420) });
     snd('tick');
     {                                                                 // гарпун цепляется и исчезает, леска переходит на запятую
@@ -536,9 +565,20 @@
     st.cnt -= 1; setCnt(st);
     const cntEl = st.reel.querySelector('.hp-cnt'); cntEl.classList.remove('flip'); void cntEl.offsetWidth; cntEl.classList.add('flip');
     const lay = st.reel.querySelector('.lay');                       // слой разматывается: его остаток — сколько оборотов осталось
-    lay.style.transition = ''; lay.setAttribute('stroke-dasharray', `${(100 * st.cnt / st.task.z).toFixed(1)} 100`);
+    const lw = 1.6 * st.cnt / st.task.z;                             // слой тоньшает равномерно по всему кругу
+    lay.style.transition = ''; lay.style.strokeWidth = `${lw.toFixed(2)}px`; lay.style.r = `${(10.5 + lw / 2).toFixed(2)}px`;
     /* цифр не хватает — на пустом месте появляется серый 0 */
-    if (st.p + 1 > st.dEls.length) {
+    let crossed;                                                      // цифра, через которую перескакивает запятая
+    if (D < 0) {
+      crossed = st.dEls[st.p - 1];
+      if (st.p === 1) {                                               // деление: слева кончились цифры — дописываем 0
+        const z = mk('hp-d new', '0');
+        st.dEls.unshift(z); st.off -= 1; st.p += 1;
+        world.classList.add('snap'); placeAll(st); void world.offsetWidth; world.classList.remove('snap');
+        z.animate([{ scale: '.2', opacity: 0 }, { scale: '1.2', opacity: 1 }, { scale: '1' }], { duration: T(380), easing: 'ease-out' });
+        snd('pop');
+      }
+    } else if (st.p + 1 > st.dEls.length) {
       const z = mk('hp-d new', '0');
       st.dEls.push(z);
       world.classList.add('snap'); placeAll(st); void world.offsetWidth; world.classList.remove('snap');
@@ -546,9 +586,9 @@
       snd('pop');
     }
     /* запятая подтягивается на одну цифру вправо, гарпун и леска — вместе с ней */
-    const a = commaX(st.p), b = commaX(st.p + 1), aw = G.cw * 0.9, t0 = performance.now(), dur = T(500);
-    const crossed = st.dEls[st.p];                                    // цифра, через которую перескакивает запятая
-    st.p += 1;
+    if (D > 0) crossed = st.dEls[st.p];
+    const a = commaX(st.p), b = commaX(st.p + D), t0 = performance.now(), dur = T(500);
+    st.p += D;
     st.sag = -6;                                                      // леска натягивается
     st.comma.style.left = `${b - G.cw * 0.2}px`;
     st.comma.animate([{ translate: '0 0' }, { translate: '0 -12px', offset: 0.5 }, { translate: '0 0' }], { duration: dur, easing: 'ease-in-out' });
@@ -557,7 +597,7 @@
       (function go(now) {
         if (state !== st) { res(); return; }
         const k = Math.min(1, (now - t0) / dur), e = k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2;
-        placeArrow(st, a + (b - a) * e - aw * 0.12);
+        placeArrow(st, a + (b - a) * e);
         if (k < 1) requestAnimationFrame(go); else res();
       })(t0);
     });
@@ -576,12 +616,12 @@
     const tk = st.task;
     /* гарпун отцепляется и сматывается в катушку, серые нули чернеют */
     st.dEls.forEach((e) => e.classList.remove('new'));
-    st.comma.classList.remove('hook', 'lie');                       // запятая встаёт на место
+    st.comma.classList.remove('hook', 'lie', 'lie-r');                       // запятая встаёт на место
     st.reel.classList.remove('ready');
-    sparks(commaX(st.p) + G.cw * 0.2, G.y + G.rh * 0.74, '#9aa1ad', 6, 12);
+    sparks(commaX(st.p) + D * G.cw * 0.2, G.y + G.rh * 0.74, '#9aa1ad', 6, 12);
     snd('whoosh', { dur: 0.5 });
     st.reel.querySelector('.reel').animate([{ rotate: '0deg' }, { rotate: '-1080deg' }], { duration: T(560), easing: 'ease-in' });
-    const ax0 = st.ax, ax1 = reelX() - G.cw * 0.6, t0 = performance.now(), dur = T(520);
+    const ax0 = st.ax, ax1 = reelX() - D * G.cw * 0.6, t0 = performance.now(), dur = T(520);
     st.sag = 10;
     await new Promise((res) => {
       (function back(now) {
@@ -597,7 +637,11 @@
     st.reel.animate([{ scale: '2', opacity: 1 }, { scale: '2.4', opacity: 1, offset: 0.3 }, { scale: '0', opacity: 0 }], { duration: T(380), easing: 'ease-in', fill: 'forwards' });
     puff(reelX(), reelY(), 10); puff(reelX() + 8, reelY() - 6, 18);
     snd('pop');
-    if (st.p >= st.dEls.length) {                                   // запятая в конце — число целое: запятая падает
+    /* нули в конце дробной части не пишут (120 : 10 = 12) */
+    let tz = 0;
+    for (let i = st.dEls.length - 1; i >= st.p && st.dEls[i].textContent === '0'; i--) { st.dEls[i].classList.add('dim'); tz += 1; }
+    const endI = st.dEls.length - tz;
+    if (st.p >= endI) {                                             // запятая в конце — число целое: запятая падает
       st.comma.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 18px', opacity: 0, rotate: '40deg' }], { duration: T(450), easing: 'ease-in', fill: 'forwards' });
       const tg = mk('hp-tag', 'целое число!');
       tg.style.left = `${commaX(st.p)}px`; tg.style.top = `${G.y - 30}px`;
@@ -613,12 +657,12 @@
     const sp = (t, cls) => { const s2 = document.createElement('span'); s2.textContent = t; if (cls) s2.className = cls; res.append(s2); return s2; };
     const left = [];
     tk.str.split('').forEach((ch) => left.push(sp(ch, ch === ',' ? 'c' : '')));
-    left.push(sp('×')); tk.mult.split('').forEach((ch) => left.push(sp(ch))); left.push(sp('='));
+    left.push(sp(sign())); tk.mult.split('').forEach((ch) => left.push(sp(ch))); left.push(sp('='));
     const ans = tk.ans.split('').map((ch) => sp(ch, ch === ',' ? 'ans c' : 'ans'));
     const w = res.offsetWidth, sc = Math.min(1, (G.vw - 16) / w);
     res.style.transform = `translate(${Math.round((G.vw - w * sc) / 2)}px, ${G.y}px) scale(${sc.toFixed(3)})`;
     const srcs = [];
-    for (let i = lead; i < st.dEls.length; i++) { if (i === st.p && st.p < st.dEls.length) srcs.push(st.comma); srcs.push(st.dEls[i]); }
+    for (let i = lead; i < endI; i++) { if (i === st.p && st.p < endI) srcs.push(st.comma); srcs.push(st.dEls[i]); }
     ans.forEach((s2, i) => {
       const src = srcs[i];
       if (!src) return;
@@ -633,7 +677,7 @@
     setTimeout(() => { if (state === st) { snd('pop'); burst(ans[ans.length - 1], '#16a34a', 16); } }, T(800 + ans.length * 40));
     solved++;
     setStats(lvlOf(), solved);
-    resultText.textContent = `${tk.str} × ${tk.mult} = ${tk.ans}`;
+    resultText.textContent = `${tk.str} ${sign()} ${tk.mult} = ${tk.ans}`;
     after.classList.add('show');
     if (solved >= TOTAL) setTimeout(offerDone, T(900));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
@@ -643,10 +687,10 @@
     if (document.querySelector('.so-ov')) return;
     const ov = document.createElement('div');
     ov.className = 'so-ov';
-    ov.innerHTML = '<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>Ты научился умножать на 10, 100 и 1000. Идём дальше.</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>';
+    ov.innerHTML = `<div class="skip-offer" role="dialog"><h3>Уровень пройден!</h3><p>${cfg.done}</p><div class="so-row"><button type="button" class="so-go">На карту</button></div></div>`;
     document.body.appendChild(ov);
     ov.querySelector('.so-go').addEventListener('click', () => {
-      try { localStorage.setItem('mg.solved.dec10', String(Math.max(TOTAL, solved))); } catch (err) { /* нет хранилища */ }
+      try { localStorage.setItem(`mg.solved.${NAME}`, String(Math.max(TOTAL, solved))); } catch (err) { /* нет хранилища */ }
       ov.remove();
       const home = document.getElementById('home-btn');
       if (home) home.click();
@@ -659,16 +703,16 @@
     newRound();
   });
   window.addEventListener('toolchange', (e) => {
-    if (MG.active !== MG.modes.dec10 || e.detail.tool !== 'harpoon' || !state || state.phase === 'done') return;
+    if (MG.active !== MG.modes[NAME] || e.detail.tool !== TOOL || !state || state.phase === 'done') return;
     gunIn(state);
   });
   let rt = 0;
   window.addEventListener('resize', () => {
     clearTimeout(rt);
-    rt = setTimeout(() => { if (MG.active === MG.modes.dec10 && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
+    rt = setTimeout(() => { if (MG.active === MG.modes[NAME] && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
   });
 
-  MG.modes.dec10 = {
+  MG.modes[NAME] = {
     total: TOTAL,
     levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
     start() {
@@ -679,4 +723,7 @@
     stop() { if (drag) { drag.g.remove(); drag.el.classList.remove('took'); drag = null; } if (state && (state.busy || state.loadingN || state.phase === 'done')) state = null; },
     _state: () => state,
   };
+  }
+
+  build({ name: 'dec10', tool: 'harpoon', p: 'hp', done: 'Ты научился умножать и делить на 10, 100 и 1000. Идём дальше.' });
 })();

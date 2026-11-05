@@ -149,16 +149,18 @@
     joker: 'Возьми джокера — он переносит множитель на другую дробь',
     press: 'Возьми поршни — они сжимают дроби в одну',
     bolt: 'Возьми молнию — она считает',
+    rain: 'Возьми облако — оно польёт число дождём',
+    projector: 'Возьми прожектор — нули посветят на цифры',
   };
   function tickStep(id) {
     const mode = document.getElementById(`mode-${id}`), after = mode.querySelector('.after');
     if (after && after.classList.contains('show')) { hide(); return; }
     const ov = document.querySelector('.clip-ov:not(.out)');
-    if (ov) { if (ov.querySelector('.tabs')) hide(); else clipStep(ov); return; }   // планшет кувалды — те же шаги, что в «Сокращении»
+    if (ov && !ov.classList.contains('mul')) { if (ov.querySelector('.tabs')) hide(); else clipStep(ov); return; }   // планшет «на что умножаем» (.mul) — шаги даёт сам режим   // планшет кувалды — те же шаги, что в «Сокращении»
     const m = MG.modes[id], s = m && m.coachStep && m.coachStep();
     if (!s || !s.el) { hide(); return; }
     const btn = s.tool && document.querySelector(`.toolbar .tool[data-id="${s.tool}"]`);
-    if (btn && document.body.dataset.tool !== s.tool) { point(btn, TOOL_TIP[s.tool] || 'Возьми этот инструмент', `t${s.tool}`); return; }
+    if (btn && document.body.dataset.tool !== s.tool) { point(btn, s.toolText || TOOL_TIP[s.tool] || 'Возьми этот инструмент', `t${s.tool}`); return; }
     point(s.el, s.text, s.text, mode.querySelector('.fraction, .fracs'));
   }
 
@@ -169,6 +171,8 @@
     if (active && shown('mode-ext')) { tickExt(); return; }
     if (active && shown('mode-factor')) { tickStep('factor'); return; }
     if (active && shown('mode-common')) { tickStep('common'); return; }
+    if (active && shown('mode-decfr')) { tickStep('decfr'); return; }
+    if (active && shown('mode-frdec')) { tickStep('frdec'); return; }
     if (!active || !shown('mode-cancel')) { hide(); fin = false; return; }
     const after = document.getElementById('after');
     if (after && after.classList.contains('show')) { hide(); return; }

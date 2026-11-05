@@ -41,14 +41,18 @@
    *   tap        — сдвиг подсказки «Нажми!» по высоте (в единицах острова 400×300);
    *   open       — с какого прогресса основы кусок появляется (до этого на его месте облако).
    *                Кусок появляется и раньше, если у его подраздела уже есть хоть одна решённая задача. */
-  /* раздел «Десятичные дроби»: остров I (стройка) открыт — режим «Сложение и вычитание» (кран),
-   * остальные острова пока заглушки. Отдельного экрана островов у раздела нет: тап по стройке сразу открывает режим. */
+  /* раздел «Десятичные дроби»: остров I (стройка) — все режимы раздела; он открывается приближенным, как гора
+   * «Сокращение дробей». Остальные острова пока без режимов — на главном экране они облака. */
   const DEC_LEVELS = [
-    { n: 'I', title: 'Сложение и вычитание', modes: [{ id: 'decadd', name: 'Сложение и вычитание', icon: 'crane', x: 50, y: 50 }] },
-    { n: 'II', title: 'Умножение', modes: [{ id: 'decmul', name: 'Умножение в столбик', icon: 'dozer', x: 50, y: 50 }] },
-    { n: 'III', title: 'Умножение на 10, 100, 1000', modes: [{ id: 'dec10', name: 'Умножение на 10, 100, 1000', icon: 'harpoon', x: 50, y: 50 }] },
-    { n: 'IV', title: 'Деление', modes: [] },
-    { n: 'V', title: 'Уравнения', modes: [] },
+    { n: 'I', title: 'Сложение, вычитание, умножение десятичных дробей', cls: 'crane', modes: [
+      { id: 'decadd', name: 'Сложение и вычитание', icon: 'crane' },
+      { id: 'decmul', name: 'Умножение в столбик', icon: 'dozer' },
+      { id: 'dec10', name: 'Умножение и деление на 10, 100, 1000', icon: 'harpoon' } ] },
+    { n: 'II', title: 'Перевод дробей', cls: 'fog', modes: [
+      { id: 'decfr', name: 'Десятичная → обыкновенная', icon: 'rain' },
+      { id: 'frdec', name: 'Обыкновенная → десятичная', icon: 'joker' } ] },
+    { n: 'III', title: 'Деление', modes: [] },
+    { n: 'IV', title: 'Уравнения', modes: [] },
   ];
   const SECTIONS = [
     { id: 'fr', title: 'Обыкновенные дроби', levels: LEVELS,
@@ -62,12 +66,16 @@
     { id: 'dec', title: 'Десятичные дроби', levels: DEC_LEVELS,
       base: { lvl: 0, art: 'crane', cx: 500, cy: 470, s: 1.3 },
       parts: [
-        { lvl: 2, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
+        { lvl: 3, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
         { lvl: 1, soon: true, cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1 },
-        { lvl: 3, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
-        { lvl: 4, soon: true, cx: 300, cy: 404, s: 0.72, dx: -0.45, dy: -0.9, back: true },
+        { lvl: 2, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
       ] },
   ];
+
+  /* острова, у которых есть приближенный экран с режимами: все острова первого раздела + острова других разделов с рисунком.
+   * si — раздел, li — номер острова в разделе. Листать (свайп, точки) можно только в пределах своего раздела. */
+  const ISLES = SECTIONS.flatMap((sec, si) => sec.levels.map((lv, li) => ({ lv, si, li })).filter(({ lv }) => lv.cls && lv.modes.length));
+  const isleIdx = (si, li) => ISLES.findIndex((x) => x.si === si && x.li === li);
 
   /* ---------- рисунки островов (SVG 400×300) ---------- */
   const pine = (x, y, s = 1, c = '#2f8f4e') => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-3" y="-6" width="6" height="12" fill="#6b4a2b"/><path d="M0 -58 L-17 -26 L-8 -26 L-22 2 L22 2 L8 -26 L17 -26Z" fill="${c}" stroke="#1c5a33" stroke-width="2.2" stroke-linejoin="round"/><path d="M0 -58 L8 -40 L0 -42Z M8 -26 L16 -8 L6 -10Z" fill="#fff" opacity=".13"/></g>`;
@@ -215,25 +223,26 @@
    * держа их за запятую-ручку, и кладёт на строительные леса: сначала зелёное 2,74, потом сверху красное 12,1
    * (запятая точно над запятой). Пустые разряды становятся нулями — овальными окнами. Потом справа налево,
    * разряд за разрядом, из-под лесов выкатывается ответ 14,84 — фундамент. Леса убирают, ручки исчезают,
-   * появляются две крыши: целая и дробная части — два дома. Шар-баба их сносит, и всё сначала.
+   * появляются две крыши: целая и дробная части — два дома. Бульдозер у крана их сносит
+   * (вперёд — назад — вперёд: сносит дома и проезжает до края острова, потом откатывается на место), и всё сначала.
    * Вся анимация — CSS-кадры одного цикла (CR.T), координаты в единицах острова 400×300. */
   const CR = (() => {
     const T = 18, S = 26, C = 14, X0 = 40;
     const colX = [X0, X0 + S, X0 + 2 * S, X0 + 2 * S + C, X0 + 3 * S + C];   // десятки, единицы, запятая, десятые, сотые
     const AX = X0 + 2 * S + C / 2, R = colX[4] + S;                    // ось запятой — за неё держит крюк; правый край дома
     const FY = 198, GY = 172, RY = 146;                                // верх фундамента (лесов), зелёного и красного слоя
-    const PICK = 222, PICKY = 216, CARRY = 84, BALLX = 175;            // где кран берёт числа (за островом), высота переноса
+    const PICK = 222, PICKY = 216, CARRY = 84;            // где кран берёт числа (за островом), высота переноса
     const kf = (name, fr) => `@keyframes ${name} { ${fr.map(([p, v]) => `${p}% { ${v} }`).join(' ')} }`;
     const a = (rowTop) => rowTop + S - 15;                             // кончик крюка — над головкой запятой
     /* крюк: [%, x, y кончика] */
     const hook = [[0, PICK, a(PICKY)], [4, PICK, a(PICKY)], [12, PICK, a(CARRY)], [20, AX, a(CARRY)], [27, AX, a(GY)], [30, AX, a(GY)],
       [36, AX, a(CARRY)], [41, PICK, a(CARRY)], [45, PICK, a(PICKY)], [51, PICK, a(CARRY)], [58, AX, a(CARRY)], [64, AX, a(RY)], [66, AX, a(RY)],
-      [71, AX, a(CARRY)], [96, AX, a(CARRY)], [96.1, PICK, a(CARRY)], [100, PICK, a(PICKY)]];
-    const trolley = [[0, PICK], [12, PICK], [20, AX], [36, AX], [41, PICK], [51, PICK], [58, AX], [84, AX], [88, BALLX], [96, BALLX], [97, PICK], [100, PICK]];
+      [71, AX, a(CARRY)], [92, AX, a(CARRY)], [97, PICK, a(CARRY)], [100, PICK, a(PICKY)]];
+    const trolley = [[0, PICK], [12, PICK], [20, AX], [36, AX], [41, PICK], [51, PICK], [58, AX], [92, AX], [97, PICK], [100, PICK]];
     const load = (home, from, to) => [[0, `transform: translate(${PICK - AX}px, ${PICKY - home}px);`],
       ...hook.filter((h) => h[0] >= from && h[0] <= to).map(([p, x, y]) => [p, `transform: translate(${x - AX}px, ${y - a(home)}px);`]),
       [99.8, 'transform: translate(0px, 0px);'], [100, `transform: translate(${PICK - AX}px, ${PICKY - home}px);`]];
-    /* разлёт при ударе шара (91%), перед ним — свой выход блока (pre) */
+    /* разлёт при ударе бульдозера (91%), перед ним — свой выход блока (pre) */
     const HIT = 91;
     const boom = (i, pre) => {
       const dx = -(50 + ((i * 37) % 70)), dy = -(30 + ((i * 53) % 60)), r = ((i * 71) % 140) - 70;
@@ -249,32 +258,41 @@
         [p + 0.8, `opacity: 1; transform: translateY(${d}px) scale(1.05);`], [p + 3, 'opacity: 1; transform: translateY(1px) scale(1);'],
         [p + 3.4, 'opacity: 1; transform: translateY(-2px) scale(1);'], [p + 3.8, 'opacity: 1; transform: none;']];
     };
-    const base = `.cr-tro { animation: crTro ${T}s linear infinite; } .cr-hk { animation: crHk ${T}s ease-in-out infinite, crHkO ${T}s linear infinite; }
+    const base = `.cr-tro { animation: crTro ${T}s linear infinite; } .cr-hk { animation: crHk ${T}s ease-in-out infinite; }
       .cr-g { animation: crG ${T}s ease-in-out infinite; } .cr-r { animation: crR ${T}s ease-in-out infinite; }
       .cr-hd { animation: crHd ${T}s linear infinite; } .cr-sc { transform-box: fill-box; transform-origin: 50% 100%; animation: crSc ${T}s ease-in-out infinite; }
-      .cr-ball { transform-box: view-box; transform-origin: 0 0; animation: crBall ${T}s ease-in-out infinite; }
+      .cr-dz { animation: crDz ${T}s ease-in-out infinite; }
       .cr-bk { transform-box: fill-box; transform-origin: 50% 50%; } .cr-bk.rf { transform-origin: 50% 100%; }
       .cr-dust { transform-box: fill-box; transform-origin: center; opacity: 0; animation: crDust ${T}s ease-out infinite; }
       .cr-sp { transform-box: fill-box; transform-origin: center; opacity: 0; animation: crSp ${T}s ease-out infinite; }
       ${kf('crTro', trolley.map(([p, x]) => [p, `transform: translateX(${x}px);`]))}
       ${kf('crHk', hook.map(([p, x, y]) => [p, `transform: translate(${x}px, ${y}px);`]))}
-      ${kf('crHkO', [[0, 'opacity: 1;'], [85, 'opacity: 1;'], [86, 'opacity: 0;'], [96.5, 'opacity: 0;'], [98, 'opacity: 1;'], [100, 'opacity: 1;']])}
       ${kf('crG', load(GY, 4, 30))} ${kf('crR', load(RY, 45, 66))}
       ${kf('crHd', [[0, 'opacity: 1;'], [82, 'opacity: 1;'], [84, 'opacity: 0;'], [99.8, 'opacity: 0;'], [100, 'opacity: 1;']])}
       ${kf('crSc', [[0, 'opacity: 1; transform: none;'], [80, 'opacity: 1; transform: none;'], [82.5, 'opacity: 0; transform: scaleY(.2);'], [98, 'opacity: 0; transform: scaleY(.2);'], [100, 'opacity: 1; transform: none;']])}
-      ${kf('crBall', [[0, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-60deg);`], [86, `opacity: 0; transform: translate(${AX}px, 40px) rotate(0deg);`], [88, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(-60deg);`],
-        [HIT, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(0deg); animation-timing-function: ease-out;`], [HIT + 2, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(8deg);`], [HIT + 4, `opacity: 1; transform: translate(${BALLX}px, 40px) rotate(-22deg);`],
-        [HIT + 6, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-10deg);`], [100, `opacity: 0; transform: translate(${BALLX}px, 40px) rotate(-60deg);`]])}
+      ${kf('crDz', [[0, 'transform: translateX(0px);'], [84, 'transform: translateX(0px);'], [86.5, 'transform: translateX(-10px);'], [88.5, 'transform: translateX(9px);'],
+        [HIT, 'transform: translateX(-24px); animation-timing-function: linear;'], [HIT + 4.5, 'transform: translateX(-150px);'], [HIT + 5.2, 'transform: translateX(-148px);'], [99.5, 'transform: translateX(0px);'], [100, 'transform: translateX(0px);']])}
       ${kf('crDust', [[0, 'opacity: 0; transform: scale(.3);'], [HIT - 0.1, 'opacity: 0; transform: scale(.3);'], [HIT + 0.5, 'opacity: .95; transform: scale(.8);'], [HIT + 6, 'opacity: 0; transform: scale(2.2);'], [100, 'opacity: 0; transform: scale(2.2);']])}
       ${kf('crSp', [[0, 'opacity: 0; transform: scale(.3);'], [84, 'opacity: 0; transform: scale(.3);'], [86, 'opacity: 1; transform: scale(1.3) rotate(45deg);'], [90, 'opacity: 0; transform: scale(1.6) rotate(90deg);'], [100, 'opacity: 0;']])}
-      @media (prefers-reduced-motion: reduce) { .cr-tro, .cr-hk, .cr-g, .cr-r, .cr-hd, .cr-sc, .cr-bk, .cr-dust, .cr-sp, .cr-ball { animation: none !important; } .cr-ball, .cr-hd, .cr-hk, .cr-dust, .cr-sp, .cr-sc { display: none; } }`;
+      @media (prefers-reduced-motion: reduce) { .cr-tro, .cr-hk, .cr-g, .cr-r, .cr-hd, .cr-sc, .cr-bk, .cr-dust, .cr-sp, .cr-dz { animation: none !important; } .cr-hd, .cr-hk, .cr-dust, .cr-sp, .cr-sc { display: none; } }`;
     let nb = 0, extra = '';
-    /* блок, который разлетается от шара; pre — как он появляется (по умолчанию виден всегда) */
+    /* блок, который разлетается от удара; pre — как он появляется (по умолчанию виден всегда) */
     const bk = (inner, pre, cls = '') => { const i = nb++; extra += boom(i, pre); return `<g class="cr-bk${cls ? ' ' + cls : ''}" style="animation: crB${i} ${T}s ease-in-out infinite">${inner}</g>`; };
     return { T, S, C, colX, AX, R, FY, GY, RY, bk, pop, drop, css: () => base + extra, reset: () => { nb = 0; extra = ''; } };
   })();
   const crStyle = document.createElement('style');
   document.head.append(crStyle);
+  /* заглушка: остров ещё не нарисован — на его месте пушистое облако со звёздочками */
+  ART.fog = () => {
+    const puff = (x, y, sc, c) => `<g transform="translate(${x} ${y}) scale(${sc})"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="${c}" stroke="#c9d6ec" stroke-width="2.4" stroke-linejoin="round"/></g>`;
+    const star = (x, y, sc, d) => `<g transform="translate(${x} ${y}) scale(${sc})"><path class="fg-tw" d="${STAR4}" fill="#fff6b0" stroke="#d99a0b" stroke-width="2.4" style="animation-delay:${d}s"/></g>`;
+    return `<svg viewBox="0 0 400 300" aria-hidden="true"><g class="fg-isle">
+      <g class="fg-a">${puff(130, 190, 1.9, '#eef3fc')}${puff(150, 236, 1.5, '#f7f9ff')}</g>
+      <g class="fg-b">${puff(268, 178, 2.1, '#ffffff')}${puff(244, 232, 1.6, '#f3f6fd')}</g>
+      ${puff(200, 214, 1.7, '#fbfcff')}
+      ${star(116, 128, 0.9, 0)}${star(292, 112, 1, 0.7)}${star(214, 250, 0.7, 1.3)}${star(330, 214, 0.6, 2)}
+    </g></svg>`;
+  };
   ART.crane = () => {
     CR.reset();
     const { S, colX, AX, R, FY, GY, RY, bk, pop, drop } = CR;
@@ -319,11 +337,11 @@
       </g>
       <g class="cr-sc">${sc}</g>
       <g clip-path="url(#crBack)">
-        ${layer('cr-g', GY, [null, '2', null, '7', '4'], '#3f9a45', '#2f7a35')}
-        ${layer('cr-r', RY, ['1', '2', null, '1', null], '#d0473d', '#b8322a')}
+        ${layer('cr-g', GY, [null, '2', null, '7', '4'], '#d0473d', '#b8322a')}
+        ${layer('cr-r', RY, ['1', '2', null, '1', null], '#3f9a45', '#2f7a35')}
       </g>
       ${found}
-      ${bk(zero(0, GY, '#3f9a45'), pop(66))}${bk(zero(4, RY, '#d0473d'), pop(66.5))}
+      ${bk(zero(0, GY, '#d0473d'), pop(66))}${bk(zero(4, RY, '#3f9a45'), pop(66.5))}
       ${bk(roof(colX[0], colX[1] + S), pop(83), 'rf')}${bk(roof(colX[3], colX[4] + S), pop(83.6), 'rf')}
       <g fill="#fff6b0" stroke="#d99a0b" stroke-width="1.6"><path class="cr-sp" d="M${colX[1]} ${RY - 30} l2.5 -6 l2.5 6 l6 2.5 l-6 2.5 l-2.5 6 l-2.5 -6 l-6 -2.5Z"/><path class="cr-sp" d="M${colX[4]} ${RY - 26} l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2Z"/></g>
       <g stroke-linejoin="round">
@@ -340,9 +358,18 @@
         <path d="M-5 -8 h10 l-2 5 h-6Z" fill="#e8b923" stroke="#4a4f5c" stroke-width="1.6" stroke-linejoin="round"/>
         <path d="M0 -3 v2 q0 5 -4 5" fill="none" stroke="#4a4f5c" stroke-width="2.2" stroke-linecap="round"/>
       </g></g></g>
-      <g class="cr-ball"><path d="M0 0 V131" stroke="#4a4f5c" stroke-width="2.4" stroke-dasharray="4 2"/><circle cx="0" cy="145" r="15" fill="#5b616e" stroke="#2b2f3a" stroke-width="2.6"/><circle cx="-5" cy="139" r="4.5" fill="#fff" opacity=".35"/></g>
+      <g class="cr-dz" stroke-linejoin="round">                         <!-- бульдозер у крана, нож смотрит на дома -->
+        <rect x="196" y="216" width="50" height="14" rx="7" fill="#3b3f4a" stroke="#1f2229" stroke-width="2.2"/>
+        ${[203, 214, 225, 236].map((x) => `<circle cx="${x + 2}" cy="223" r="4.6" fill="#8a8f9a" stroke="#1f2229" stroke-width="1.6"/>`).join('')}
+        <rect x="204" y="199" width="38" height="18" rx="3" fill="#f2b822" stroke="#7a5a10" stroke-width="2.4"/>
+        <rect x="219" y="182" width="20" height="18" rx="3" fill="#f2b822" stroke="#7a5a10" stroke-width="2.4"/><rect x="223" y="186" width="12" height="8" rx="1.5" fill="#cfe4f5" stroke="#7a5a10" stroke-width="1.6"/>
+        <rect x="209" y="188" width="4" height="12" rx="1" fill="#4a4f5c"/>
+        <path d="M204 209 L192 213 M204 203 L192 207" stroke="#4a4f5c" stroke-width="3" stroke-linecap="round"/>
+        <path d="M184 199 Q180 214 184 230 L193 230 Q190 214 193 199Z" fill="#c9ccd3" stroke="#4a4f5c" stroke-width="2.4"/>
+        <path d="M204 207 h38" stroke="#7a5a10" stroke-width="1.2" opacity=".6"/>
+      </g>
       ${[0, 1, 2, 3].map((i) => `<circle class="cr-dust" cx="${colX[4] + 22 - i * 9}" cy="${GY - 2 + (i % 2) * 18}" r="${9 + i * 2}" fill="#e7dcc6" stroke="#b9a882" stroke-width="1.6"/>`).join('')}
-      ${cone(14, 240, 0.9)}${cone(216, 238)}${cone(236, 244, 0.8)}
+      ${cone(14, 240, 0.9)}${cone(298, 242, 0.85)}
       <g stroke="#6a4d27" stroke-width="2.2" stroke-linejoin="round"><rect x="306" y="212" width="30" height="18" rx="1.5" fill="#d9a85d"/><path d="M306 221 h30 M321 212 v18" fill="none" stroke-width="1.5"/>
         <rect x="338" y="202" width="26" height="28" rx="1.5" fill="#c9954d"/><path d="M338 216 h26" fill="none" stroke-width="1.5"/></g>
       ${pine(378, 232, 0.62, '#3aa05a')}
@@ -467,6 +494,10 @@
     .hm-sub + .isle { margin-top: 10%; }
     .hm-foot { margin-top: 18%; }
     .isle-art { position: relative; aspect-ratio: 4 / 3; width: 78%; }
+    .fg-a { animation: fgDrift 7s ease-in-out infinite; } .fg-b { animation: fgDrift 8s ease-in-out -3s infinite reverse; }
+    .fg-tw { transform-box: fill-box; transform-origin: center; animation: fgTw 2.4s ease-in-out infinite; }
+    @keyframes fgDrift { 50% { transform: translateX(8px); } }
+    @keyframes fgTw { 50% { transform: scale(.55) rotate(25deg); opacity: .6; } }
     .isle.r .isle-art { margin-left: auto; } .isle.l .isle-art { margin-right: auto; }
     .isle-art > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 14px rgba(0, 0, 0, .28)); animation: hmFloat 6s ease-in-out infinite; }
     .isle:nth-child(odd) .isle-art > svg { animation-delay: -2.5s; }
@@ -507,6 +538,7 @@
     .seesaw { animation: hmSee 4s ease-in-out infinite alternate; }
     @keyframes hmSee { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
     .lv { position: absolute; top: 2%; z-index: 3; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+    .lv .txt.long { font-size: clamp(.8rem, 3.5vw, 1.2rem); max-width: 11em; }
     .isle.r .lv { left: 1%; } .isle.l .lv { right: 1%; flex-direction: row-reverse; text-align: right; }
     .lv .num { font-weight: 900; font-size: clamp(2.6rem, 11vw, 4rem); line-height: 1; color: #fff1cf; -webkit-text-stroke: 7px #5a3512; paint-order: stroke fill; text-shadow: 0 5px 0 #5a3512; letter-spacing: .02em; }
     .lv .txt { font-weight: 900; color: #fff1cf; -webkit-text-stroke: 5px #5a3512; paint-order: stroke fill; font-size: clamp(1rem, 4.4vw, 1.5rem); line-height: 1.05; text-shadow: 0 3px 0 #5a3512; text-transform: uppercase; max-width: 9em; }
@@ -664,15 +696,17 @@
     col.innerHTML = `<div class="hm-title">${SECTIONS[0].title}</div><p class="hm-sub">Выбери остров</p>`;
     col.insertAdjacentHTML('beforeend', '<button class="hm-back" type="button">← Разделы<i class="gb">!</i></button>');
     let seq = 0;
-    LEVELS.forEach((lv, i) => {
-      const side = i % 2 ? 'l' : 'r';
+    let lastSi = 0;
+    ISLES.forEach(({ lv, li, si }) => {
+      if (si !== lastSi) { seq = 0; lastSi = si; }                      // номера режимов — свои в каждом разделе
+      const side = li % 2 ? 'l' : 'r';
       const sec = document.createElement('section');
       sec.className = `isle ${side}`;
       sec.innerHTML = `
         <div class="prog"></div>
-        <div class="lv"><span class="num">${lv.n}</span><span class="txt">${lv.title}</span></div>
+        <div class="lv"><span class="num">${lv.n}</span><span class="txt${lv.title.length > 30 ? ' long' : ''}">${lv.title}</span></div>
         <div class="isle-art">${ART[lv.cls]()}
-          ${DECO[lv.cls].map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
+          ${(DECO[lv.cls] || []).map(([ic, x, y, fx], k) => `<div class="deco${fx ? ' ' + fx : ''}" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.8}s">${icon(ic)}</div>`).join('')}
         </div>
         <div class="modes${lv.modes.length > 4 ? ' n5' : ''}">${lv.modes.map((m) => `<button class="pin" type="button" data-mode="${m.id}" aria-label="${m.name}"><span class="dot">${icon(m.icon)}</span><span class="no">${++seq}</span><span class="nm">${m.name}</span><span class="st" hidden></span></button>`).join('')}</div>`;
       col.append(sec);
@@ -689,7 +723,7 @@
     root.querySelectorAll('.pin').forEach((b) => b.addEventListener('click', () => MG.go && MG.go(b.dataset.mode)));
     const isles = [...col.querySelectorAll('.isle')];
     col.querySelector('.hm-back').addEventListener('click', goSections);
-    col.insertAdjacentHTML('beforeend', `<div class="hm-dots">${LEVELS.map(() => '<i></i>').join('')}</div>`);
+    col.insertAdjacentHTML('beforeend', `<div class="hm-dots">${ISLES.map(({ si }) => `<i data-si="${si}"></i>`).join('')}</div>`);
     col.querySelectorAll('.hm-dots i').forEach((d, k) => d.addEventListener('click', () => switchTo(k)));
     let sx = 0, sy = 0, st = 0, tracking = false;
     root.addEventListener('touchstart', (e) => { if (openI < 0 || e.touches.length !== 1 || e.target.closest('.hm-dock, .hm-sheet')) { tracking = false; return; } tracking = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }, { passive: true });
@@ -769,7 +803,7 @@
   const GOAL = 10;
   /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
   /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
-  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul', 'dec10'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
+  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul', 'dec10', 'decfr', 'frdec'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;
@@ -781,7 +815,7 @@
   /* открыть остров подраздела сразу приближенным (списка островов больше нет: острова видны на острове раздела) */
   function openIsle(i) {
     const els = isleEls(), col = root.querySelector('.hm-col');
-    i = Math.max(0, Math.min(LEVELS.length - 1, i));
+    i = Math.max(0, Math.min(ISLES.length - 1, i));
     col.classList.add('zoomed', 'noanim');
     els.forEach((s, k) => { s.classList.remove('fade', 'sw', 'sw-in', 'open'); s.classList.toggle('gone', k !== i); s.style.setProperty('--sx', '0px'); });
     els[i].classList.add('open');
@@ -789,9 +823,12 @@
     requestAnimationFrame(() => requestAnimationFrame(() => col.classList.remove('noanim')));
     restart();
   }
-  function dotsUpdate() { root.querySelectorAll('.hm-dots i').forEach((d, k) => d.classList.toggle('on', k === openI)); }
+  function dotsUpdate() {                                               // точки — только острова того же раздела
+    const si = openI >= 0 ? ISLES[openI].si : -1, same = ISLES.filter((x) => x.si === si).length;
+    root.querySelectorAll('.hm-dots i').forEach((d, k) => { d.classList.toggle('on', k === openI); d.style.display = ISLES[k].si === si && same > 1 ? '' : 'none'; });
+  }
   function switchTo(k) {
-    if (busy || openI < 0 || k < 0 || k >= LEVELS.length || k === openI) return; busy = true;
+    if (busy || openI < 0 || k < 0 || k >= ISLES.length || k === openI || ISLES[k].si !== ISLES[openI].si) return; busy = true;
     const els = isleEls(), col = root.querySelector('.hm-col'), cur = els[openI], nxt = els[k], dir = k > openI ? 1 : -1;
     cur.style.setProperty('--sx', `${-dir * 50}px`); cur.classList.add('sw');
     setTimeout(() => {
@@ -807,7 +844,7 @@
   }
   function refresh() {
     root.querySelectorAll('.isle').forEach((sec, i) => {
-      const ms = LEVELS[i].modes, done = ms.reduce((a, m) => a + Math.min(goalOf(m.id), getSolved(m.id)), 0);
+      const ms = ISLES[i].lv.modes, done = ms.reduce((a, m) => a + Math.min(goalOf(m.id), getSolved(m.id)), 0);
       sec.querySelector('.prog').innerHTML = ringSvg(done, ms.reduce((a, m) => a + goalOf(m.id), 0));
     });
     root.querySelectorAll('.pin').forEach((b) => {
@@ -1103,7 +1140,7 @@
         : ready ? (ready > 1 ? 'Куски острова готовы — нажми на них!' : 'Кусок острова готов — нажми на него!')
         : opening.length ? `Реши «${sec.levels[sec.base.lvl || 0].title}» на ${Math.round(nextOpen * 100)}% — откроется новый остров`
         : on === sec.parts.length ? 'Все части острова на месте!'
-        : sec.parts.every((pt) => pt.soon) ? `Нажми на стройку — режим «${sec.levels[sec.base.lvl || 0].title}» открыт` : 'Решай задачи — и куски острова подлетят ближе';
+        : sec.parts.every((pt) => pt.soon) ? `Нажми на остров «${sec.levels[sec.base.lvl || 0].title}» — там режимы раздела` : 'Решай задачи — и куски острова подлетят ближе';
     });
     root.classList.toggle('gift-on', gifts > 0);
   }
@@ -1226,7 +1263,14 @@
     openI = -1;
   }
   async function enterSection(si, lvl, ev) {
-    if (busy) return; busy = true;
+    if (busy) return;
+    const ii = isleIdx(si, lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0);
+    if (ii < 0) {                                                       // у острова ещё нет экрана с режимами
+      const lv = SECTIONS[si].levels[lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0];
+      if (lv && lv.modes.length && MG.go) { snd('pin'); MG.go(lv.modes[0].id); return; }   // остров ещё не нарисован, но режим есть — сразу в режим
+      snd('pop'); toast(`Скоро!<small>Остров «${lv ? lv.title : SECTIONS[si].title}» строится</small>`); return;
+    }
+    busy = true;
     const sx = root.querySelector('.sx-col'), col = root.querySelector('.hm-col');
     snd('pin');
     if (!reduced()) {
@@ -1234,24 +1278,24 @@
       sx.style.transformOrigin = ev ? `${ev.clientX - r.left}px ${ev.clientY - r.top}px` : '50% 50%';
       await sx.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.7)', opacity: 0 }], { duration: 380, easing: 'cubic-bezier(.55,0,.85,.35)' }).finished.catch(() => {});
     }
-    if (SECTIONS[si].levels !== LEVELS) {                              // раздел без экрана островов: сразу режим острова
-      const lv = SECTIONS[si].levels[lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0];
-      busy = false;
-      if (lv && lv.modes.length && MG.go) MG.go(lv.modes[0].id);
-      return;
-    }
-    setView('islands'); refresh(); openIsle(lvl >= 0 ? lvl : SECTIONS[si].base.lvl || 0);   // тап по основе — остров I
+    setView('islands'); refresh(); openIsle(ii);                        // тап по основе — остров I раздела
     if (!reduced()) col.animate([{ transform: 'scale(.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 460, easing: 'cubic-bezier(.2,.9,.3,1)' });
     busy = false;
+  }
+  /* показать на главном экране нужный раздел (второй и дальше — ниже по прокрутке) */
+  function scrollToSec(si) {
+    const t = si > 0 && root.querySelector(`.sx-sec[data-s="${si}"]`);
+    root.scrollTop = t ? t.offsetTop - 20 : 0;
   }
   async function goSections() {
     closeSheet();
     if (busy || view === 'sections') return;
     busy = true;
+    const fromSi = openI >= 0 ? ISLES[openI].si : 0;
     const sx = root.querySelector('.sx-col'), col = root.querySelector('.hm-col');
     if (!reduced()) await col.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(.8)', opacity: 0 }], { duration: 280, easing: 'cubic-bezier(.5,0,.8,.4)' }).finished.catch(() => {});
     resetZoom();
-    setView('sections'); root.scrollTop = 0;
+    setView('sections'); scrollToSec(fromSi);                           // вернуться к тому разделу, откуда пришли
     if (!reduced()) { sx.style.transformOrigin = '50% 45%'; sx.animate([{ transform: 'scale(1.5)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 480, easing: 'cubic-bezier(.2,.9,.3,1)' }); }
     busy = false;
     refreshSections(true);
@@ -1328,20 +1372,20 @@
   let built = false;
   /* v: 'sections' | 'islands'; mode — из какого режима вернулись (открываем его остров) */
   function show(v, mode) {
-    const decSi = SECTIONS.findIndex((sec) => sec.levels !== LEVELS && sec.levels.some((l) => l.modes.some((m) => m.id === mode)));
-    if (decSi >= 0) v = 'sections';                                    // из режима раздела без экрана островов — к его большому острову
+    if (mode && v === 'islands' && !ISLES.some((x) => x.lv.modes.some((m) => m.id === mode))) v = 'sections';   // остров режима ещё без экрана — к разделам
     if (!built) { build(); built = true; } else refresh();
     if (v === 'sections') resetZoom();
     setView(v || view);
     root.hidden = false;
     document.body.classList.add('is-home');
     if (view === 'islands') {
-      const li = mode ? LEVELS.findIndex((l) => l.modes.some((m) => m.id === mode)) : -1;
+      const li = mode ? ISLES.findIndex((x) => x.lv.modes.some((m) => m.id === mode)) : -1;
       openIsle(li >= 0 ? li : openI >= 0 ? openI : 0);
     }
     root.scrollTop = 0;
     if (view === 'sections') refreshSections(true);
-    if (decSi >= 0) { const t = root.querySelector(`.sx-sec[data-s="${decSi}"]`); if (t) root.scrollTop = t.offsetTop - 20; }
+    const mi = mode ? ISLES.findIndex((x) => x.lv.modes.some((m) => m.id === mode)) : -1;
+    if (view === 'sections' && mi >= 0) scrollToSec(ISLES[mi].si);
     startOrbit(); startJaws(); startRocket();
   }
   function hide() { root.hidden = true; const sh = root.querySelector('.hm-sheet'); if (sh) sh.classList.remove('show'); document.body.classList.remove('is-home'); }
