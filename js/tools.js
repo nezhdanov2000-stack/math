@@ -111,6 +111,28 @@
       <path d="M8 10 h20" stroke="#fff" stroke-opacity=".55" stroke-width="2"/>
       <path d="M35 12 H41 V25 H23 V30" fill="none" stroke="#4a4f5c" stroke-width="2.4"/>
       <rect x="19.5" y="29" width="7" height="16" rx="3" fill="#c98f4a" stroke="#6b4423" stroke-width="1.8"/></svg>`,
+    burger: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M6.5 21 Q6.5 7 24 7 Q41.5 7 41.5 21 Z" fill="#eca45c" stroke="#2b2b33" stroke-width="2"/>
+      <path d="M15 12.5 l1.6 -.8 M22 10.5 l1.8 0 M30 12 l1.6 .8 M19 16 l1.6 -.4 M27 15.5 l1.6 .4" stroke="#fff6e0" stroke-width="1.6"/>
+      <rect x="8" y="21.6" width="32" height="3.6" rx="1.8" fill="#d0503a" stroke="#7a2c1c" stroke-width="1.1"/>
+      <rect x="5.5" y="25.4" width="37" height="6.4" rx="3.2" fill="#8a5a1c" stroke="#5a3510" stroke-width="1.5"/>
+      <rect x="8" y="32" width="32" height="3.2" rx="1.6" fill="#b5d27a" stroke="#6f8f3c" stroke-width="1.1"/>
+      <path d="M7.5 35.6 H40.5 Q40.5 42.5 33.5 42.5 H14.5 Q7.5 42.5 7.5 35.6 Z" fill="#eca45c" stroke="#2b2b33" stroke-width="2"/></svg>`,
+    tnt: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(-22 24 28)">
+      <path class="fz" d="M24 13 C24 7 28.5 6.5 31 4.5 S35 0.5 38.5 1.5" fill="none" stroke="#3f3226" stroke-width="2.1"/>
+      <path class="fz2" d="M24 13 C24 7 28.5 6.5 31 4.5 S35 0.5 38.5 1.5" fill="none" stroke="#9a8468" stroke-width=".8" stroke-dasharray="1.2 1.4"/>
+      <g class="sp" transform="translate(38.5 1.5)"><circle r="2.6" fill="#fff7c2" opacity=".9"/><path d="M0 -5 L1.2 -1.2 L5 0 L1.2 1.2 L0 5 L-1.2 1.2 L-5 0 L-1.2 -1.2Z" fill="#fde047" stroke="#f97316" stroke-width=".9"/></g>
+      <path d="M17 14 V44 A7 2.5 0 0 0 31 44 V14 Z" fill="#cf2a1f" stroke="#5a0f0a" stroke-width="1.4"/>
+      <path d="M27.4 14.6 V44.8 A7 2.5 0 0 0 30.4 44 V14.6 Z" fill="#8f160f" opacity=".55"/>
+      <path d="M17.7 14.6 V44 A7 2.5 0 0 0 19.6 45.4 V14.6 Z" fill="#f07a68" opacity=".55"/>
+      <rect x="20.6" y="15.5" width="1.5" height="27.5" rx=".75" fill="#ffd9d0" opacity=".75"/>
+      <path d="M17.4 17.3 Q24 19.4 30.6 17.3 M17.4 41.6 Q24 43.7 30.6 41.6" fill="none" stroke="#8b1510" stroke-width=".9" opacity=".8"/>
+      <path d="M17.2 24 Q24 26.3 30.8 24 V34.5 Q24 36.8 17.2 34.5 Z" fill="#f2e3c2" stroke="#5a0f0a" stroke-width="1"/>
+      <path d="M27.6 24.9 Q29.4 24.6 30.8 24 V34.5 Q29.4 35.1 27.6 35.4 Z" fill="#c9b48a" opacity=".7"/>
+      <text x="24" y="31.6" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="5.2" fill="#9f1a12" letter-spacing=".2">TNT</text>
+      <ellipse cx="24" cy="14" rx="7" ry="2.5" fill="#e8574a" stroke="#5a0f0a" stroke-width="1.3"/>
+      <ellipse cx="24" cy="14" rx="4.4" ry="1.4" fill="#7c120c"/>
+      <circle cx="24" cy="13.6" r=".9" fill="#2a1d14"/></g></svg>`,
     projector: `<svg viewBox="0 0 48 48" stroke-linejoin="round" stroke-linecap="round">
       <path d="M18 25 L6 2 H42 L30 25 Z" fill="#fde68a" opacity=".8"/>
       <path d="M21 25 L15 6 M27 25 L33 6" stroke="#fbbf24" stroke-width="1.6" opacity=".9"/>
@@ -158,6 +180,8 @@
     harpoonB: { label: 'Гарпун', tip: 'заряди единицу (гарпун) и нули (обороты катушки), выстрели в запятую и подтяни её влево на столько цифр, сколько нулей', hot: [44, 10] },
     roller: { label: 'Валик', tip: 'переносит краску с цифр после запятой у множителей на ответ — запятая встаёт слева от покрашенных цифр', hot: [20, 12] },
     dozer: { label: 'Бульдозер', tip: 'красит ряд: умножает верхнее число на одну цветную цифру нижнего', hot: [5, 30] },
+    burger: { label: 'Бургер', tip: 'покажет, как деление становится дробью: делимое — верхняя булка (числитель), делитель — нижняя (знаменатель); перетащи числа на места', hot: [24, 24] },
+    tnt: { label: 'Динамит', tip: 'нажми на дробь и раздели уголком числитель на знаменатель — если всё верно, положи динамит к дроби, и она взорвётся', hot: [24, 24] },
     projector: { label: 'Прожектор', tip: 'нажми на нули знаменателя 10, 100, 1000 — они посветят на цифры, и дробь станет десятичной', hot: [24, 6] },
     crane: { label: 'Кран', tip: 'переносит числа на строительные леса: запятая встаёт точно под запятой', hot: [7, 36] },
   };
@@ -173,6 +197,8 @@
     whole: ['rain', 'bridge', 'hammer', 'glove'],
     prop: ['conveyor', 'cups', 'axe', 'hammer', 'glove'],
     shift: ['heli', 'bolt', 'conveyor'],
+    decshift: ['heli', 'bolt', 'conveyor'],
+    decprop: ['joker', 'harpoon', 'conveyor', 'cups', 'axe', 'hammer', 'glove'],
     br: ['box', 'joker', 'press', 'bolt', 'rain', 'hammer', 'glove', 'rocket'],
     mixmd: ['teeth', 'fan', 'bridge', 'hammer', 'glove'],
     mixed: ['heli', 'hammer', 'maw', 'joker', 'press', 'bolt', 'glove'],
@@ -180,6 +206,9 @@
     decmul: ['dozer', 'roller'],
     decfr: ['rain'],
     frdec: ['joker', 'bolt', 'projector', 'glove'],
+    frdiv: ['tnt'],
+    decdiv: ['burger', 'joker', 'harpoon', 'hammer', 'glove', 'bolt', 'axe'],
+    decdivfr: ['rain', 'fan', 'bridge', 'hammer', 'glove', 'bolt', 'axe', 'joker', 'projector'],
     dec10: ['harpoon'],
   };
 

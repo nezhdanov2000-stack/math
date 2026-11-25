@@ -265,6 +265,20 @@
     .clip-w.mul .mres .pvf { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
     .clip-w.mul .mres .pvl { align-self: stretch; border-top: 2.5px solid currentColor; margin: 2px 0; }
     .clip-w.mul .mres .mw { font-size: 2.2rem; color: inherit; }
+    .clip-ov.dock.dec .msg.info { color: #2a6f4a; }
+    .clip-w.dec .ld .ldg.cm { position: relative; }
+    .clip-w.dec .ld .ldg.cm::after { content: ','; position: absolute; right: -6px; bottom: 2px; transition: color .8s, text-shadow .8s; }
+    .clip-w.dec .ld .ldg.cm.hot::after { color: #e11d2a; text-shadow: 0 0 10px rgba(225,29,42,.7); }
+    .clip-w.dec .ld .ldg.ph { transition: color .8s, text-shadow .8s; }
+    .clip-w.dec .ld .ldg.ph.hot { color: #e11d2a; text-shadow: 0 0 10px rgba(225,29,42,.7); }
+    .clip-w.dec .ld .ld-q .qx.qc { transition: color .8s, text-shadow .8s; }
+    .clip-w.dec .ld .ld-q .qx.hot { color: #e11d2a; text-shadow: 0 0 10px rgba(225,29,42,.7); }
+    .dc-run { position: fixed; z-index: 70; line-height: 1; color: #e11d2a; text-shadow: 0 0 10px rgba(225,29,42,.6); pointer-events: none; }
+    .clip-w.dec .ld .ld-q .qx { display: grid; place-items: center; height: 38px; min-width: 22px; font-weight: 800; }
+    .clip-w.dec .ld .ld-q .qx.qc { min-width: 10px; margin: 0 -2px; }
+    .clip-w.dec .ld .ld-q .lc { width: 30px; }
+    .clip-w.dec .dw { font-family: var(--ui-font, 'Nunito', system-ui, sans-serif); font-weight: 900; }
+    .clip-w.dec .dqa { min-width: 1.6em; width: auto; padding: 0 6px; }
     @keyframes clDockIn { from { translate: -50% 105%; } }
     @keyframes clDockOut { to { translate: -50% 105%; } }
     @media (max-height: 700px) { .clip-ov.dock .k, .clip-ov.dock.dv .k { height: 46px; font-size: 2.3rem; } }
@@ -708,8 +722,11 @@
       const W = opt.w ? `<span class="mw">${opt.w}</span>` : '';
       const work = document.createElement('div');
       work.className = 'clip-w mul';
-      work.innerHTML = `<div class="cw-head">${W}<span class="pvf cw-f"><span class="pvn">${n}</span><span class="pvl"></span><span class="pvn">${d}</span></span>
-        <span class="clip-ans"><span class="pe">=</span>${W}<span class="pvf"><span class="pvn">${n}·<span class="pvb on mb"></span></span><span class="pvl"></span><span class="pvn">${d}·<span class="pvb on mb"></span></span></span></span></div>
+      const head = opt.headHTML                                       // уравнение вместо дроби (MG.deceq): своя запись, клетки .mb — под множитель
+        ? `<div class="cw-head eqh"><span class="cw-f">${opt.headHTML}</span><span class="clip-ans">${opt.ansHTML}</span></div>`
+        : `<div class="cw-head">${W}<span class="pvf cw-f"><span class="pvn">${n}</span><span class="pvl"></span><span class="pvn">${d}</span></span>
+        <span class="clip-ans"><span class="pe">=</span>${W}<span class="pvf"><span class="pvn">${n}·<span class="pvb on mb"></span></span><span class="pvl"></span><span class="pvn">${d}·<span class="pvb on mb"></span></span></span></span></div>`;
+      work.innerHTML = `${head}
         <div class="cw-body"><div class="mrow"><span class="mslot"></span><div class="sk"><div class="mres"><span class="pe">=</span>${W}<span class="pvf"><span class="pvn rn"></span><span class="pvl"></span><span class="pvn rd"></span></span></div></div></div></div>`;
       ov.append(work);
       const slotEl = work.querySelector('.mslot');
@@ -797,6 +814,283 @@
     });
   }
 
+  /* ============================================================
+   * Планшет «деление уголком → десятичная дробь»: MG.clip.askDec(n, d, fromEl, { w }) → Promise<'0,375' | null>.
+   * Делим n на d уголком (как вкладка I в «Выделить целое»). Когда сносить нечего, а остаток не 0, к делимому
+   * дописывается 0 (в первый раз — с запятой в делимом и в частном), пока остаток не станет 0 (дроби — только
+   * конечные). Каждый шаг: цифра частного → произведение → остаток. Пока планшет открыт: ov.dataset.want — какую
+   * клавишу нажать следующей, ov.dataset.tip — подсказка к шагу (для пальца-подсказки).
+   * ============================================================ */
+  function askDec(n, d, fromEl, opt = {}) {
+    return new Promise((resolve) => {
+      const ov = document.createElement('div');
+      ov.className = 'clip-ov dock dv mul dec';
+      ov.innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="clPencil" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/></filter></svg>
+        <div class="clip" role="dialog" aria-label="Раздели уголком"><div class="metal"></div>
+        <div class="paper"><button class="cls" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path class="ink2" pathLength="1" d="M5.500 6.500C9.500 9.500 14 14 19 19.500" stroke="#d6362d" stroke-width="1.400"/><path class="ink" pathLength="1" d="M5 5.500C9 9 14 13.500 18.500 19" stroke="#d6362d" stroke-width="3"/><path class="ink b" pathLength="1" d="M19 5C15 9 10.500 14 5.500 19.500" stroke="#d6362d" stroke-width="3"/></svg></button><div class="msg"></div><div class="pad">${[7, 8, 9, 4, 5, 6, 1, 2, 3].map((d) => `<button class="k" type="button" data-d="${d}">${d}</button>`).join('')}<button class="k go" type="button" aria-label="Принять"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path class="ink2" pathLength="1" d="M4.500 13.500C7 14.500 8.500 16.500 10 19.500 12.500 13 16 8.500 21 5" stroke="#2a8f55" stroke-width="1.400"/><path class="ink" pathLength="1" d="M4 12.500C6.500 13.500 8.500 16 9.800 19 12 12.500 15.500 8 20.500 4.500" stroke="#2a8f55" stroke-width="3.200"/></svg></button><button class="k" type="button" data-d="0">0</button><button class="k er" type="button" data-d="x" aria-label="Стереть"><svg viewBox="0 0 24 24" fill="none" stroke="#5a463c" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.500 3.500 12 9 18.500H20.500V5.500Z"/><path d="M12.500 9.500 17 14.500M17 9.500 12.500 14.500"/></svg></button></div></div></div>`;
+      const board = ov.querySelector('.clip');
+      board.append(ov.querySelector('.cls'));
+      document.body.append(ov);
+      const W = opt.w ? `<span class="mw">${opt.w}</span>` : '';
+      const work = document.createElement('div');
+      work.className = 'clip-w mul dec';
+      work.innerHTML = `<div class="cw-head">${W}<span class="pvf cw-f"><span class="pvn">${n}</span><span class="pvl"></span><span class="pvn">${d}</span></span>
+        <span class="clip-ans"><span class="pe">=</span>${opt.w ? `<span class="dw">${opt.w} +</span>` : ''}<span class="pvb on dqa"></span></span></div>
+        <div class="cw-body"><div class="sk"><div class="pane"><div class="ld"></div></div></div></div>`;
+      ov.append(work);
+      const msg = ov.querySelector('.msg');
+      const ansEl = work.querySelector('.dqa');
+      const say = (t, info) => { msg.textContent = t || ''; msg.classList.toggle('info', !!info); };
+
+      /* ---------- камера: дробь переезжает в карточку над планшетом ---------- */
+      const EASE = 'cubic-bezier(.3,1.15,.4,1)';
+      const flipVec = () => {
+        const head = work.querySelector('.cw-f');
+        if (!fromEl || !head) return null;
+        const src = fromEl.querySelector('.fd-fr, .fr') || fromEl;
+        const sr = src.getBoundingClientRect(), tr = head.getBoundingClientRect();
+        const sc = (parseFloat(getComputedStyle(src).fontSize) / parseFloat(getComputedStyle(head).fontSize)) || 1;
+        return { head, t: `translate(${(sr.left + sr.width / 2) - (tr.left + tr.width / 2)}px, ${(sr.top + sr.height / 2) - (tr.top + tr.height / 2)}px) scale(${sc})` };
+      };
+      const fit = () => {
+        const body = work.querySelector('.cw-body'), head = work.querySelector('.cw-head');
+        body.style.scale = '1'; body.style.transformOrigin = '50% 0';
+        const avail = work.clientHeight - head.offsetHeight - 16, nat = body.scrollHeight;
+        body.style.scale = String(Math.min(1, Math.max(0.5, avail / Math.max(1, nat))));
+      };
+      if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(work.querySelector('.cw-body .sk'));
+      let flown = false;
+      const cam = () => {
+        const tabTop = innerHeight - board.offsetHeight;
+        const top = Math.max(130, innerHeight * 0.15);
+        work.style.top = `${top}px`; work.style.height = `${Math.max(140, tabTop - 10 - top)}px`;
+        fit();
+        if (flown) return;
+        flown = true;
+        const v = flipVec();
+        work.style.visibility = 'visible';
+        if (v) v.head.animate([{ transform: v.t }, { transform: 'none' }], { duration: 650, easing: EASE });
+        work.querySelectorAll('.cw-body, .clip-ans, .mw').forEach((e) => e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 380, fill: 'backwards' }));
+        if (fromEl) { fromEl.style.transition = 'none'; fromEl.style.opacity = '0'; }
+      };
+      requestAnimationFrame(cam);
+
+      /* ---------- шаги деления ----------
+       * Первое неполное делимое — наименьшее начало числителя, которое не меньше делителя; если весь числитель
+       * меньше — берём его целиком (цифра частного 0). Каждый шаг по одному шаблону: цифра частного → произведение →
+       * остаток (и для нуля: 0 · 5 = 0, 4 − 0 = 4). Сносить нечего, а остаток не 0 — «из воздуха» появляется 0
+       * (в первый раз вместе с запятой в делимом и в частном), он сносится, и деление идёт дальше. */
+      const digs = String(n).split('').map(Number), intLen = digs.length;
+      const steps = [];
+      { let end = 0, cur = digs[0];
+        while (cur < d && end + 1 < intLen) { end += 1; cur = cur * 10 + digs[end]; }
+        for (let guard = 0; guard < 12; guard++) {
+          const q = Math.floor(cur / d), prod = q * d, rem = cur - prod;
+          steps.push({ cur, q, prod, rem, end });
+          if (end + 1 >= digs.length) { if (rem === 0) break; digs.push(0); }   // фантомный ноль
+          end += 1; cur = rem * 10 + digs[end];
+        } }
+      const L = digs.length;
+      const cw = L >= 6 ? 30 : 34, PH = 210;
+      const ld = work.querySelector('.ld');
+      const digRow = digs.slice(0, intLen).map((g, i) => `<span class="ldg" style="grid-column:${i + 1}">${g}</span>`).join('');
+      ld.innerHTML = `<div class="ld-l" style="--L:${L};--cw:${cw}px"><div class="lr lt">${digRow}</div></div><div class="ld-r"><div class="ld-d">${d}</div><div class="ld-q"></div></div>`;
+      const left = ld.querySelector('.ld-l'), qBox = ld.querySelector('.ld-q'), topRow = left.querySelector('.lt');
+      let comma = false, shown = intLen;                        // shown — сколько цифр делимого уже на экране
+      const cells = [];
+      steps.forEach((s, i) => {
+        cells.push({ kind: 'q', i, exp: String(s.q), hint: `Сколько раз ${d} помещается в ${s.cur}?` });
+        cells.push({ kind: 'p', i, exp: String(s.prod), hint: `${d} × ${s.q} = ?` });
+        cells.push({ kind: 'r', i, exp: String(s.rem), hint: `${s.cur} − ${s.prod} = ?` });
+      });
+      let ci = 0, done = false, wait = false, lastRow = topRow;
+      const paintAns = () => {
+        ansEl.textContent = [...qBox.children].map((c) => (c.classList.contains('lc') ? (c.classList.contains('done') ? c.textContent : '') : c.textContent)).join('');
+      };
+      function mount(c) {
+        const s = steps[c.i];
+        const el = document.createElement('button');
+        el.type = 'button'; el.className = `bx lc ${c.kind}`;
+        c.el = el; c.val = '';
+        if (c.kind === 'q') qBox.append(el);
+        else {
+          const len = c.exp.length;
+          const row = document.createElement('div'); row.className = 'lr';
+          el.style.gridColumn = `${s.end - len + 2} / span ${len}`;
+          row.dataset.step = c.i; row.dataset.k = c.kind;
+          row.append(el); left.append(row);
+          if (c.kind === 'r') lastRow = row;
+        }
+        el.classList.add('pop');
+      }
+      function refreshRows(active) {
+        let h = 44;
+        left.querySelectorAll('.lr:not(.lt)').forEach((row) => {
+          const j = +row.dataset.step, full = j >= active - 1;
+          row.classList.toggle('old', !full);
+          h += full ? 44 : 22;
+        });
+        const sc = Math.min(1, (PH - 6) / h);
+        ld.style.transform = sc < 1 ? `scale(${sc.toFixed(3)})` : '';
+      }
+      function paintCell() {
+        cells.forEach((c, i) => {
+          if (!c.el) return;
+          if (c.kind === 'q') c.el.textContent = c.val;
+          else {
+            const len = c.exp.length;
+            c.el.style.setProperty('--n', len);
+            c.el.innerHTML = Array.from({ length: len }, (_, kk) => `<span class="dg1${i === ci && !c.ok && kk === c.val.length ? ' cr' : ''}">${c.val[kk] || ''}</span>`).join('');
+          }
+          c.el.classList.toggle('on', i === ci && !c.ok);
+        });
+        const c = cells[ci];
+        ov.dataset.want = c && !c.ok && !wait ? c.exp[c.val.length] || '' : '';
+        ov.dataset.tip = c ? c.hint : '';
+      }
+      /* следующая цифра делимого сносится вниз — к последнему остатку */
+      function dropDigit(idx) {
+        const dn = document.createElement('span');
+        dn.className = 'ldg drop'; dn.textContent = digs[idx]; dn.style.gridColumn = `${idx + 1}`;
+        lastRow.append(dn);
+        const src = topRow.querySelectorAll('.ldg')[idx];
+        if (src) src.animate([{ color: '#3d63d9' }, { color: '' }], { duration: 600 });
+      }
+      /* сносить нечего: «из воздуха» появляется 0, в первый раз — с запятой (в делимом и в частном) */
+      /* сносить нечего: ноль появляется «зумом» (из огромного в обычный), а запятые прибегают — одна слева
+         в делимое, другая справа в частное — и запрыгивают на свои места; горят красным и остывают */
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      function runComma(from, tx, ty, fontSrc, delay) {
+        const cs = getComputedStyle(fontSrc);
+        const c = document.createElement('span');
+        c.className = 'dc-run'; c.textContent = ',';
+        Object.assign(c.style, { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, left: `${tx}px`, top: `${ty}px` });
+        document.body.append(c);
+        const dx = from - tx, hop = (k) => -14 - (k % 2) * 6;
+        const kf = [{ transform: `translate(${dx}px, 0) rotate(${dx < 0 ? 20 : -20}deg) scale(1.7)`, opacity: 1 }];
+        const N = 5;
+        for (let k = 1; k <= N; k++) {               // бежит вприпрыжку
+          const x = dx * (1 - k / (N + 2));
+          kf.push({ transform: `translate(${x + dx * 0.035}px, ${hop(k)}px) rotate(${dx < 0 ? 12 : -12}deg) scale(1.7)`, offset: (k - 0.5) / (N + 2) * 0.8 });
+          kf.push({ transform: `translate(${x}px, 0) rotate(${dx < 0 ? 22 : -22}deg) scale(1.7, 1.5)`, offset: k / (N + 2) * 0.8 });
+        }
+        kf.push({ transform: `translate(${dx * 0.12}px, -54px) rotate(${dx < 0 ? -200 : 200}deg) scale(1.8)`, offset: 0.9 });   // прыжок с переворотом
+        kf.push({ transform: 'translate(0, 0) rotate(-360deg) scale(1)' });
+        const a = c.animate(kf, { duration: 1400, delay, easing: 'linear', fill: 'both' });
+        return a.finished.catch(() => {}).then(() => c.remove());
+      }
+      async function phantom(idx) {
+        const first = !comma;
+        say(first ? 'Сносить нечего — дописываем к делимому 0 и ставим запятую в делимом и в частном' : 'Сносить снова нечего — дописываем ещё 0', true);
+        const z = document.createElement('span');
+        z.className = 'ldg ph hot'; z.textContent = '0'; z.style.gridColumn = `${idx + 1}`; z.style.gridRow = '1';
+        topRow.append(z);
+        shown = idx + 1;
+        z.animate([
+          { transform: 'scale(6)', opacity: 0, filter: 'blur(5px)' },
+          { transform: 'scale(.85)', opacity: 1, filter: 'blur(0)', offset: 0.72 },
+          { transform: 'scale(1)', opacity: 1 },
+        ], { duration: 800, easing: 'cubic-bezier(.2,.7,.3,1)' });
+        await pause(650);
+        if (done) return;
+        let dig = null, qc = null;
+        if (first) {
+          comma = true;
+          dig = topRow.querySelectorAll('.ldg')[intLen - 1];
+          qc = document.createElement('span'); qc.className = 'qx qc'; qc.textContent = ','; qc.style.opacity = '0';
+          qBox.append(qc);
+          const dr = dig.getBoundingClientRect(), qr = qc.getBoundingClientRect();
+          const sc = parseFloat(getComputedStyle(work.querySelector('.cw-body')).scale) || 1;
+          const fs = parseFloat(getComputedStyle(dig).fontSize) * sc;
+          await Promise.all([
+            runComma(-30, dr.right - fs * 0.12, dr.bottom - fs * 1.02, dig, 0),
+            runComma(innerWidth + 30, qr.left + qr.width / 2 - fs * 0.13, qr.top + qr.height / 2 - fs * 0.62, dig, 150),
+          ]);
+          if (done) return;
+          dig.classList.add('cm', 'hot');
+          qc.style.opacity = ''; qc.classList.add('hot');
+          [qc].forEach((e) => e.animate([{ transform: 'scale(1.5,.6)' }, { transform: 'scale(.9,1.15)' }, { transform: 'none' }], { duration: 300 }));
+          paintAns();
+          await pause(700);
+        } else await pause(500);
+        if (done) return;
+        z.classList.remove('hot');                    // остывают до обычного цвета
+        if (dig) dig.classList.remove('hot');
+        if (qc) qc.classList.remove('hot');
+        await pause(500);
+      }
+      function advance() {
+        const c = cells[ci];
+        c.ok = true; c.el.classList.add('done'); c.el.classList.remove('on');
+        paintAns();
+        const s = steps[c.i];
+        ci += 1;
+        const next = () => { mount(cells[ci]); refreshRows(cells[ci].i); paintCell(); };
+        if (c.kind === 'r' && c.i + 1 < steps.length) {
+          const idx = s.end + 1;
+          if (idx >= shown) {                                  // нужен фантомный ноль
+            wait = true; paintCell();
+            phantom(idx).then(() => { if (done) return; dropDigit(idx); setTimeout(() => { if (done) return; wait = false; next(); }, 420); });
+            return;
+          }
+          dropDigit(idx);
+        }
+        if (ci >= cells.length) {
+          say('Остаток 0 — деление закончено!', true);
+          const res = ansEl.textContent;
+          setTimeout(() => close(res), 750);
+          return;
+        }
+        next();
+      }
+      function submit() {
+        const c = cells[ci]; if (!c || c.ok || wait) return;
+        if (c.val === c.exp) { if (c.kind !== 'q' || !msg.classList.contains('info')) say(''); advance(); return; }
+        let why = c.hint;
+        if (c.kind === 'q' && c.val) {
+          const v = +c.val, s = steps[c.i];
+          if (v * d > s.cur) why = `${v} · ${d} = ${v * d} — это больше ${s.cur}, перебор`;
+          else why = `${v} · ${d} = ${v * d} — ${d} поместится в ${s.cur} ещё раз`;
+        }
+        say(c.kind === 'q' && c.val ? why : c.val ? `Не так. ${why}` : why);
+        c.el.classList.remove('bad'); void c.el.offsetWidth; c.el.classList.add('bad');
+        c.val = ''; paintCell();
+      }
+      function type(dg) {
+        const c = cells[ci]; if (!c || c.ok || done || wait) return;
+        if (dg === 'x') c.val = c.val.slice(0, -1);
+        else if (c.val.length < c.exp.length) c.val += dg;
+        paintCell();
+        if (dg !== 'x' && c.val.length === c.exp.length) setTimeout(submit, 180);
+      }
+      mount(cells[0]); refreshRows(0); paintCell(); paintAns();
+
+      const close = (res) => {
+        if (done) return; done = true;
+        document.removeEventListener('keydown', onKey, true);
+        ov.classList.add('out');
+        const v = flipVec();
+        work.querySelectorAll('.cw-body, .clip-ans, .mw').forEach((e) => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' }));
+        if (v) v.head.animate([{ transform: 'none' }, { transform: v.t }], { duration: 420, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
+        setTimeout(() => { if (fromEl) { fromEl.style.opacity = ''; fromEl.style.transition = ''; } work.style.visibility = 'hidden'; }, v ? 400 : 0);
+        setTimeout(() => ov.remove(), 450);
+        resolve(res);
+      };
+      function onKey(e) {
+        if (/^\d$/.test(e.key)) { type(e.key); e.preventDefault(); }
+        else if (e.key === 'Backspace') { type('x'); e.preventDefault(); }
+        else if (e.key === 'Enter') { submit(); e.preventDefault(); }
+        else if (e.key === 'Escape') { close(null); e.preventDefault(); }
+        e.stopPropagation();
+      }
+      document.addEventListener('keydown', onKey, true);
+      ov.querySelectorAll('.k[data-d]').forEach((kb) => kb.addEventListener('click', () => type(kb.dataset.d)));
+      ov.querySelector('.go').addEventListener('click', submit);
+      ov.querySelector('.cls').addEventListener('click', () => close(null));
+      ov.addEventListener('pointerdown', (e) => { if (e.target === ov) close(null); });
+    });
+  }
+
   /* тестовый переключатель: ручное разбиение сразу, без 50 % прогресса */
   const KEYT = 'mg.test.manual';
   const forced = () => { try { return localStorage.getItem(KEYT) === '1'; } catch (e) { return false; } };
@@ -804,5 +1098,5 @@
   /* ручной режим: включён тестовой кнопкой или решено 2 задачи (стадия «человек»), начиная с 3-й */
   const isManual = (from = 2) => forced() || !(MG.active === MG.modes.cancel) || (parseInt((document.getElementById('solved') || {}).textContent, 10) || 0) >= from;
 
-  MG.clip = { ask, askDiv, askMul, forced, setForced, isManual };
+  MG.clip = { ask, askDiv, askMul, askDec, forced, setForced, isManual };
 })();

@@ -24,13 +24,17 @@
   function build(cfg) {
   const NAME = cfg.name, TOOL = cfg.tool;
   let D = 1, nR = 0;                                                 // D = 1: умножение, запятая едет вправо; −1: деление, влево. Примеры чередуются
-  const view = $(`#${cfg.p}-view`);
-  const world = $(`#${cfg.p}-world`);
-  const after = $(`#${cfg.p}-after`);
-  const resultText = $(`#${cfg.p}-resultText`);
-  const nextBtn = $(`#${cfg.p}-next`);
-  if (!view || !world) return;
-  const hint = MG.hinter($(`#${cfg.p}-hint`));
+  /* cfg.embed — ружьё внутри другого режима (MG.harpoon.embed): свои view и world, один пример, без счёта и кнопок */
+  const EMB = !!cfg.embed;
+  const view = EMB ? cfg.view : $(`#${cfg.p}-view`);
+  const world = EMB ? cfg.world : $(`#${cfg.p}-world`);
+  const after = EMB ? null : $(`#${cfg.p}-after`);
+  const resultText = EMB ? null : $(`#${cfg.p}-resultText`);
+  const nextBtn = EMB ? null : $(`#${cfg.p}-next`);
+  if (!view || !world) return null;
+  const hint = EMB ? (cfg.hint || { set() {} }) : MG.hinter($(`#${cfg.p}-hint`));
+  let embTask = null, embDone = null;
+  const isActive = () => (EMB ? !!(cfg.active && cfg.active()) : MG.active === MG.modes[NAME]);
 
   if (!cssDone) {
   cssDone = true;
@@ -129,7 +133,7 @@
   /* гарпун — это лежащая единица: остриё слева, зубец (флажок единицы) только снизу */
   const ARROW = `<svg viewBox="0 0 24 12" fill="none" stroke="#1d1d1f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5 H23"/><path d="M1.5 5 L7.5 10.5"/></svg>`;
   const ARROW_DIV = ARROW.replace('<path d="M1.5 5 H23"/><path d="M1.5 5 L7.5 10.5"/>', '<path d="M22.5 5 H1"/><path d="M22.5 5 L16.5 10.5"/>');
-  const sign = () => (D > 0 ? '×' : ':'), word = () => (D > 0 ? 'множителя' : 'делителя');
+  const sign = () => (EMB && cfg.sign ? cfg.sign : D > 0 ? '×' : ':'), word = () => (D > 0 ? 'множителя' : 'делителя');
 
   /* ---------- примеры ---------- */
   const TOTAL = 8;
@@ -154,6 +158,7 @@
   function randDec(fl) { let f = ''; for (let i = 0; i < fl; i++) f += i === fl - 1 ? nz() : dg(); return `${ri(0, 1) ? ri(1, 99) : ri(1, 9)},${f}`; }
   function pick() {
     const L = lvlOf(), second = solved % 2 === 1;
+    if (EMB) { D = 1; return makeTask(embTask.str, embTask.z); }
     D = nR++ % 2 ? -1 : 1;                                          // умножить — поделить — умножить…
     if (solved === 0 && !lastKey) return makeTask('12,74', 1);
     for (let i = 0; i < 200; i++) {
@@ -181,7 +186,7 @@
     const nCells = wide ? tk.N : tk.digits.length;
     const units = wide ? unitsW : nCells + 1.2 + tk.mult.length;
     const total = units * cw - 0.2 * cw;
-    const y = Math.round(Math.min(vh * 0.3, 150));
+    const y = EMB && cfg.y ? Math.round(cfg.y(rh)) : Math.round(Math.min(vh * 0.3, 150));
     let x0 = Math.round((vw - total) / 2), gx;
     if (D < 0) { gx = wide ? x0 + 0.2 * cw : 6; if (wide) x0 = Math.round(gx + gunW + 0.6 * cw); }   // деление: ружьё слева
     const xMul = x0 + (nCells + 1.2) * cw;
@@ -207,7 +212,7 @@
     const rd = G.gunW * REEL_D / 84;
     Object.assign(st.reel.style, { left: `${reelX() - rd / 2}px`, top: `${reelY() - rd / 2}px`, width: `${rd}px`, height: `${rd}px` });
     if (st.arrow || st.hookK) placeArrow(st);
-    view.parentElement.style.setProperty('--hp-after', `${view.offsetTop + G.y + G.rh + 30}px`);
+    if (!EMB) view.parentElement.style.setProperty('--hp-after', `${view.offsetTop + G.y + G.rh + 30}px`);
   }
   /* кончик ствола и место гарпуна у запятой */
   const mxr = (x) => (D > 0 ? x : 84 - x);                          // зеркалим координаты ружья для деления
@@ -264,13 +269,13 @@
 
   /* ---------- раунд ---------- */
   function newRound() {
-    window.dispatchEvent(new Event('mg:round'));
+    if (!EMB) window.dispatchEvent(new Event('mg:round'));
     const task = pick();
     lastKey = `${task.str}x${task.mult}`;
     world.classList.toggle('dv', D < 0);
-    after.classList.remove('show');
+    if (after) after.classList.remove('show');
     world.replaceChildren();
-    if (MG.tools.current()) MG.tools.clear();
+    if (!EMB && MG.tools.current()) MG.tools.clear();
     const st = { task, phase: 'load', busy: false, p: task.p0, loaded: 0, harp: false, cnt: 0, off: task.off0 };
     state = st;
     st.line = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); st.line.setAttribute('class', 'hp-line'); world.append(st.line);
@@ -282,6 +287,7 @@
     st.reel = mk('hp-reel'); st.reel.innerHTML = `${REEL}<span class="hp-cnt">0</span>`;
     layout(st);
     [...st.dEls, st.xEl, ...st.mEls].forEach((e, i) => e.animate([{ opacity: 0, translate: '0 12px' }, { opacity: 1, translate: '0 0' }], { duration: T(350), delay: T(i * 30), easing: 'ease-out', fill: 'backwards' }));
+    if (EMB) { hint.set(`Перетащи в ружьё цифры ${word()}`); if (MG.tools.current() === TOOL) setTimeout(() => { if (state === st) gunIn(st); }, T(250)); return; }
     setStats(lvlOf(), solved);
     hint.set('Выбери гарпунное ружьё');
   }
@@ -652,6 +658,7 @@
     for (let i = 0; i < st.p - 1 && st.dEls[i].textContent === '0'; i++) { st.dEls[i].classList.add('dim'); lead = i + 1; }
     await sleep(800);
     if (state !== st) return;
+    if (EMB) { const done = embDone; embDone = null; if (done) done(tk.ans); return; }   // встроенное ружьё: ответ — режиму
     /* строка-результат: 12,74 × 10 = 127,4 — цифры ответа перелетают из готового числа */
     const res = mk('hp-res');
     const sp = (t, cls) => { const s2 = document.createElement('span'); s2.textContent = t; if (cls) s2.className = cls; res.append(s2); return s2; };
@@ -697,21 +704,30 @@
     });
   }
 
-  nextBtn.addEventListener('click', () => {
+  if (nextBtn) nextBtn.addEventListener('click', () => {
     if (solved >= TOTAL) { offerDone(); return; }
     const o = document.querySelector('.so-ov'); if (o) o.remove();
     newRound();
   });
   window.addEventListener('toolchange', (e) => {
-    if (MG.active !== MG.modes[NAME] || e.detail.tool !== TOOL || !state || state.phase === 'done') return;
+    if (!isActive() || e.detail.tool !== TOOL || !state || state.phase === 'done') return;
     gunIn(state);
   });
   let rt = 0;
   window.addEventListener('resize', () => {
     clearTimeout(rt);
-    rt = setTimeout(() => { if (MG.active === MG.modes[NAME] && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
+    rt = setTimeout(() => { if (isActive() && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
   });
 
+  if (EMB) {
+    return {
+      /* один пример «str × 10^z»: ружьё, зарядка, выстрел, катушка; промис — ответ (12,5 × 100 → '1250') */
+      run(str, z) { return new Promise((res) => { embTask = { str, z }; embDone = res; newRound(); }); },
+      stop() { if (drag) { drag.g.remove(); drag = null; } state = null; embDone = null; world.replaceChildren(); },
+      state: () => state,
+      gunIn: () => { if (state && state.phase !== 'done') gunIn(state); },
+    };
+  }
   MG.modes[NAME] = {
     total: TOTAL,
     levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
@@ -726,4 +742,7 @@
   }
 
   build({ name: 'dec10', tool: 'harpoon', p: 'hp', done: 'Ты научился умножать и делить на 10, 100 и 1000. Идём дальше.' });
+  /* гарпун для других режимов: const h = MG.harpoon.embed({ view, world, y: (rh) => rowTop, sign: '·', active: () => bool, hint });
+     await h.run('12,5', 2) → '1250'; h.stop() — убрать; h.state() — для подсказки-пальца (phase: load / aim / pull / done) */
+  MG.harpoon = { embed: (o) => build({ name: o.name || 'hp-embed', tool: 'harpoon', p: 'hp', embed: true, ...o }) };
 })();

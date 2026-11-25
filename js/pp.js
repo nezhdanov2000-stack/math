@@ -13,21 +13,26 @@
     snapshot, play, ghost, burst, popIn, bump, indivisible, smash, crumble,
   } = window.MG;
 
+  /* build(cfg) — режим на своей разметке: cfg.name — id режима (#mode-NAME), cfg.p — префикс id элементов;
+   * cfg.pick(info) — свой генератор примеров; cfg.dec — числа с запятой: сначала джокер и гарпун (MG.deceq). */
+  function build(cfg) {
+  const NAME = cfg.name, P = cfg.p, DEC = !!cfg.dec;
+
   /* ============================================================
    * DOM
    * ============================================================ */
-  const stage = $('#pp-stage');
-  const lf = $('#pp-lf');
-  const lrows = { num: $('#pp-lnum'), den: $('#pp-lden') };
-  const lbar = $('#pp-lbar');
-  const eqEl = $('#pp-eq');
-  const fractionEl = $('#pp-rf');
-  const rows = { num: $('#pp-num'), den: $('#pp-den') };
-  const bar = $('#pp-bar');
-  const hint = $('#pp-hint');
-  const after = $('#pp-after');
-  const resultText = $('#pp-resultText');
-  const nextBtn = $('#pp-next');
+  const stage = $(`#${P}-stage`);
+  const lf = $(`#${P}-lf`);
+  const lrows = { num: $(`#${P}-lnum`), den: $(`#${P}-lden`) };
+  const lbar = $(`#${P}-lbar`);
+  const eqEl = $(`#${P}-eq`);
+  const fractionEl = $(`#${P}-rf`);
+  const rows = { num: $(`#${P}-num`), den: $(`#${P}-den`) };
+  const bar = $(`#${P}-bar`);
+  const hint = $(`#${P}-hint`);
+  const after = $(`#${P}-after`);
+  const resultText = $(`#${P}-resultText`);
+  const nextBtn = $(`#${P}-next`);
 
   let state = null;
   let solved = 0;
@@ -35,8 +40,12 @@
   let rounds = 0;       // сколько задач показано (включая пропущенные)
   let uid = 0;
 
-  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
+  const levelOf = cfg.levelOf || ((s) => window.MG.levelOf(s, 6));   // уровень: +1 за каждые 3 задачи, не выше 6
   const isNum = (v) => typeof v === 'number';
+  /* режим с запятыми: значение пишется строкой '0,15'; dec — запись числа, пока в нём есть запятая */
+  const DQ = window.MG.deceq;
+  const isDecStr = (v) => typeof v === 'string' && v !== 'x';
+  const label = (o) => (o.dec !== undefined ? o.dec : o.v !== undefined ? o.v : o.value);
 
   /* ---------- генерация примера ---------- */
   function pickSpec() {
@@ -93,8 +102,8 @@
   }
 
   function paint(tok) {
-    tok.el.textContent = tok.value;
-    const n = isNum(tok.value);
+    tok.el.textContent = tok.dec !== undefined ? tok.dec : tok.value;
+    const n = isNum(tok.value) && tok.dec === undefined;
     const composite = n && tok.value > 1 && !isPrime(tok.value);
     tok.el.classList.toggle('big', composite);
     tok.el.classList.toggle('prime', n && isPrime(tok.value));
@@ -182,7 +191,7 @@
     fitBars();
   }
   window.addEventListener('resize', () => {
-    if (state && !$('#mode-prop').hidden) fitFontSize();
+    if (state && !$(`#mode-${NAME}`).hidden) fitFontSize();
   });
 
   /* ============================================================
@@ -197,7 +206,13 @@
     return it.v !== 'x' && xOnLeftNum();
   }
 
+  /* режим с запятыми: J — в дроби есть запятые, нужен джокер; H — метки «·10» ждут гарпун */
+  const fracParts = (f) => (f === 'L' ? ['num', 'den'].map((k) => state.L[k].items) : ['num', 'den'].map((k) => state.sides[k].toks.filter((t) => !t.gone)));
+  const decIn = (f) => fracParts(f).some((list) => list.some((o) => o.dec !== undefined));
+  const jokerFrac = () => (!DEC || !state ? null : decIn('L') ? 'L' : decIn('R') ? 'R' : null);
   function computePhase() {
+    if (DEC && state.harpQ) return 'H';
+    if (jokerFrac()) return 'J';
     if (xOnRight()) return 'S';
     const any = ['num', 'den'].some((k) => state.L[k].items.some((it) => movable(k, it)));
     if (any) return 'E';
@@ -212,6 +227,11 @@
   const setHint = (text) => hints.set(text);
   function defaultHint() {
     if (!state || state.finished) return '';
+    if (state.phase === 'J') {
+      const f = jokerFrac(), m = DQ.need(fracStrs(f));
+      return `В ${f === 'L' ? 'левой' : 'правой'} дроби есть запятые. Возьми джокера и умножь числитель и знаменатель на ${m >= 1000 ? '10, 100 или 1000' : '10 или 100'} — так, чтобы запятых не осталось`;
+    }
+    if (state.phase === 'H') return 'Возьми гарпун и нажми на дробь — запятые сдвинутся сами';
     if (state.phase === 'S') return 'x оказался справа. Возьми стаканчики — они накроют обе части и поменяют их местами';
     if (state.phase === 'X') return 'Слева получилось x/1. Возьми топор и сруби единицу — нам нужен чистый x';
     if (state.phase === 'E') {
@@ -232,11 +252,13 @@
   }
   function autoTool() {
     if (!state || state.finished) return;
-    if (state.phase === 'E') { window.MG.tools.auto('prop', { conveyor: true }); return; }
-    if (state.phase === 'S') { window.MG.tools.auto('prop', { cups: true }); return; }
-    if (state.phase === 'X') { window.MG.tools.auto('prop', { axe: true }); return; }
+    if (state.phase === 'J') { window.MG.tools.auto(NAME, { joker: true }); return; }
+    if (state.phase === 'H') { window.MG.tools.auto(NAME, { harpoon: true }); return; }
+    if (state.phase === 'E') { window.MG.tools.auto(NAME, { conveyor: true }); return; }
+    if (state.phase === 'S') { window.MG.tools.auto(NAME, { cups: true }); return; }
+    if (state.phase === 'X') { window.MG.tools.auto(NAME, { axe: true }); return; }
     const toks = [...state.sides.num.toks, ...state.sides.den.toks].filter((t) => !t.gone && t.value !== 1);
-    window.MG.tools.auto('prop', {
+    window.MG.tools.auto(NAME, {
       hammer: toks.some((t) => !isPrime(t.value) && !t.paired),
       glove: toks.some((t) => t.paired),
     });
@@ -267,7 +289,7 @@
       part.ph = null;
       part.items.forEach((it) => {
         const isX = it.v === 'x';
-        it.el = leftTok(it.v, isX ? 'var' : 'num');
+        it.el = leftTok(label(it), isX ? 'var' : 'num');
         it.el.style.touchAction = 'none';
         it.el.addEventListener('pointerdown', (e) => startDrag(k, it, e));
         it.el.addEventListener('click', () => leftClick(k, it));
@@ -289,32 +311,38 @@
   }
 
   function newRound() {
+    window.dispatchEvent(new Event('mg:round'));
+    if (state && state.held) { state.held.drop(false); state.held = null; }
     clearSel();
     if (window.MG.axe) { window.MG.axe.reset(lrows.num, lbar); }
     lbar.style.opacity = '';
     lf.style.translate = ''; fractionEl.style.translate = '';
-    const spec = pickSpec();
+    const spec = cfg.pick ? cfg.pick({ solved, lastKey, rounds }) : pickSpec();
     rounds++;
-    lastKey = specKey(spec);
+    lastKey = cfg.pick ? spec.key : specKey(spec);
     const { type, a, b, c, d, p } = spec;
-    const mk = (v) => ({ v });
+    const mk = (v) => (isDecStr(v) ? (v.includes(',') ? { v: DQ.val(v), dec: v } : { v: Number(v) }) : { v });
+    const one = (v) => v === 1 || v === '1';
     const L = { num: { items: [] }, den: { items: [] } };
     const R = { num: [], den: [] };
     if (type === 'A') {
-      L.num.items = [mk(a), mk('x')]; L.den.items = [mk(b)]; R.num = [c]; R.den = [d];
+      L.num.items = one(a) ? [mk('x')] : [mk(a), mk('x')]; L.den.items = [mk(b)]; R.num = [c]; R.den = [d];
     } else if (type === 'B') {
-      L.num.items = [mk(c)]; L.den.items = [mk(d)]; R.num = [a, 'x']; R.den = [b];
+      L.num.items = [mk(c)]; L.den.items = [mk(d)]; R.num = one(a) ? ['x'] : [a, 'x']; R.den = [b];
     } else {
-      L.num.items = [mk(p)]; L.den.items = a > 1 ? [mk(a), mk('x')] : [mk('x')]; R.num = [c]; R.den = [d];
+      L.num.items = [mk(p)]; L.den.items = !one(a) ? [mk(a), mk('x')] : [mk('x')]; R.num = [c]; R.den = [d];
     }
+    const mkR = (v, k) => { const o = mk(v), t = makeTok(o.v, k); if (o.dec !== undefined) { t.dec = o.dec; paint(t); } return t; };
     after.classList.remove('show');
     eqEl.style.visibility = '';
     state = {
       spec, phase: 'E', busy: false, finished: false, pending: 0, moved: false, L,
       sides: {
-        num: { key: 'num', toks: R.num.map((v) => makeTok(v, 'num')) },
-        den: { key: 'den', toks: R.den.map((v) => makeTok(v, 'den')) },
+        num: { key: 'num', toks: R.num.map((v) => mkR(v, 'num')) },
+        den: { key: 'den', toks: R.den.map((v) => mkR(v, 'den')) },
       },
+      jk: { L: false, R: false },          // дробь уже умножена джокером (режим с запятыми)
+      harpQ: null,                         // дробь, где лежат метки «·10» и ждут гарпун
     };
     render();
     fitFontSize();
@@ -332,6 +360,7 @@
     const st = state;
     if (!st || st.finished || st.busy) return;
     if (st.phase === 'S' && window.MG.tools.current() === 'cups') return;   // клик всплывёт до cupsClick — там и обработается
+    if (st.phase === 'J' || st.phase === 'H') return;                        // джокер и гарпун — клик всплывёт до дроби
     if (it.v === 'x') {
       indivisible(it.el, st.phase === 'S' || st.phase === 'E' && !xOnLeftNum()
         ? 'x нужно собрать слева, в числителе' : 'x — это неизвестное, его не переносим');
@@ -369,8 +398,98 @@
    * Стаканчики: накрывают обе части и меняют их местами
    * ============================================================ */
   eqEl.addEventListener('click', () => cupsClick());
-  lf.addEventListener('click', () => cupsClick());
-  fractionEl.addEventListener('click', () => cupsClick());
+  lf.addEventListener('click', () => { if (!decClick('L')) cupsClick(); });
+  fractionEl.addEventListener('click', () => { if (!decClick('R')) cupsClick(); });
+
+  /* ============================================================
+   * Режим с запятыми: джокер умножает одну дробь (числитель и знаменатель), гарпун сдвигает запятые
+   * ============================================================ */
+  const fracEl = (f) => (f === 'L' ? lf : fractionEl);
+  const fracRows = (f) => (f === 'L' ? lrows : rows);
+  const partStr = (list) => list.map((o) => label(o)).join('');
+  function fracStrs(f) {
+    const out = [];
+    fracParts(f).forEach((list) => list.forEach((o) => { const v = label(o); if (v !== 'x') out.push(String(v)); }));
+    return out;
+  }
+  const longestOf = (f) => fracStrs(f).reduce((a, b) => (DQ.decs(b) > DQ.decs(a) ? b : a));
+  function decClick(f) {
+    const st = state;
+    if (!DEC || !st || st.finished || st.busy) return false;
+    if (st.phase !== 'J' && st.phase !== 'H') return false;
+    const tool = window.MG.tools.current();
+    if (st.phase === 'J') {
+      if (tool !== 'joker') { window.MG.tools.need('joker'); return true; }
+      if (!decIn(f)) { indivisible(fracEl(f), 'здесь запятых нет'); return true; }
+      openTablet(st, f);
+      return true;
+    }
+    if (tool !== 'harpoon') { window.MG.tools.need('harpoon'); return true; }
+    if (f !== st.harpQ) { indivisible(fracEl(f), 'гарпун — туда, где лежит карта'); return true; }
+    runHarp(st, f);
+    return true;
+  }
+  async function openTablet(st, f) {
+    if (st.asking || window.MG.joker.holding()) return;
+    const [n, d] = fracParts(f).map(partStr);
+    st.asking = true;
+    st.held = await DQ.joker({
+      n, d, from: fracEl(f), frac: () => fracEl(f), need: DQ.need(fracStrs(f)), longest: longestOf(f),
+      alive: () => state === st,
+      say: (t) => { setHint(t); setTimeout(() => { if (state === st) updateHint(); }, 3600); },
+      onLay: (card, v) => { st.held = null; applyJoker(st, f, card, v); },
+      onDrop: () => { st.held = null; },
+    });
+    st.asking = false;
+  }
+  async function applyJoker(st, f, card, v) {
+    st.busy = true;
+    setHint('');
+    const R = fracRows(f);
+    st.tags = {};
+    reflow(() => { ['num', 'den'].forEach((k) => { st.tags[k] = DQ.tag(v); R[k].append(st.tags[k]); }); fitBars(); });
+    await DQ.lay(card, fracEl(f), [st.tags.num, st.tags.den], v);
+    if (state !== st) return;
+    st.harpQ = f; st.mul = v;
+    st.busy = false;
+    st.phase = computePhase();
+    updateHint();
+  }
+  async function runHarp(st, f) {
+    st.busy = true;
+    setHint('');
+    const z = String(st.mul).length - 1, R = fracRows(f);
+    const jobs = ['num', 'den'].map(async (k, i) => {
+      await sleep(i * 260);
+      let o, el;
+      if (f === 'L') o = st.L[k].items.find((it) => it.v !== 'x');
+      else o = st.sides[k].toks.find((t) => !t.gone && t.value !== 'x');
+      if (o) el = o.el;
+      else {                                         // в части только x: это 1·x — единица проявляется и умножается
+        el = leftTok('1', 'num');
+        reflow(() => { R[k].prepend(el); markLeft(); fitBars(); });
+        popIn(el);
+        await sleep(380);
+        if (f === 'L') { o = { v: 1, el }; st.L[k].items.unshift(o); } else { o = makeTok(1, k); o.el.remove(); o.el = el; st.sides[k].toks.unshift(o); }
+      }
+      const res = await DQ.harp(el, String(label(o)), z, st.tags[k], { onGrow: () => fitBars() });
+      if (f === 'L') o.v = Number(res); else o.value = Number(res);
+      delete o.dec;
+    });
+    await Promise.all(jobs);
+    if (state !== st) return;
+    st.harpQ = null; st.jk[f] = true;
+    if (f === 'R') {                                   // токены справа — новые (у старых элементов остались цифры гарпуна)
+      ['num', 'den'].forEach((k) => { st.sides[k].toks = st.sides[k].toks.map((t) => makeTok(t.value, k)); });
+    }
+    reflow(() => { render(); fitFontSize(); });
+    [...fracEl(f).querySelectorAll('.token')].forEach((e) => bump(e));
+    await sleep(300);
+    if (state !== st) return;
+    st.busy = false;
+    st.phase = computePhase();
+    updateHint();
+  }
   async function cupsClick() {
     const st = state;
     if (!st || st.phase !== 'S' || st.busy || st.finished) return;
@@ -693,6 +812,7 @@
   function onTokenClick(tok) {
     if (!state || state.finished || tok.gone || tok.value === 1) return;
     if (state.phase === 'S' && window.MG.tools.current() === 'cups') return;   // клик всплывёт до cupsClick — там и обработается
+    if (state.phase === 'J' || state.phase === 'H') return;
     if (state.phase !== 'B') {
       if (!isNum(tok.value)) { if (!state.busy && state.phase === 'S') indivisible(tok.el, 'x нужно собрать слева — возьми стаканчики'); return; }
       if (!state.busy) setHint(state.phase === 'X' ? 'Сначала сруби единицу слева топором' : state.phase === 'S' ? 'Сначала поменяй части местами стаканчиками' : 'Сначала перенеси числа через «=» конвейером');
@@ -815,21 +935,79 @@
     resultText.innerHTML = `x = ${rd === 1 ? rn : mf(rn, rd)}`;
     solved++;
     setStats(levelOf(solved), solved);
+    if (cfg.total && solved >= cfg.total) setTimeout(offerDone, T(1200));
 
     after.classList.add('show');
     ['num', 'den'].forEach((k) => burst(st.sides[k].toks[0].el, '#16a34a', 14));
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
 
-  nextBtn.addEventListener('click', newRound);
+  const offerDone = () => DQ.offerDone(NAME, cfg.total, solved, cfg.done || 'Ты научился решать такие уравнения. Идём дальше.');
+  nextBtn.addEventListener('click', () => {
+    if (cfg.total && solved >= cfg.total) { offerDone(); return; }
+    const o = document.querySelector('.so-ov'); if (o) o.remove();
+    newRound();
+  });
 
-  window.MG.modes.prop = {
-    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
+  const STEP = cfg.total ? 2 : 3;                       // задач на уровень
+  window.MG.modes[NAME] = {
+    total: cfg.total,
+    levelUp() {
+      solved = (Math.floor(solved / STEP) + 1) * STEP;
+      if (cfg.total && solved >= cfg.total) { solved = cfg.total; setStats(levelOf(solved), solved); offerDone(); return; }
+      newRound();
+    },
     start() {
       if (!state) newRound();
       else setStats(levelOf(solved), solved);
     },
-    skip: newRound,
+    skip() { if (cfg.total && solved >= cfg.total) { offerDone(); return; } newRound(); },
     setSolved(n) { solved = n; lastKey = 'x'; },
+    stop() { if (state && state.held) { state.held.drop(false); state.held = null; } },
+    /* подсказка-палец (coach.js): джокер → гарпун → конвейер (тянуть) → стаканчики → топор → кувалда → ластик */
+    coachStep() {
+      const st = state;
+      if (!st || st.finished || st.busy || st.pending > 0) return null;
+      const ph = st.phase;
+      if (ph === 'J') {
+        const f = jokerFrac(), lg = longestOf(f);
+        if (window.MG.joker.holding()) return { tool: 'joker', el: fracEl(f), text: 'Положи карту на дробь' };
+        const cm = DQ.coachMul(DQ.need(fracStrs(f)), DQ.decs(lg), lg);
+        if (cm) return cm;
+        if (st.asking) return null;
+        return { tool: 'joker', el: fracEl(f), text: `Нажми джокером на ${f === 'L' ? 'левую' : 'правую'} дробь` };
+      }
+      if (ph === 'H') return { tool: 'harpoon', el: fracEl(st.harpQ), text: 'Нажми гарпуном на дробь с картой' };
+      if (ph === 'E') {
+        for (const k of ['den', 'num']) {
+          const it = st.L[k].items.find((x) => movable(k, x));
+          if (!it) continue;
+          const to = k === 'den' ? 'num' : 'den', w = it.v === 'x' ? 'x' : it.v;
+          return { tool: 'conveyor', el: it.el, to: rows[to], text: `Потяни ${w} через «=» — ${to === 'num' ? 'вверх, в числитель' : 'вниз, в знаменатель'}` };
+        }
+        return null;
+      }
+      if (ph === 'S') return { tool: 'cups', el: eqEl, text: 'Нажми стаканчиками — части поменяются местами' };
+      if (ph === 'X') return st.L.den.ph ? { tool: 'axe', el: st.L.den.ph, text: 'Сруби топором единицу' } : null;
+      if (ph === 'B') {
+        const lv = [...st.sides.num.toks, ...st.sides.den.toks].filter((t) => !t.gone && isNum(t.value) && t.value > 1);
+        if (sel.length) {
+          const t = lv.find((x) => x.paired && x.value === sel[0].value && x.side !== sel[0].side);
+          return t ? { tool: 'glove', el: t.el, text: 'И такой же с другой стороны черты' } : null;
+        }
+        const big = lv.find((x) => !isPrime(x.value) && !x.paired);
+        if (big) return { tool: 'hammer', el: big.el, text: 'Ударь кувалдой — число разобьётся на множители' };
+        const pr = lv.find((x) => x.paired && x.side === 'num') || lv.find((x) => x.paired);
+        if (pr) return { tool: 'glove', el: pr.el, text: 'Ластиком сотри пару одинаковых: сверху и снизу' };
+        const b2 = lv.find((x) => !isPrime(x.value));
+        if (b2) return { tool: 'hammer', el: b2.el, text: 'Ударь кувалдой — число разобьётся на множители' };
+      }
+      return null;
+    },
+    _state: () => state,
   };
+  }
+
+  build({ name: 'prop', p: 'pp' });
+  window.MG.ppBuild = build;
 })();

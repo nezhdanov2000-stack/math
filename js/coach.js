@@ -19,6 +19,9 @@
     @keyframes coTap { 0%, 100% { transform: translate(14px, 18px); } 40% { transform: translate(0, 0); } 52% { transform: scale(.88); } 64% { transform: scale(1); } }
     .toolbar { transition: transform .5s cubic-bezier(.3,.9,.3,1); }
     body.co-lift .toolbar { transform: translateY(-84px); }
+    .coach.drag .fg { animation: coDrag 2s ease-in-out infinite; }
+    .coach.drag .co-r { animation-duration: 2s; }
+    @keyframes coDrag { 0% { transform: translate(14px, 18px); opacity: 0; } 12% { transform: translate(0, 0); opacity: 1; } 20% { transform: scale(.88); } 75% { transform: translate(var(--dx), var(--dy)) scale(.88); opacity: 1; } 88% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
     @keyframes coRing { 0%, 35% { transform: scale(.4); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
   `;
   document.head.append(css);
@@ -35,11 +38,15 @@
   const lift = (on) => document.body.classList.toggle('co-lift', on);
   const hide = () => { if (el) el.classList.remove('on'); lastKey = ''; lift(false); };
 
-  function point(target, text, key, below) {
+  function point(target, text, key, below, to) {
     if (!target) return;
     const c = ensure(), r = target.getBoundingClientRect();
     if (!r.width) { hide(); return; }
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    /* to — «перетащи сюда»: палец ведёт от target к to */
+    const tr = to && to.getBoundingClientRect();
+    c.classList.toggle('drag', !!tr);
+    if (tr) { c.style.setProperty('--dx', `${tr.left + tr.width / 2 - cx}px`); c.style.setProperty('--dy', `${tr.top + tr.height / 2 - cy}px`); }
     const dn = !!target.closest('.toolbar'), inClip = !!target.closest('.clip');
     lift(dn);
     c.style.left = `${Math.max(12, Math.min(innerWidth - 12, cx))}px`;
@@ -151,6 +158,12 @@
     bolt: 'Возьми молнию — она считает',
     rain: 'Возьми облако — оно польёт число дождём',
     projector: 'Возьми прожектор — нули посветят на цифры',
+    tnt: 'Возьми динамит — раздели дробь уголком, и она взорвётся',
+    burger: 'Возьми гамбургер — он покажет, как записать деление дробью',
+    harpoon: 'Возьми гарпун — он сдвинет запятые',
+    conveyor: 'Возьми конвейер — он переносит числа через «=»',
+    cups: 'Возьми стаканчики — они меняют части местами',
+    heli: 'Возьми вертолёт — он переносит слагаемые через «=»',
   };
   function tickStep(id) {
     const mode = document.getElementById(`mode-${id}`), after = mode.querySelector('.after');
@@ -161,7 +174,7 @@
     if (!s || !s.el) { hide(); return; }
     const btn = s.tool && document.querySelector(`.toolbar .tool[data-id="${s.tool}"]`);
     if (btn && document.body.dataset.tool !== s.tool) { point(btn, s.toolText || TOOL_TIP[s.tool] || 'Возьми этот инструмент', `t${s.tool}`); return; }
-    point(s.el, s.text, s.text, mode.querySelector('.fraction, .fracs'));
+    point(s.el, s.text, s.text, mode.querySelector('.fraction, .fracs, .sh-eqn'), s.to);
   }
 
   let fin = false;
@@ -173,6 +186,10 @@
     if (active && shown('mode-common')) { tickStep('common'); return; }
     if (active && shown('mode-decfr')) { tickStep('decfr'); return; }
     if (active && shown('mode-frdec')) { tickStep('frdec'); return; }
+    if (active && shown('mode-frdiv')) { tickStep('frdiv'); return; }
+    if (active && shown('mode-decdiv')) { tickStep('decdiv'); return; }
+    if (active && shown('mode-decdivfr')) { tickStep('decdivfr'); return; }
+    for (const id of ['prop', 'shift', 'decprop', 'decshift']) if (active && shown(`mode-${id}`)) { tickStep(id); return; }
     if (!active || !shown('mode-cancel')) { hide(); fin = false; return; }
     const after = document.getElementById('after');
     if (after && after.classList.contains('show')) { hide(); return; }

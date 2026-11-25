@@ -48,11 +48,16 @@
       { id: 'decadd', name: 'Сложение и вычитание', icon: 'crane' },
       { id: 'decmul', name: 'Умножение в столбик', icon: 'dozer' },
       { id: 'dec10', name: 'Умножение и деление на 10, 100, 1000', icon: 'harpoon' } ] },
-    { n: 'II', title: 'Перевод дробей', cls: 'fog', modes: [
+    { n: 'II', title: 'Перевод дробей', cls: 'frisle', modes: [
       { id: 'decfr', name: 'Десятичная → обыкновенная', icon: 'rain' },
-      { id: 'frdec', name: 'Обыкновенная → десятичная', icon: 'joker' } ] },
-    { n: 'III', title: 'Деление', modes: [] },
-    { n: 'IV', title: 'Уравнения', modes: [] },
+      { id: 'frdec', name: 'Обыкновенная → десятичная', icon: 'joker' },
+      { id: 'frdiv', name: 'Деление уголком', icon: 'tnt' } ] },
+    { n: 'III', title: 'Деление', cls: 'diner', modes: [
+      { id: 'decdiv', name: 'Деление десятичных дробей', icon: 'burger' },
+      { id: 'decdivfr', name: 'Деление через обыкновенные дроби', icon: 'fan' } ] },
+    { n: 'IV', title: 'Уравнения', cls: 'fog', modes: [
+      { id: 'decprop', name: 'Пропорции с запятой', icon: 'cups' },
+      { id: 'decshift', name: 'Перенос с запятой', icon: 'heli' } ] },
   ];
   const SECTIONS = [
     { id: 'fr', title: 'Обыкновенные дроби', levels: LEVELS,
@@ -67,8 +72,8 @@
       base: { lvl: 0, art: 'crane', cx: 500, cy: 470, s: 1.3 },
       parts: [
         { lvl: 3, soon: true, cx: 690, cy: 404, s: 0.72, dx: 0.45, dy: -0.9, back: true },
-        { lvl: 1, soon: true, cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1 },
-        { lvl: 2, soon: true, cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1 },
+        { lvl: 1, art: 'frisle', cx: 226, cy: 524, s: 0.8, dx: -0.16, dy: 1, open: 1 / 3 },
+        { lvl: 2, art: 'diner', cx: 778, cy: 518, s: 0.8, dx: 0.16, dy: 1, open: 2 / 3 },
       ] },
   ];
 
@@ -219,6 +224,107 @@
   };
 
 
+  /* остров II раздела «Десятичные дроби» — «Перевод дробей». Цикл (FI.T секунд):
+   * над островом облако с дождём, по краям два прожектора. Из земли рывками прорастает
+   * карта-джокер (как росток «1» в rain.js) → хлопок и дым, на её месте карта с динамитом → карта тает,
+   * остаётся сам динамит → молния из тучи → взрыв → пауза, и всё сначала. Прожекторы светят на тучу.
+   * Джокер и динамит — готовые иконки инструментов (joker, tnt); туча и прожекторы нарисованы здесь. */
+  const FI = { T: 10 };
+  const fiStyle = document.createElement('style');
+  document.head.append(fiStyle);
+  ART.frisle = () => {
+    const ic = (id) => (MG.tools && MG.tools.icon ? MG.tools.icon(id) : '') || '<svg viewBox="0 0 48 48"></svg>';
+    const nestIc = (id, x, y, w) => ic(id).replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${w}" overflow="visible" `);
+    const T = FI.T, kf = (n, fr) => `@keyframes ${n} { ${fr.map(([p, v]) => `${p}% { ${v} }`).join(' ')} }`;
+    const CX = 200, SOIL = 224, CW = 78, CLY = 96;                     // центр, верх земли, размер карты, низ облака
+    /* рост карты: 4 рывка с перелётом, между ними пауза */
+    const jerks = [3, 9, 15, 21], H = 84;
+    const grow = [[0, `transform: translateY(${H}px);`], ...jerks.flatMap((p, i) => {
+      const from = H * (1 - i / jerks.length), to = H * (1 - (i + 1) / jerks.length);
+      return [[p, `transform: translateY(${from.toFixed(1)}px);`], [p + 1.6, `transform: translateY(${(to - 5).toFixed(1)}px);`], [p + 2.4, `transform: translateY(${to.toFixed(1)}px);`]];
+    }), [100, 'transform: translateY(0px);']];
+    const wig = [[0, 'transform: none;'], ...jerks.flatMap((p) => [[p, 'transform: none;'], [p + 0.8, 'transform: scale(1.08, .88);'], [p + 1.6, 'transform: scale(.96, 1.05);'], [p + 2.6, 'transform: none;']]), [100, 'transform: none;']];
+    const S1 = 30, S2 = 44, ZAP = 54, BOOM = 58;                       // хлопок (джокер → карта с динамитом), карта тает, молния, взрыв
+    const show = (a, b) => [[0, 'opacity: 0;'], [a - 0.01, 'opacity: 0;'], [a, 'opacity: 1;'], [b - 0.01, 'opacity: 1;'], [b, 'opacity: 0;'], [100, 'opacity: 0;']];
+    fiStyle.textContent = `
+      .fi-grow { animation: fiGrow ${T}s linear infinite; } .fi-soil { transform-box: fill-box; transform-origin: 50% 100%; animation: fiWig ${T}s ease-out infinite; }
+      .fi-joker { animation: fiJk ${T}s linear infinite; } .fi-tcard { animation: fiTc ${T}s linear infinite; } .fi-tnt { animation: fiTn ${T}s linear infinite; }
+      .fi-pk, .fi-pop1, .fi-pop3, .fi-boom, .fi-mote { transform-box: fill-box; transform-origin: 50% 80%; }
+      .fi-pk { animation: fiPk ${T}s ease-out infinite; } .fi-pop1 { animation: fiSm1 ${T}s ease-out infinite; } .fi-pop3 { animation: fiSm3 ${T}s ease-out infinite; }
+      .fi-mote { animation: fiMote ${T}s ease-out infinite; }
+      .fi-zap { animation: fiZap ${T}s linear infinite; } .fi-boom { transform-origin: 50% 50%; animation: fiBoom ${T}s ease-out infinite; }
+      .fi-drop { animation: fiDrop .9s linear infinite; } .fi-beam, .fi-lit { animation: fiBeam 2.6s ease-in-out infinite alternate; }
+      ${kf('fiGrow', grow)} ${kf('fiWig', wig)}
+      ${kf('fiJk', show(0.01, S1))} ${kf('fiTn', show(S1, BOOM + 0.4))}
+      ${kf('fiTc', [[0, 'opacity: 0;'], [S1 - 0.01, 'opacity: 0;'], [S1, 'opacity: 1;'], [S2, 'opacity: 1;'], [S2 + 6, 'opacity: 0;'], [100, 'opacity: 0;']])}
+      ${kf('fiPk', [[0, 'transform: scale(.5);'], [S1, 'transform: scale(.5);'], [S1 + 1.2, 'transform: scale(1.12);'], [S1 + 2.2, 'transform: scale(1);'], [100, 'transform: scale(1);']])}
+      ${kf('fiSm1', [[0, 'opacity: 0; transform: scale(.2);'], [S1 - 2, 'opacity: 0; transform: scale(.2);'], [S1, 'opacity: 1; transform: scale(1.1);'], [S1 + 4, 'opacity: 0; transform: scale(1.6);'], [100, 'opacity: 0; transform: scale(1.6);']])}
+      ${kf('fiMote', [[0, 'opacity: 0; transform: translateY(0) scale(1);'], [S2, 'opacity: 0; transform: translateY(0) scale(1);'], [S2 + 1, 'opacity: .9; transform: translateY(-4px) scale(1);'], [S2 + 7, 'opacity: 0; transform: translateY(-34px) scale(.4);'], [100, 'opacity: 0;']])}
+      ${kf('fiSm3', [[0, 'opacity: 0; transform: scale(.3);'], [BOOM + 3, 'opacity: 0; transform: scale(.6);'], [BOOM + 5, 'opacity: .9; transform: scale(1.5);'], [BOOM + 11, 'opacity: 0; transform: scale(2.3);'], [100, 'opacity: 0;']])}
+      ${kf('fiZap', [[0, 'opacity: 0;'], [ZAP, 'opacity: 0;'], [ZAP + 0.5, 'opacity: 1;'], [ZAP + 1.2, 'opacity: .15;'], [ZAP + 1.8, 'opacity: 1;'], [BOOM, 'opacity: 1;'], [BOOM + 1, 'opacity: 0;'], [100, 'opacity: 0;']])}
+      ${kf('fiBoom', [[0, 'opacity: 0; transform: scale(.2) rotate(0deg);'], [BOOM, 'opacity: 0; transform: scale(.2) rotate(0deg);'], [BOOM + 1, 'opacity: 1; transform: scale(1.15) rotate(8deg);'], [BOOM + 4, 'opacity: 1; transform: scale(1.35) rotate(14deg);'], [BOOM + 8, 'opacity: 0; transform: scale(1.7) rotate(20deg);'], [100, 'opacity: 0;']])}
+      ${kf('fiDrop', [[0, 'transform: translateY(0); opacity: 0;'], [15, 'opacity: 1;'], [85, 'opacity: 1;'], [100, 'transform: translateY(104px); opacity: 0;']])}
+      ${kf('fiBeam', [[0, 'opacity: .7;'], [100, 'opacity: 1;']])}
+      @media (prefers-reduced-motion: reduce) { .fi-grow, .fi-soil, .fi-joker, .fi-tcard, .fi-tnt, .fi-pk, .fi-pop1, .fi-pop3, .fi-mote, .fi-zap, .fi-boom, .fi-drop, .fi-beam, .fi-lit { animation: none !important; } .fi-tcard, .fi-tnt, .fi-pop1, .fi-pop3, .fi-mote, .fi-zap, .fi-boom, .fi-drop { opacity: 0; } }`;
+    /* прожектор: поворотный барабан на вилке с тумбой; светит на облако. Нарисован «вверх», затем повёрнут на облако */
+    const spot = (x, dir) => {
+      const hx = x, hy = 184, tx = CX - dir * 34, ty = CLY - 4;
+      const ang = (Math.atan2(tx - hx, hy - ty) * 180) / Math.PI, L = Math.hypot(tx - hx, ty - hy) - 14;
+      return `<g transform="rotate(${ang.toFixed(1)} ${hx} ${hy})">
+          <path class="fi-beam" d="M${hx - 13} ${hy - 16} L${hx - 34} ${hy - 16 - L} L${hx + 34} ${hy - 16 - L} L${hx + 13} ${hy - 16}Z" fill="url(#fiBeamG)"/></g>
+        <path d="M${hx - 15} 230 h30 l-4 -7 h-22Z" fill="#374151" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"/>
+        <rect x="${hx - 3}" y="${hy + 8}" width="6" height="${223 - hy - 8}" fill="#4b5563" stroke="#111827" stroke-width="1.8"/>
+        <g transform="rotate(${ang.toFixed(1)} ${hx} ${hy})" stroke-linejoin="round">
+          <path d="M${hx - 18} ${hy + 10} V${hy - 2} M${hx + 18} ${hy + 10} V${hy - 2} M${hx - 18} ${hy + 10} H${hx + 18}" fill="none" stroke="#1f2937" stroke-width="3.6" stroke-linecap="round"/>
+          <rect x="${hx - 14}" y="${hy - 17}" width="28" height="30" rx="5" fill="url(#fiDrum)" stroke="#111827" stroke-width="2.4"/>
+          <path d="M${hx - 10} ${hy + 4} h20 M${hx - 10} ${hy + 8} h20" stroke="#111827" stroke-width="1.4" opacity=".55"/>
+          <circle cx="${hx - 18}" cy="${hy - 2}" r="3" fill="#9ca3af" stroke="#111827" stroke-width="1.6"/><circle cx="${hx + 18}" cy="${hy - 2}" r="3" fill="#9ca3af" stroke="#111827" stroke-width="1.6"/>
+          <rect x="${hx - 17}" y="${hy - 22}" width="34" height="7" rx="3.5" fill="#d1d5db" stroke="#111827" stroke-width="2.2"/>
+          <ellipse cx="${hx}" cy="${hy - 22}" rx="14" ry="3.4" fill="#fffbe6" stroke="#ca8a04" stroke-width="1.4"/>
+          <ellipse cx="${hx}" cy="${hy - 23}" rx="17" ry="6" fill="#fff7b2" opacity=".55" class="fi-lit"/></g>`;
+    };
+    /* настоящая дождевая туча: плотные клубы, тёмный низ, светлый верх */
+    const cloudBody = (() => {
+      const puffs = [[-52, -4, 20], [-28, -20, 27], [4, -28, 32], [34, -18, 26], [56, -4, 19], [-34, 2, 18], [-12, 4, 20], [12, 4, 20], [36, 2, 18], [-4, -8, 28]];
+      const c = (col, dy = 0, k = 1, top = false) => puffs.filter(([, y]) => !top || y <= -18).map(([x, y, r]) => `<circle cx="${CX + x}" cy="${CLY - 14 + y + dy}" r="${r * k}" fill="${col}"/>`).join('');
+      return `<g stroke-linejoin="round">
+        <g stroke="#475569" stroke-width="5">${c('#475569')}</g>
+        ${c('#9aa8bb')}
+        ${c('#d3dbe6', -6, 0.78, true)}
+        <path d="M${CX - 30} ${CLY - 46} q8 -8 18 -6" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".8"/></g>`;
+    })();
+    /* «хлопок» — клуб дыма из кружков */
+    const smoke = (cls, x, y, k = 1) => `<g class="${cls}">${[[0, 0, 15], [-15, 6, 11], [15, 5, 12], [-8, -12, 10], [10, -11, 11], [0, 14, 10]].map(([dx, dy, r]) => `<circle cx="${x + dx * k}" cy="${y + dy * k}" r="${r * k}" fill="${dy > 0 ? '#e5e7eb' : '#fff'}" stroke="#9ca3af" stroke-width="2"/>`).join('')}</g>`;
+    const burst = (r1, r2, n, col) => { let d = ''; for (let i = 0; i < n * 2; i++) { const a = (Math.PI * i) / n, r = i % 2 ? r1 : r2; d += `${i ? 'L' : 'M'}${(CX + Math.cos(a) * r).toFixed(1)} ${(SOIL - 22 + Math.sin(a) * r).toFixed(1)} `; } return `<path d="${d}Z" fill="${col}" stroke="#7c2d12" stroke-width="2.4" stroke-linejoin="round"/>`; };
+    let drops = '';
+    for (let i = 0; i < 9; i++) drops += `<path class="fi-drop" d="M${160 + i * 10} ${CLY + 6 + (i % 3) * 5} l-2.4 10" stroke="${i % 2 ? '#60a5fa' : '#2563eb'}" stroke-width="3" stroke-linecap="round" style="animation-delay:${(-i * 0.11).toFixed(2)}s"/>`;
+    const motes = [[-18, -40], [-8, -58], [6, -30], [16, -50], [-2, -14], [12, -66], [-16, -24]].map(([dx, dy], i) => `<rect class="fi-mote" x="${CX + dx}" y="${SOIL + dy}" width="5" height="5" rx="1" fill="#fffdf5" stroke="#2b2b33" stroke-width="1.2" style="animation-delay:${(-i * 0.04).toFixed(2)}s"/>`).join('');
+    return `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}
+      <linearGradient id="fiBeamG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff7b2" stop-opacity=".85"/><stop offset=".7" stop-color="#fde68a" stop-opacity=".35"/><stop offset="1" stop-color="#fde68a" stop-opacity=".05"/></linearGradient>
+      <linearGradient id="fiDrum" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#374151"/><stop offset=".35" stop-color="#9ca3af"/><stop offset=".55" stop-color="#4b5563"/><stop offset="1" stop-color="#1f2937"/></linearGradient>
+      ${under()}${grass()}
+      <clipPath id="fiClip"><rect x="100" y="-100" width="200" height="${SOIL + 101}"/></clipPath>
+      ${pine(36, 232, 0.55, '#3aa05a')}${pine(366, 230, 0.6)}
+      ${spot(82, 1)}${spot(318, -1)}
+      <g>${drops}</g>
+      <g class="fi-soil"><path d="M${CX - 38} ${SOIL + 8} Q${CX - 32} ${SOIL - 10} ${CX - 12} ${SOIL - 11} Q${CX} ${SOIL - 14} ${CX + 12} ${SOIL - 11} Q${CX + 32} ${SOIL - 10} ${CX + 38} ${SOIL + 8}Z" fill="#b8893a" stroke="#6b4a14" stroke-width="2.6" stroke-linejoin="round"/>
+        <circle cx="${CX - 17}" cy="${SOIL - 1}" r="2.2" fill="#7a5418"/><circle cx="${CX + 1}" cy="${SOIL - 5}" r="2.2" fill="#7a5418"/><circle cx="${CX + 18}" cy="${SOIL - 1}" r="2.2" fill="#7a5418"/></g>
+      <g clip-path="url(#fiClip)"><g class="fi-grow"><g class="fi-joker">${nestIc('joker', CX - CW / 2, SOIL - 10 - CW * 44 / 48, CW)}</g></g></g>
+      <g class="fi-pk">
+        <g class="fi-tcard"><rect x="${CX - 26}" y="${SOIL - 68}" width="52" height="66" rx="7" fill="#fffdf5" stroke="#2b2b33" stroke-width="3.2"/>
+          <path d="M${CX - 19} ${SOIL - 60} l4 0 M${CX + 15} ${SOIL - 10} l4 0" stroke="#d0473d" stroke-width="3" stroke-linecap="round"/></g>
+        <g class="fi-tnt">${nestIc('tnt', CX - 28, SOIL - 64, 56)}</g>
+      </g>
+      ${motes}
+      ${smoke('fi-pop1', CX, SOIL - 36)}
+      ${cloudBody}
+      <g class="fi-zap" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="${CX + 4}" cy="${SOIL - 46}" r="30" fill="#fff6b0" stroke="none" opacity=".8"/>
+        <polyline points="${CX - 6},${CLY + 2} ${CX + 8},${CLY + 30} ${CX - 6},${CLY + 34} ${CX + 14},${CLY + 66} ${CX},${CLY + 70} ${CX + 4},${SOIL - 46}" stroke="#ffd23d" stroke-width="16" opacity=".6"/>
+        <polyline points="${CX - 6},${CLY + 2} ${CX + 8},${CLY + 30} ${CX - 6},${CLY + 34} ${CX + 14},${CLY + 66} ${CX},${CLY + 70} ${CX + 4},${SOIL - 46}" stroke="#fffbe0" stroke-width="6"/></g>
+      <g class="fi-boom">${burst(30, 62, 9, '#f97316')}${burst(20, 42, 9, '#facc15')}<circle cx="${CX}" cy="${SOIL - 22}" r="14" fill="#fff7d6"/></g>
+      ${smoke('fi-pop3', CX, SOIL - 30, 1.3)}
+    </svg>`;
+  };
   /* остров I раздела «Десятичные дроби»: стройка. Кран забирает числа из-за острова целиком,
    * держа их за запятую-ручку, и кладёт на строительные леса: сначала зелёное 2,74, потом сверху красное 12,1
    * (запятая точно над запятой). Пустые разряды становятся нулями — овальными окнами. Потом справа налево,
@@ -282,6 +388,152 @@
   })();
   const crStyle = document.createElement('style');
   document.head.append(crStyle);
+  /* остров III раздела «Десятичные дроби» — «Деление»: бургерная (по наброску автора). Кафе с плоской крышей (парапет, вентиляция), полосатым навесом над витриной, боковой стеной,
+   * цоколем и дверью. За витриной: слева стеллаж (на нём вентилятор, на полках
+   * гарпун, топор, кувалда), справа электрощиток с молнией и лампа; внизу конвейер с фиолетовыми роликами. Бургер — как у
+   * инструмента в decdiv.js (без чисел): булки съезжаются к начинке «÷» прямо на ленте, помидор и огурец тают, бургер
+   * уезжает в окошко со шторкой. Снаружи два прожектора светят вверх. Цикл бургера DN.T секунд. */
+  const DN = { T: 5.2 };
+  const dnStyle = document.createElement('style');
+  document.head.append(dnStyle);
+  ART.diner = () => {
+    const ic = (id) => (MG.tools && MG.tools.icon ? MG.tools.icon(id) : '') || '<svg viewBox="0 0 48 48"></svg>';
+    const nestIc = (id, x, y, w, tf = '') => { const s = ic(id).replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${w}" overflow="visible" `); return tf ? `<g transform="${tf}">${s}</g>` : s; };
+    const T = DN.T, kf = (n, fr) => `@keyframes ${n} { ${fr.map(([p, v]) => `${p}% { ${v} }`).join(' ')} }`;
+    const WX = 100, WY = 108, WW = 146, WH = 76;                       // витрина
+    const B2 = 170, K = 0.3, BCX = 176, BCY = B2 - 36 * K;             // верх ленты; бургер (поле 300×140 из decdiv.js) уменьшен в K раз, его центр
+    /* те же кадры, что у бургера в decdiv.js (ddAll, ddBtx, ddBty, ddBbx, ddTm, ddCu), только нижняя булка не ныряет вниз,
+     * а едет прямо по ленте — бургер собирается на ленте */
+    dnStyle.textContent = `
+      .dn-all, .dn-btx, .dn-bty, .dn-bbx, .dn-bby, .dn-tm, .dn-cu { transform-box: fill-box; transform-origin: center; animation: ${T}s linear infinite; }
+      .dn-all { animation-name: dnAll; } .dn-btx { animation-name: dnBtx; } .dn-bty { animation-name: dnBty; } .dn-bbx { animation-name: dnBbx; } .dn-bby { animation-name: dnBby; } .dn-tm { animation-name: dnTm; } .dn-cu { animation-name: dnCu; }
+      @keyframes dnAll { 0% { transform: translate(-40px, 0); opacity: 0; animation-timing-function: ease-out; } 7%, 70% { transform: translate(0, 0); opacity: 1; animation-timing-function: ease-in-out; } 74% { transform: translate(-8px, 0) rotate(-3deg); animation-timing-function: cubic-bezier(.5,0,.8,.6); } 94% { transform: translate(200px, 0); opacity: 1; animation-timing-function: linear; } 100% { transform: translate(240px, 0); opacity: 0; } }
+      @keyframes dnBtx { 0%, 7% { transform: translateX(-100px); animation-timing-function: cubic-bezier(.42,0,.58,1); } 52%, 100% { transform: translateX(0); } }
+      @keyframes dnBbx { 0%, 7% { transform: translateX(100px); animation-timing-function: cubic-bezier(.42,0,.58,1); } 52%, 100% { transform: translateX(0); } }
+      @keyframes dnBty { 0%, 7% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.6,.5,1); } 30% { transform: translateY(-40px); animation-timing-function: cubic-bezier(.45,0,.4,1); } 58%, 100% { transform: translateY(-14px); } }
+      @keyframes dnBby { 0%, 100% { transform: translateY(14px); } }
+      @keyframes dnTm { 0%, 44% { transform: translate(0, -18px) scale(1); opacity: 1; animation-timing-function: ease-in-out; } 58%, 100% { transform: translate(0, -10px) scale(0); opacity: 0; } }
+      @keyframes dnCu { 0%, 44% { transform: translate(0, 18px) scale(1); opacity: 1; animation-timing-function: ease-in-out; } 58%, 100% { transform: translate(0, 10px) scale(0); opacity: 0; } }
+      .dn-belt { animation: dnBelt .5s linear infinite; } ${kf('dnBelt', [[0, 'stroke-dashoffset: 0;'], [100, 'stroke-dashoffset: -12;']])}
+      .dn-fan, .dn-rol { transform-box: fill-box; transform-origin: center; animation: hmSpin .5s linear infinite; } .dn-rol { animation-duration: 1.1s; }
+      .dn-led { animation: dnLed 1.2s steps(1) infinite; } ${kf('dnLed', [[0, 'fill: #22c55e;'], [50, 'fill: #14532d;']])}
+      .dn-sp { opacity: 0; animation: dnSp 4s linear infinite; } ${kf('dnSp', [[0, 'opacity: 0;'], [80, 'opacity: 0;'], [81, 'opacity: 1;'], [84, 'opacity: .2;'], [86, 'opacity: 1;'], [90, 'opacity: 0;'], [100, 'opacity: 0;']])}
+      .dn-beam { animation: dnBeam 2.6s ease-in-out infinite alternate; } ${kf('dnBeam', [[0, 'opacity: .7;'], [100, 'opacity: 1;']])}
+      @media (prefers-reduced-motion: reduce) { .dn-all, .dn-btx, .dn-bty, .dn-bbx, .dn-bby, .dn-tm, .dn-cu, .dn-belt, .dn-fan, .dn-rol, .dn-led, .dn-sp, .dn-beam { animation: none !important; } .dn-sp { opacity: 0; } }`;
+    dnStyle.textContent += `
+      .dn-bulb { animation: dnBulb 1s steps(1) infinite; } .dn-bulb.b2 { animation-delay: -.5s; } ${kf('dnBulb', [[0, 'fill: #fff7c2;'], [50, 'fill: #f59e0b;']])}
+      @media (prefers-reduced-motion: reduce) { .dn-bulb { animation: none !important; } }`;
+    /* прожектор на треноге снаружи: светит вверх на вывеску (луч позади дома — виден на фоне неба) */
+    const spotAng = (hx, tx, ty) => (Math.atan2(tx - hx, 214 - ty) * 180) / Math.PI;
+    const beam = (hx, tx, ty) => {
+      const hy = 214, ang = spotAng(hx, tx, ty), len = Math.hypot(tx - hx, ty - hy) + 20;
+      return `<g transform="rotate(${ang.toFixed(1)} ${hx} ${hy})"><path class="dn-beam" d="M${hx - 7} ${hy - 12} L${hx - 26} ${hy - 12 - len} L${hx + 26} ${hy - 12 - len} L${hx + 7} ${hy - 12}Z" fill="url(#dnBeamG)"/></g>`;
+    };
+    const spot = (hx, tx, ty) => {
+      const hy = 214, ang = spotAng(hx, tx, ty);
+      return `<path d="M${hx - 10} 238 L${hx} ${hy + 6} L${hx + 10} 238 M${hx} ${hy + 6} V238" stroke="#1f2937" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <g transform="rotate(${ang.toFixed(1)} ${hx} ${hy})" stroke-linejoin="round"><path d="M${hx - 12} ${hy + 6} V${hy - 2} M${hx + 12} ${hy + 6} V${hy - 2} M${hx - 12} ${hy + 6} H${hx + 12}" stroke="#1f2937" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <rect x="${hx - 9}" y="${hy - 11}" width="18" height="20" rx="3.5" fill="url(#dnDrum)" stroke="#111827" stroke-width="2"/>
+          <rect x="${hx - 11}" y="${hy - 14}" width="22" height="5" rx="2.5" fill="#d1d5db" stroke="#111827" stroke-width="1.8"/><ellipse cx="${hx}" cy="${hy - 14}" rx="9" ry="2.4" fill="#fffbe6" stroke="#ca8a04" stroke-width="1.2"/></g>`;
+    };
+    /* маленький вентилятор на полке */
+    let blades = '';
+    for (let i = 0; i < 3; i++) blades += `<path d="M0 0 C-2.6 -3 -3 -7 0 -8 C3 -7 2.6 -3 0 0Z" fill="#7dd3fc" stroke="#0c4a6e" stroke-width="1" transform="rotate(${i * 120})"/>`;
+    const fan = (x, y0, base) => `<g stroke-linejoin="round"><path d="M${x - 6} ${base} h12 l-1.5 -3 h-9Z" fill="#475569" stroke="#1e293b" stroke-width="1.3"/><rect x="${x - 1.2}" y="${y0 + 8}" width="2.4" height="${base - y0 - 11}" fill="#64748b"/>
+      <circle cx="${x}" cy="${y0}" r="9" fill="#e0f2fe" stroke="#1e293b" stroke-width="1.6"/>
+      <g transform="translate(${x} ${y0})"><g class="dn-fan">${blades}<circle r="1.9" fill="#0c4a6e"/></g></g>
+      <circle cx="${x}" cy="${y0}" r="9" fill="none" stroke="#94a3b8" stroke-width=".9" stroke-dasharray="1.6 2"/></g>`;
+    const roller = (x, y) => `<g transform="translate(${x} ${y})"><g class="dn-rol"><circle r="2.8" fill="#a78bfa" stroke="#4b3a7a" stroke-width="1.1"/><path d="M-1.8 0 H1.8" stroke="#4b3a7a" stroke-width="1.1" stroke-linecap="round"/></g></g>`;
+    /* дом: фасад X0..X1, правая боковая стена с перспективой, карниз, цоколь */
+    const X0 = 84, X1 = 290, Y0 = 98, YB = 214, SD = 18;
+    let siding = '';
+    for (let y = Y0 + 10; y < YB - 8; y += 9) siding += `M${X0 + 2} ${y} H${X1 - 2} `;
+    let bulbs = '';
+    for (let x = 136; x <= 238; x += 9.2) bulbs += `<circle class="dn-bulb${Math.round((x - 136) / 9.2) % 2 ? ' b2' : ''}" cx="${x.toFixed(1)}" cy="47" r="2"/><circle class="dn-bulb${Math.round((x - 136) / 9.2) % 2 ? '' : ' b2'}" cx="${x.toFixed(1)}" cy="79" r="2"/>`;
+    /* витрина изнутри: стена, плитка, стеллаж, лента */
+    const SX = WX + 4, SP = WX + 34;                                   // стеллаж: левый и правый край
+    const shelves = [WY + 26, WY + 45, WY + 63];
+    return `<svg viewBox="0 0 400 300" aria-hidden="true">${defs}
+      <linearGradient id="dnBeamG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff7b2" stop-opacity=".75"/><stop offset=".6" stop-color="#fde68a" stop-opacity=".3"/><stop offset="1" stop-color="#fde68a" stop-opacity="0"/></linearGradient>
+      <linearGradient id="dnDrum" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#374151"/><stop offset=".35" stop-color="#9ca3af"/><stop offset=".55" stop-color="#4b5563"/><stop offset="1" stop-color="#1f2937"/></linearGradient>
+      <linearGradient id="dnWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3dc"/><stop offset="1" stop-color="#f3dcb0"/></linearGradient>
+      <linearGradient id="dnIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1d0"/><stop offset="1" stop-color="#f6d9a6"/></linearGradient>
+      <pattern id="dnTile" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fff"/><rect width="4" height="4" fill="#ef4444"/><rect x="4" y="4" width="4" height="4" fill="#ef4444"/></pattern>
+      <clipPath id="dnWin"><rect x="${WX}" y="${WY}" width="${WW}" height="${WH}" rx="2"/></clipPath>
+      ${under()}${grass()}
+      ${beam(52, 150, 40)}${beam(348, 230, 40)}
+      <g stroke-linejoin="round">
+        <path d="M${X1} ${Y0} L${X1 + SD} ${Y0 - 7} V${YB - 6} L${X1} ${YB}Z" fill="#dcc394" stroke="#6b4423" stroke-width="2.6"/>
+        <path d="M${X1 + 4} ${Y0 + 20} L${X1 + SD - 4} ${Y0 + 15} V${Y0 + 46} L${X1 + 4} ${Y0 + 51}Z" fill="#cfe4f5" stroke="#6b4423" stroke-width="2"/>
+        <rect x="${X0}" y="${Y0}" width="${X1 - X0}" height="${YB - Y0}" fill="url(#dnWall)" stroke="#6b4423" stroke-width="2.8"/>
+        <path d="${siding}" stroke="#e6cc9c" stroke-width="1.2" fill="none"/>
+        <rect x="${X0}" y="${YB - 9}" width="${X1 - X0}" height="9" fill="#9b7b5c" stroke="#6b4423" stroke-width="2.4"/><path d="M${X0 + 20} ${YB - 9} v9 M${X0 + 60} ${YB - 9} v9 M${X0 + 100} ${YB - 9} v9 M${X0 + 140} ${YB - 9} v9 M${X0 + 180} ${YB - 9} v9" stroke="#6b4423" stroke-width="1.2"/>
+        <path d="M${X0 - 4} ${Y0 - 12} L${X0 - 6 + SD} ${Y0 - 18} H${X1 + SD} L${X1 + 2} ${Y0 - 12}Z" fill="#b8382d" stroke="#5a1a12" stroke-width="2.2"/>   <!-- верх плоской крыши -->
+        <path d="M${X0 + SD} ${Y0 - 16} H${X1 - 6 + SD}" stroke="#d65a4f" stroke-width="1.4"/>
+        <rect x="${X1 - 56}" y="${Y0 - 34}" width="30" height="20" rx="2" fill="#9ca3af" stroke="#374151" stroke-width="2.2"/><path d="M${X1 - 52} ${Y0 - 28} h22 M${X1 - 52} ${Y0 - 23} h22 M${X1 - 52} ${Y0 - 18} h22" stroke="#4b5563" stroke-width="1.4"/>
+        <rect x="${X0 + 34}" y="${Y0 - 28}" width="8" height="14" fill="#6b7280" stroke="#374151" stroke-width="1.8"/><path d="M${X0 + 30} ${Y0 - 28} h16 l-2 -5 h-12Z" fill="#9ca3af" stroke="#374151" stroke-width="1.8"/>
+        <path d="M${X1} ${Y0 - 10} L${X1 + SD} ${Y0 - 17} V${Y0 - 5} L${X1} ${Y0 + 2}Z" fill="#a8322a" stroke="#5a1a12" stroke-width="2.2"/>
+        <rect x="${X0 - 4}" y="${Y0 - 12}" width="${X1 - X0 + 6}" height="14" rx="1.5" fill="#c9453a" stroke="#5a1a12" stroke-width="2.4"/>
+        <path d="M${X0 - 2} ${Y0 - 8} H${X1}" stroke="#e8776c" stroke-width="1.6"/>
+        <rect x="${X0}" y="${Y0 + 2}" width="${X1 - X0}" height="4" fill="#000" opacity=".14"/>
+      </g>
+      <g clip-path="url(#dnWin)">
+        <rect x="${WX}" y="${WY}" width="${WW}" height="${WH}" fill="url(#dnIn)"/>
+        <rect x="${WX}" y="${WY + WH - 30}" width="${WW}" height="30" fill="url(#dnTile)" opacity=".55"/>
+        <path d="M${WX} ${WY + WH - 30} H${WX + WW}" stroke="#c98f4a" stroke-width="2"/>
+        <path d="M${WX + WW - 66} ${WY} V${WY + 10}" stroke="#4a4f5c" stroke-width="1.4"/><path d="M${WX + WW - 72} ${WY + 10} h12 l-2.5 5 h-7Z" fill="#fde68a" stroke="#4a4f5c" stroke-width="1.4"/><ellipse cx="${WX + WW - 66}" cy="${WY + 22}" rx="16" ry="6" fill="#fff7b2" opacity=".35"/>
+        <g stroke-linejoin="round">
+          <path d="M${WX + WW - 26} ${WY} V${WY + 12}" stroke="#6b7280" stroke-width="3"/>
+          <rect x="${WX + WW - 38}" y="${WY + 12}" width="24" height="30" rx="2.5" fill="#9ca3af" stroke="#374151" stroke-width="2"/>
+          <rect x="${WX + WW - 35}" y="${WY + 15}" width="18" height="24" rx="1.5" fill="#e5e7eb" stroke="#6b7280" stroke-width="1.1"/>
+          ${nestIc('bolt', WX + WW - 34.5, WY + 16.5, 17)}
+          <circle class="dn-led" cx="${WX + WW - 19}" cy="${WY + 36}" r="1.6" fill="#22c55e"/>
+          <g class="dn-sp" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"><path d="M${WX + WW - 13} ${WY + 14} l5 -3 l-1.5 4 l5 -1.5"/><path d="M${WX + WW - 39} ${WY + 36} l-5 2 l2.5 2.5 l-5 1"/></g>
+        </g>
+        <g stroke-linejoin="round">
+          <rect x="${SX}" y="${shelves[0]}" width="${SP - SX}" height="${WY + WH - shelves[0]}" fill="#e9c99a" opacity=".6"/>
+          <path d="M${SX} ${shelves[0]} V${WY + WH} M${SP} ${shelves[0]} V${WY + WH}" stroke="#7a4a1e" stroke-width="2.6"/>
+          ${shelves.map((y) => `<rect x="${SX - 2}" y="${y - 1.6}" width="${SP - SX + 4}" height="3.4" rx="1" fill="#b07a3e" stroke="#6b4423" stroke-width="1.2"/>`).join('')}
+        </g>
+        ${fan(SX + 15, WY + 15, shelves[0] - 1.6)}
+        ${nestIc('harpoon', SX + 3, shelves[0] + 0.5, 19)}${nestIc('axe', SX + 6, shelves[1] + 1, 16.5)}${nestIc('hammer', SX + 7, shelves[2] + 0.5, 16.5)}
+        <g stroke-linejoin="round">
+          <path d="M${SP + 14} ${B2 + 7} V${WY + WH} M${WX + WW - 18} ${B2 + 7} V${WY + WH}" stroke="#4b5563" stroke-width="2.6"/>
+          <rect x="${SP + 6}" y="${B2}" width="${WX + WW - SP - 10}" height="7" rx="3.5" fill="#4b5563" stroke="#111827" stroke-width="1.6"/>
+          <path class="dn-belt" d="M${SP + 10} ${B2 + 1.4} H${WX + WW - 6}" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="6 6"/>
+        </g>
+        ${[0, 1, 2, 3, 4, 5].map((i) => roller(SP + 12 + i * 16, B2 + 3.5)).join('')}
+        <g transform="translate(${BCX} ${BCY.toFixed(1)}) scale(${K})"><g class="dn-all">
+          <g class="dn-btx"><g class="dn-bty"><path d="M-40 6 Q-40 -26 0 -26 Q40 -26 40 6 Z" fill="#eca45c" stroke="#2b2b33" stroke-width="3.2" stroke-linejoin="round"/>
+            <path d="M-24 -14 Q-12 -21 4 -20" fill="none" stroke="#f8cf9c" stroke-width="3" stroke-linecap="round"/></g></g>
+          <g class="dn-tm"><circle r="9" fill="#c2553a" stroke="#7a2c1c" stroke-width="2.4"/><circle r="5" fill="none" stroke="#f0a08a" stroke-width="1.6"/></g>
+          <g><rect x="-38" y="-5" width="76" height="10" rx="5" fill="#8a5a1c" stroke="#5a3510" stroke-width="2.4"/><path d="M-30 -1 H30" stroke="#b07a2e" stroke-width="2" stroke-dasharray="6 5"/></g>
+          <g class="dn-cu"><circle r="9" fill="#dbe9b4" stroke="#7a9a4a" stroke-width="2.2"/><path d="M-3 -2 l1 1 M3 -3 l-1 1 M0 3 l0 1.5 M-4 3 l1 -1 M4 2 l-1 -1" stroke="#7a9a4a" stroke-width="1.4" stroke-linecap="round"/></g>
+          <g class="dn-bbx"><g class="dn-bby"><path d="M-40 -6 H40 Q40 22 18 22 H-18 Q-40 22 -40 -6 Z" fill="#eca45c" stroke="#2b2b33" stroke-width="3.2" stroke-linejoin="round"/>
+            <path d="M14 -6 H22 M26 -6 H31" stroke="#fff" stroke-width="2.6"/></g></g></g></g>
+        <g stroke="#1f2937" stroke-width="1"><rect x="${WX + WW - 7}" y="${B2 - 20}" width="7" height="22" fill="#6b7280"/>${[0, 1, 2].map((i) => `<rect x="${WX + WW - 13 + i * 2}" y="${B2 - 18}" width="2" height="18" fill="#374151" opacity=".85"/>`).join('')}</g>
+      </g>
+      <g stroke-linejoin="round">
+        <rect x="${WX}" y="${WY}" width="${WW}" height="${WH}" rx="2" fill="none" stroke="#7a4a1e" stroke-width="4"/>
+        <rect x="${WX - 2}" y="${WY - 2}" width="${WW + 4}" height="${WH + 4}" rx="3" fill="none" stroke="#5a3512" stroke-width="1.2"/>
+        <rect x="${WX - 5}" y="${WY + WH + 1}" width="${WW + 10}" height="5" rx="1.5" fill="#b07a3e" stroke="#5a3512" stroke-width="1.8"/>
+        <path d="M${WX + 50} ${WY + 8} l18 -6 M${WX + 78} ${WY + 10} l12 -5" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+        <rect x="258" y="138" width="26" height="${YB - 9 - 138}" rx="1.5" fill="#c98f4a" stroke="#5a3512" stroke-width="2.4"/>
+        <rect x="262" y="143" width="18" height="16" rx="2" fill="#cfe4f5" stroke="#5a3512" stroke-width="1.6"/><path d="M262 151 H280" stroke="#5a3512" stroke-width="1.2"/>
+        <rect x="262" y="164" width="18" height="30" rx="1.5" fill="none" stroke="#a5713a" stroke-width="1.4"/>
+        <circle cx="279" cy="${(YB + 138) / 2}" r="1.8" fill="#ffd23f" stroke="#5a3512" stroke-width="1"/>
+        <rect x="254" y="${YB - 1}" width="34" height="5" rx="1.5" fill="#9ca3af" stroke="#4a4f5c" stroke-width="1.6"/>
+      </g>
+      <g stroke-linejoin="round">                                      <!-- полосатый навес кафе над витриной -->
+          <g stroke="#7f1d1d" stroke-width="1.4" stroke-linejoin="round">${Array.from({ length: 10 }, (_, i) => { const w = (WW + 16) / 10, x = WX - 8 + i * w; return `<path d="M${x.toFixed(1)} ${Y0 + 4} H${(x + w).toFixed(1)} L${(x + w + 1.2).toFixed(1)} ${WY + 1} Q${(x + w * 0.75).toFixed(1)} ${WY + 5} ${(x + w / 2).toFixed(1)} ${WY + 1} Q${(x + w * 0.25).toFixed(1)} ${WY + 5} ${(x - 1.2).toFixed(1)} ${WY + 1}Z" fill="${i % 2 ? '#fff' : '#dc2626'}"/>`; }).join('')}</g>
+        <path d="M${WX - 9} ${Y0 + 4} H${WX + WW + 9}" stroke="#7f1d1d" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M${WX - 6} ${Y0 + 4} L${WX - 6} ${Y0 + 2} M${WX + WW + 6} ${Y0 + 4} L${WX + WW + 6} ${Y0 + 2}" stroke="#4a4f5c" stroke-width="2"/>
+      </g>
+      <g fill="#c9c2b4" stroke="#8a8172" stroke-width="1.4"><ellipse cx="268" cy="226" rx="9" ry="3.4"/><ellipse cx="262" cy="236" rx="10" ry="3.8"/><ellipse cx="270" cy="247" rx="11" ry="4"/></g>
+      ${spot(52, 150, 40)}${spot(348, 230, 40)}
+      ${pine(24, 236, 0.5)}${pine(378, 238, 0.5, '#3aa05a')}
+    </svg>`;
+  };
   /* заглушка: остров ещё не нарисован — на его месте пушистое облако со звёздочками */
   ART.fog = () => {
     const puff = (x, y, sc, c) => `<g transform="translate(${x} ${y}) scale(${sc})"><path d="M-46 0 Q-62 0 -58 -14 Q-54 -26 -40 -22 Q-36 -42 -14 -38 Q-2 -54 18 -40 Q40 -44 42 -22 Q62 -20 58 -4 Q56 4 44 4Z" fill="${c}" stroke="#c9d6ec" stroke-width="2.4" stroke-linejoin="round"/></g>`;
@@ -391,7 +643,7 @@
       `<svg x="${cx - 200 * s}" y="${cy - 226 * s}" width="${400 * s}" height="${300 * s}" viewBox="0 0 400 300" overflow="visible">`);
   };
   /* земля островов: ширина, глубина низа, верх (трава или песок) — как в ART */
-  const GROUND = { l1: { w: 175, h: 56 }, l2: { w: 170, h: 56 }, l3: { w: 178, h: 56, ry: 32, top: 'sand' }, l4: { w: 150, h: 64 }, beam: { w: 118, h: 46 }, crane: { w: 175, h: 56 } };
+  const GROUND = { l1: { w: 175, h: 56 }, l2: { w: 170, h: 56 }, l3: { w: 178, h: 56, ry: 32, top: 'sand' }, l4: { w: 150, h: 64 }, beam: { w: 118, h: 46 }, crane: { w: 175, h: 56 }, frisle: { w: 175, h: 56 }, diner: { w: 175, h: 56 } };
   const TOPC = { grass: ['#2f6e33'], sand: ['#5e3f1e', '#a5753f'] };
   const underD = (w, h) => `M${200 - w} 226 Q${200 - w + 14} ${226 + h} 170 ${226 + h * 1.15} Q200 ${226 + h * 1.5} 230 ${226 + h * 1.15} Q${200 + w - 14} ${226 + h} ${200 + w} 226Z`;
   const STAR4 = 'M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z';
@@ -803,7 +1055,7 @@
   const GOAL = 10;
   /* режимы острова «Сокращение дробей» — по 8 задач (4 стадии по 2) */
   /* «Общий знаменатель» — 12 задач (4 стадии по 3) */
-  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul', 'dec10', 'decfr', 'frdec'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
+  const goalOf = (id) => (['cancel', 'ext', 'factor', 'decadd', 'decmul', 'dec10', 'decfr', 'frdec', 'frdiv', 'decdiv', 'decdivfr', 'decprop', 'decshift'].includes(id) ? 8 : id === 'common' ? 12 : GOAL);
   const RC = 2 * Math.PI * 40;
   function ringSvg(done, total) {
     const f = total ? done / total : 0, full = f >= 1;
@@ -1010,7 +1262,10 @@
     .tp button { font: inherit; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .tp-tg { border: 2px dashed #fff1cf; border-radius: 99px; padding: 6px 13px; background: rgba(24, 16, 40, .78); color: #fff1cf; font-size: .78rem; }
     .tp-box { display: none; margin-top: 6px; padding: 8px; border-radius: 16px; background: rgba(24, 16, 40, .88); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); color: #fff; }
-    .tp.open .tp-box { display: grid; gap: 6px; }
+    .tp.open .tp-box { display: grid; gap: 6px; max-height: 58vh; overflow-y: auto; }
+    .tp-box { box-sizing: border-box; max-width: calc(100vw - 20px); grid-template-columns: minmax(0, 1fr); }
+    .tp-row { min-width: 0; }
+    @media (max-width: 360px) { .tp-row { gap: 4px; } .tp-row button { padding: 6px 5px; } .tp-p { width: 30px; } }
     .tp-row { display: flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 800; }
     .tp-n { width: 22px; text-align: center; color: #ffd23f; font-weight: 900; }
     .tp-t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 8em; }
@@ -1304,30 +1559,28 @@
   function setLvlFrac(lv, f) {
     lv.modes.forEach((m) => lsSet(`mg.solved.${m.id}`, String(Math.round(goalOf(m.id) * Math.max(0, Math.min(1, f))))));
   }
-  function testPanel() {
-    const sec = SECTIONS[0];
-    const row = (lvl) => { const lv = sec.levels[lvl]; return `<div class="tp-row" data-l="${lvl}"><span class="tp-n">${lv.n}</span><span class="tp-t">${lv.title}</span><b class="tp-p"></b>
+  function testPanel() {                                               // строки — острова с режимами во всех разделах
+    const row = (si, lvl) => { const lv = SECTIONS[si].levels[lvl]; return `<div class="tp-row" data-s="${si}" data-l="${lvl}"><span class="tp-n">${si ? 'Д' : ''}${lv.n}</span><span class="tp-t">${lv.title}</span><b class="tp-p"></b>
       <button type="button" data-d="-0.25">−25</button><button type="button" data-d="0.1">+10</button><button type="button" data-d="0.25">+25</button><button type="button" data-d="1">100%</button></div>`; };
     return `<div class="tp"><button type="button" class="tp-tg">Тест прогресса ▲</button><div class="tp-box">
-      ${[0, ...sec.parts.map((pt) => pt.lvl)].sort((a, b) => a - b).map(row).join('')}
+      ${SECTIONS.map((sec, si) => sec.levels.map((lv, li) => (lv.modes.length ? row(si, li) : '')).join('')).join('')}
       <div class="tp-act"><button type="button" data-a="detach">Отколоть куски</button><button type="button" data-a="zero">Всё на 0%</button></div></div></div>`;
   }
   function tpSync(sx) {
-    const sec = SECTIONS[0];
-    sx.querySelectorAll('.tp-row').forEach((r) => { r.querySelector('.tp-p').textContent = `${Math.floor(fracOf(sec.levels[+r.dataset.l]) * 100)}%`; });
+    sx.querySelectorAll('.tp-row').forEach((r) => { r.querySelector('.tp-p').textContent = `${Math.floor(fracOf(SECTIONS[+r.dataset.s].levels[+r.dataset.l]) * 100)}%`; });
   }
   function bindTestPanel(sx) {
-    const tp = sx.querySelector('.tp'), sec = SECTIONS[0];
+    const tp = sx.querySelector('.tp');
     tp.addEventListener('click', (e) => {
       e.stopPropagation();                                              // не открывать раздел
       const b = e.target.closest('button');
       if (!b) return;
       if (b.classList.contains('tp-tg')) { const o = tp.classList.toggle('open'); b.textContent = o ? 'Тест прогресса ▼' : 'Тест прогресса ▲'; tpSync(sx); return; }
       if (busy) return;
-      if (b.dataset.a === 'detach') sec.parts.forEach((pt) => { lsSet(pkey(sec, pt), '0'); lsSet(`${pkey(sec, pt)}.seen`, '0'); });
-      else if (b.dataset.a === 'zero') { sec.levels.forEach((lv) => setLvlFrac(lv, 0)); sec.parts.forEach((pt) => lsSet(pkey(sec, pt), '0')); }
+      if (b.dataset.a === 'detach') SECTIONS.forEach((sec) => sec.parts.forEach((pt) => { lsSet(pkey(sec, pt), '0'); lsSet(`${pkey(sec, pt)}.seen`, '0'); }));
+      else if (b.dataset.a === 'zero') SECTIONS.forEach((sec) => { sec.levels.forEach((lv) => setLvlFrac(lv, 0)); sec.parts.forEach((pt) => lsSet(pkey(sec, pt), '0')); });
       else {
-        const lv = sec.levels[+b.closest('.tp-row').dataset.l], d = +b.dataset.d;
+        const r = b.closest('.tp-row'), lv = SECTIONS[+r.dataset.s].levels[+r.dataset.l], d = +b.dataset.d;
         setLvlFrac(lv, d === 1 ? 1 : fracOf(lv) + d);
       }
       refresh(); refreshSections(true, true); tpSync(sx);

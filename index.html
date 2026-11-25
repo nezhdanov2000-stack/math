@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=317">
+  <link rel="stylesheet" href="css/style.css?v=347">
 </head>
 <body>
   <main id="home" hidden></main>
@@ -196,6 +196,49 @@
     </div>
   </main>
 
+  <main class="stage" id="mode-decprop" hidden>
+    <p class="hint" id="dp-hint"></p>
+
+    <div class="pp-stage" id="dp-stage">
+      <div class="pp-eqn" id="dp-eqn">
+        <div class="fraction pp-lf" id="dp-lf">
+          <div class="row" id="dp-lnum"></div>
+          <div class="bar" id="dp-lbar"></div>
+          <div class="row" id="dp-lden"></div>
+        </div>
+        <svg class="pp-eq" id="dp-eq" viewBox="-20 -20 40 40" aria-label="равно"><path d="M-17 -8 H17 M-17 8 H17" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/></svg>
+        <div class="fraction nodots" id="dp-rf">
+          <div class="row" id="dp-num"></div>
+          <div class="bar" id="dp-bar"></div>
+          <div class="row" id="dp-den"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="after" id="dp-after">
+      <div class="result"><span class="check">✓</span><span id="dp-resultText"></span></div>
+      <button id="dp-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <main class="stage" id="mode-decshift" hidden>
+    <p class="hint" id="ds-hint"></p>
+
+    <div class="sh-stage" id="ds-stage">
+      <div class="sh-eqn" id="ds-eqn">
+        <div class="sh-side" id="ds-L"></div>
+        <svg class="sh-eq" id="ds-eq" viewBox="-20 -20 40 40" aria-label="равно"><path d="M-17 -8 H17 M-17 8 H17" stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/></svg>
+        <div class="sh-side" id="ds-R"></div>
+      </div>
+    </div>
+
+    <div class="after" id="ds-after">
+      <div class="result"><span class="check">✓</span><span id="ds-resultText"></span></div>
+      <button id="ds-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+
   <main class="stage" id="mode-br" hidden>
     <p class="hint" id="br-hint"></p>
 
@@ -332,48 +375,91 @@
     </div>
   </main>
 
+  <!-- Десятичные дроби: перевод обыкновенной дроби в десятичную делением уголком (динамит) -->
+  <main class="stage fd-mode" id="mode-frdiv" hidden>
+    <p class="hint" id="fv-hint"></p>
+
+    <div class="fd-view" id="fv-view"></div>
+
+    <div class="after" id="fv-after">
+      <div class="result"><span class="check">✓</span><span id="fv-resultText"></span></div>
+      <button id="fv-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Десятичные дроби: деление десятичных дробей (крюк → джокер → гарпун → кувалда → ластик → молния) -->
+  <main class="stage fd-mode" id="mode-decdiv" hidden>
+    <p class="hint" id="dd-hint"></p>
+
+    <div class="fd-view" id="dd-view"></div>
+
+    <div class="after" id="dd-after">
+      <div class="result"><span class="check">✓</span><span id="dd-resultText"></span></div>
+      <button id="dd-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
+  <!-- Десятичные дроби: деление через обыкновенные дроби (облако → вентилятор, мост → кувалда, ластик, молния → джокер, прожектор) -->
+  <main class="stage fd-mode" id="mode-decdivfr" hidden>
+    <p class="hint" id="df-hint"></p>
+
+    <div class="fd-view" id="df-view"></div>
+
+    <div class="after" id="df-after">
+      <div class="result"><span class="check">✓</span><span id="df-resultText"></span></div>
+      <button id="df-next" class="btn" type="button">Следующий пример →</button>
+    </div>
+  </main>
+
   <!-- Версия ?v= одна на все файлы: при релизе меняй её здесь (замена по файлу) и CACHE в sw.js. -->
-  <script src="js/core.js?v=317"></script>
-  <script src="js/sound.js?v=317"></script>
-  <script src="js/lightning.js?v=317"></script>
-  <script src="js/rocket-fx.js?v=317"></script>
-  <script src="js/ice.js?v=317"></script>
-  <script src="js/press.js?v=317"></script>
-  <script src="js/axe.js?v=317"></script>
-  <script src="js/heli.js?v=317"></script>
-  <script src="js/tread.js?v=317"></script>
-  <script src="js/joker.js?v=317"></script>
-  <script src="js/bridge.js?v=317"></script>
-  <script src="js/fan.js?v=317"></script>
-  <script src="js/rain.js?v=317"></script>
-  <script src="js/teeth.js?v=317"></script>
-  <script src="js/maw.js?v=317"></script>
-  <script src="js/conveyor.js?v=317"></script>
-  <script src="js/cups.js?v=317"></script>
-  <script src="js/tools.js?v=317"></script>
-  <script src="js/fractions.js?v=317"></script>
-  <script src="js/clip.js?v=317"></script>
-  <script src="js/progress.js?v=317"></script>
-  <script src="js/coach.js?v=317"></script>
-  <script src="js/mul.js?v=317"></script>
-  <script src="js/div.js?v=317"></script>
-  <script src="js/wf.js?v=317"></script>
-  <script src="js/mq.js?v=317"></script>
-  <script src="js/pp.js?v=317"></script>
-  <script src="js/sh.js?v=317"></script>
-  <script src="js/br.js?v=317"></script>
-  <script src="js/factor.js?v=317"></script>
-  <script src="js/common.js?v=317"></script>
-  <script src="js/borrow.js?v=317"></script>
-  <script src="js/mixed.js?v=317"></script>
-  <script src="js/ext.js?v=317"></script>
-  <script src="js/dec.js?v=317"></script>
-  <script src="js/decmul.js?v=317"></script>
-  <script src="js/dec10.js?v=317"></script>
-  <script src="js/decfr.js?v=317"></script>
-  <script src="js/frdec.js?v=317"></script>
-  <script src="js/home.js?v=317"></script>
-  <script src="js/app.js?v=317"></script>
+  <script src="js/core.js?v=347"></script>
+  <script src="js/sound.js?v=347"></script>
+  <script src="js/lightning.js?v=347"></script>
+  <script src="js/rocket-fx.js?v=347"></script>
+  <script src="js/ice.js?v=347"></script>
+  <script src="js/press.js?v=347"></script>
+  <script src="js/axe.js?v=347"></script>
+  <script src="js/heli.js?v=347"></script>
+  <script src="js/tread.js?v=347"></script>
+  <script src="js/joker.js?v=347"></script>
+  <script src="js/bridge.js?v=347"></script>
+  <script src="js/fan.js?v=347"></script>
+  <script src="js/rain.js?v=347"></script>
+  <script src="js/teeth.js?v=347"></script>
+  <script src="js/maw.js?v=347"></script>
+  <script src="js/conveyor.js?v=347"></script>
+  <script src="js/cups.js?v=347"></script>
+  <script src="js/tools.js?v=347"></script>
+  <script src="js/fractions.js?v=347"></script>
+  <script src="js/clip.js?v=347"></script>
+  <script src="js/progress.js?v=347"></script>
+  <script src="js/coach.js?v=347"></script>
+  <script src="js/mul.js?v=347"></script>
+  <script src="js/div.js?v=347"></script>
+  <script src="js/wf.js?v=347"></script>
+  <script src="js/mq.js?v=347"></script>
+  <script src="js/deceq.js?v=347"></script>
+  <script src="js/pp.js?v=347"></script>
+  <script src="js/sh.js?v=347"></script>
+  <script src="js/br.js?v=347"></script>
+  <script src="js/factor.js?v=347"></script>
+  <script src="js/common.js?v=347"></script>
+  <script src="js/borrow.js?v=347"></script>
+  <script src="js/mixed.js?v=347"></script>
+  <script src="js/ext.js?v=347"></script>
+  <script src="js/dec.js?v=347"></script>
+  <script src="js/decmul.js?v=347"></script>
+  <script src="js/dec10.js?v=347"></script>
+  <script src="js/decfr.js?v=347"></script>
+  <script src="js/frdec.js?v=347"></script>
+  <script src="js/frdiv.js?v=347"></script>
+  <script src="js/fkit.js?v=347"></script>
+  <script src="js/decdiv.js?v=347"></script>
+  <script src="js/decdivfr.js?v=347"></script>
+  <script src="js/decprop.js?v=347"></script>
+  <script src="js/decshift.js?v=347"></script>
+  <script src="js/home.js?v=347"></script>
+  <script src="js/app.js?v=347"></script>
   <script>
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

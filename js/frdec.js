@@ -18,15 +18,23 @@
   const { $, T, sleep, ri, setStats, burst } = MG;
   const snd = (n, o) => { if (MG.snd && MG.snd.play) MG.snd.play(n, o); };
 
-  const view = $('#fd-view');
-  const after = $('#fd-after');
-  const resultText = $('#fd-resultText');
-  const nextBtn = $('#fd-next');
-  if (!view) return;
-  const hint = MG.hinter($('#fd-hint'));
-  const NAME = 'frdec', TOOL = 'joker', BOLT = 'bolt', PROJ = 'projector', GLOVE = 'glove';
   const INK = '#1d1d1f';
+  let cssDone = false;
+  /* cfg.embed — «дробь → десятичная» внутри другого режима (MG.frdec.embed): свой view, одна дробь, без счёта и кнопок */
+  function build(cfg) {
+  const EMB = !!cfg.embed;
+  const view = EMB ? cfg.view : $('#fd-view');
+  const after = EMB ? null : $('#fd-after');
+  const resultText = EMB ? null : $('#fd-resultText');
+  const nextBtn = EMB ? null : $('#fd-next');
+  if (!view) return null;
+  const hint = EMB ? (cfg.hint || { set() {} }) : MG.hinter($('#fd-hint'));
+  const NAME = 'frdec', TOOL = 'joker', BOLT = 'bolt', PROJ = 'projector', GLOVE = 'glove';
+  const isActive = () => (EMB ? !!(cfg.active && cfg.active()) : MG.active === MG.modes[NAME]);
+  let embTask = null, embDone = null;
 
+  if (!cssDone) {
+  cssDone = true;
   const css = document.createElement('style');
   css.textContent = `
     .fd-mode { justify-content: flex-start; gap: 6px; position: relative; }
@@ -55,6 +63,7 @@
     .fd-mode .after.show { translate: -50% 0; }
   `;
   document.head.append(css);
+  }
 
   /* ---------- примеры ---------- */
   const TOTAL = 8;
@@ -69,6 +78,7 @@
 
   function pick() {
     const L = lvlOf(), second = solved % 2 === 1;
+    if (EMB) return { ...embTask };
     if (solved === 0 && !lastKey) return { w: 0, n: 1, d: 2 };
     for (let i = 0; i < 100; i++) {
       let t;
@@ -102,7 +112,8 @@
     view.style.setProperty('--fd-fs', `${fs}px`);
     view.style.setProperty('--fd-top', `${Math.round(Math.min(vh * 0.2, 120))}px`);
     const r = st.row.getBoundingClientRect(), vr = view.getBoundingClientRect();
-    view.parentElement.style.setProperty('--fd-after', `${view.offsetTop + (r.bottom - vr.top) + 30}px`);
+    if (!EMB) view.parentElement.style.setProperty('--fd-after', `${view.offsetTop + (r.bottom - vr.top) + 30}px`);
+    else if (cfg.onLayout) cfg.onLayout(r);
   }
   function draw(st) {
     st.row.replaceChildren();
@@ -115,13 +126,13 @@
   }
 
   function newRound() {
-    window.dispatchEvent(new Event('mg:round'));
+    if (!EMB) window.dispatchEvent(new Event('mg:round'));
     dropHeld(state);
     const task = pick();
     lastKey = `${task.w} ${task.n}/${task.d}`;
-    after.classList.remove('show');
+    if (after) after.classList.remove('show');
     view.replaceChildren();
-    if (MG.tools.current()) MG.tools.clear();
+    if (!EMB && MG.tools.current()) MG.tools.clear();
     const st = { task, n: task.n, d: task.d, busy: false, done: false, laid: 0 };
     state = st;
     st.row = mk('div', 'fd-row fracs', undefined, view);
@@ -139,7 +150,7 @@
       }
       if (MG.tools.need) MG.tools.need(st.erase ? GLOVE : st.proj ? PROJ : pending(st) ? BOLT : TOOL);
     });
-    setStats(lvlOf(), solved);
+    if (!EMB) setStats(lvlOf(), solved);
     hint.set('Возьми джокера и набери на планшете, на что умножить дробь');
   }
 
@@ -437,6 +448,7 @@
     st.done = true; st.busy = true;
     dropHeld(st);
     snd('pop'); burst(el, '#16a34a', 16);
+    if (EMB) { const d = embDone; embDone = null; if (d) d(st.dec); return; }
     solved++;
     setStats(lvlOf(), solved);
     resultText.textContent = `${label(st.task)} = ${st.dec}`;
@@ -460,31 +472,21 @@
     });
   }
 
-  nextBtn.addEventListener('click', () => {
+  if (nextBtn) nextBtn.addEventListener('click', () => {
     if (solved >= TOTAL) { offerDone(); return; }
     const o = document.querySelector('.so-ov'); if (o) o.remove();
     newRound();
   });
   window.addEventListener('toolchange', (e) => {
-    if (MG.active !== MG.modes[NAME] || e.detail.tool !== TOOL || !state || state.done) return;
+    if (!isActive() || e.detail.tool !== TOOL || !state || state.done) return;
     if (pending(state)) { bubble('Сначала посчитай молнией: нажми на числитель и знаменатель', 2600); return; }
     if (state.proj) { bubble('Знаменатель уже ' + state.d + ' — возьми прожектор и нажми на нули', 2600); return; }
     setTimeout(() => { if (document.body.dataset.tool === TOOL) openTablet(state); }, T(200));
   });
   let rt = 0;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (MG.active === MG.modes[NAME] && state) layout(state); }, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (isActive() && state) layout(state); }, 150); });
 
-  MG.modes[NAME] = {
-    total: TOTAL,
-    levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
-    start() {
-      if (MG.tools.current()) MG.tools.clear();
-      if (!state || state.done) newRound(); else { setStats(lvlOf(), solved); layout(state); }
-    },
-    skip() { if (solved >= TOTAL) { offerDone(); return; } newRound(); },
-    stop() { dropHeld(state); if (state && (state.busy || state.done)) state = null; },
-    /* подсказка-палец (coach.js): джокер → планшет: набрать множитель и галочка → положить карту на дробь */
-    coachStep() {
+  const coachStep = () => {
       const st = state;
       if (!st || st.done || st.busy) return null;
       const m = bestMul(st.d), ms = String(m);
@@ -503,7 +505,34 @@
       }
       if (st.asking) return null;
       return { tool: TOOL, el: st.fr, text: `Нажми на дробь и умножь на ${m} — знаменатель станет ${st.d * m}` };
+  };
+  if (EMB) {
+    return {
+      /* дробь n/d (знаменатель из 2 и 5) → десятичная: джокер, молния, прожектор, ластик; промис — строка '0,75' */
+      run(n, d) { return new Promise((res) => { embTask = { w: 0, n, d }; embDone = res; newRound(); }); },
+      stop() { dropHeld(state); state = null; embDone = null; view.replaceChildren(); },
+      state: () => state,
+      coachStep,
+    };
+  }
+  MG.modes[NAME] = {
+    total: TOTAL,
+    levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
+    start() {
+      if (MG.tools.current()) MG.tools.clear();
+      if (!state || state.done) newRound(); else { setStats(lvlOf(), solved); layout(state); }
     },
+    skip() { if (solved >= TOTAL) { offerDone(); return; } newRound(); },
+    stop() { dropHeld(state); if (state && (state.busy || state.done)) state = null; },
+    /* подсказка-палец (coach.js): джокер → планшет: набрать множитель и галочка → положить карту на дробь */
+    coachStep,
     _state: () => state,
   };
+  return null;
+  }
+
+  build({});
+  /* «дробь → десятичная» для других режимов: const f = MG.frdec.embed({ view, active: () => bool, hint });
+     await f.run(3, 4) → '0,75'; f.coachStep() — для пальца-подсказки; f.stop() — убрать */
+  MG.frdec = { embed: (o) => build({ embed: true, ...o }) };
 })();

@@ -8,21 +8,30 @@
 
   const { $, T, sleep, ri, setStats, burst, popIn, bump, shake } = window.MG;
 
-  const stage = $('#sh-stage');
-  const boxes = { L: $('#sh-L'), R: $('#sh-R') };
-  const eqEl = $('#sh-eq');
-  const hint = $('#sh-hint');
-  const after = $('#sh-after');
-  const resultText = $('#sh-resultText');
-  const nextBtn = $('#sh-next');
+  /* build(cfg) — режим на своей разметке: cfg.name — id режима (#mode-NAME), cfg.p — префикс id элементов;
+   * cfg.pick(info) — свой генератор; cfg.dec — числа с запятой: сначала джокер и гарпун (MG.deceq). */
+  let styled = false;
+  function build(cfg) {
+  const NAME = cfg.name, P = cfg.p, DEC = !!cfg.dec, DQ = window.MG.deceq;
+
+  const stage = $(`#${P}-stage`);
+  const boxes = { L: $(`#${P}-L`), R: $(`#${P}-R`) };
+  const eqEl = $(`#${P}-eq`);
+  const hint = $(`#${P}-hint`);
+  const after = $(`#${P}-after`);
+  const resultText = $(`#${P}-resultText`);
+  const nextBtn = $(`#${P}-next`);
 
   let st = null;
   let solved = 0;
   let lastKey = '';
   let uid = 0;
-  const levelOf = (s) => window.MG.levelOf(s, 6);   // уровень: +1 за каждые 3 задачи, не выше 6
+  const levelOf = cfg.levelOf || ((s) => window.MG.levelOf(s, 6));   // уровень: +1 за каждые 3 задачи, не выше 6
   const MINUS = '−';
-  const fmt = (n) => (n < 0 ? `${MINUS}${-n}` : String(n));
+  /* числа с запятой — такие же числа: 1,5 пишется с запятой, а считается как 1.5 (с округлением до 6 знаков) */
+  const R6 = (x) => Math.round(x * 1e6) / 1e6;
+  const num = (a) => (Number.isInteger(a) ? String(a) : String(R6(a)).replace('.', ','));
+  const fmt = (n) => (n < 0 ? `${MINUS}${num(-n)}` : num(n));
 
   /* ---------- генерация: a·x + b = c + d·x, ответ целый ---------- */
   function pick() {
@@ -59,9 +68,9 @@
 
   const bodyHTML = (t) => {
     const a = Math.abs(t.v);
-    if (t.kind === 'x') return `<span class="co">${a === 1 ? '' : a}</span><span class="vx">x</span>`;
-    if (t.den > 1) return `<span class="sh-fr"><i>${a}</i><i>${t.den}</i></span>`;
-    return String(a);
+    if (t.kind === 'x') return `<span class="co">${t.dec !== undefined ? t.dec : a === 1 ? '' : num(a)}</span><span class="vx">x</span>`;
+    if (t.den !== 1) return `<span class="sh-fr"><i>${num(a)}</i><i>${num(t.den)}</i></span>`;
+    return t.dec !== undefined ? t.dec : num(a);
   };
 
   /* огонь для отрицательных (фильтр и искры — из режима смешанных чисел) */
@@ -112,6 +121,7 @@
         box.append(t.el);
       });
     });
+    fitFont();                                         // слагаемые переехали — строка могла стать шире
   }
 
   /* плавное перестроение: элементы едут на новые места */
@@ -142,9 +152,17 @@
   const fontPx = () => parseFloat(getComputedStyle(stage).fontSize);
   function fitFont() {
     const avail = Math.min(window.innerWidth * 0.94, 980) - 20;
-    stage.style.fontSize = `${Math.max(26, Math.min(64, avail / 13))}px`;
+    const px = Math.max(26, Math.min(64, avail / 13));
+    stage.style.fontSize = `${px}px`;
+    const pad = px * 1.1, Lw = window.MG.rowWidth(boxes.L), Rw = window.MG.rowWidth(boxes.R), ew = eqEl.getBoundingClientRect().width;   // .5em отступы у «=»
+    const eqn = $(`#${P}-eqn`);
+    /* «=» посередине экрана, пока влезает; иначе части прижимаются к «=» (длинные числа с запятой), а если и так тесно — мельче */
+    const tight = 2 * Math.max(Lw, Rw) + ew + pad > avail;
+    if (eqn) { eqn.style.gridTemplateColumns = tight ? 'auto auto auto' : ''; eqn.style.justifyContent = tight ? 'center' : ''; }
+    const w = tight ? Lw + Rw + ew + pad : 0;
+    if (w > avail) stage.style.fontSize = `${Math.max(15, px * avail / w)}px`;
   }
-  window.addEventListener('resize', () => { if (st && !$('#mode-shift').hidden) fitFont(); });
+  window.addEventListener('resize', () => { if (st && !$(`#mode-${NAME}`).hidden) fitFont(); });
 
   /* ============================================================
    * Состояние решения
@@ -153,12 +171,13 @@
   const all = () => [...st.sides.L, ...st.sides.R];
 
   function computePhase() {
+    if (!st.scaled) return st.mul ? 'H' : 'J';
     if (all().some(movable)) return 'T';
     if (st.sides.L.length > 1 || st.sides.R.length > 1) return 'C';
     const x = st.sides.L[0], n = st.sides.R[0];
     if (x && n && x.kind === 'x' && n.kind === 'n') {
-      if (Math.abs(x.v) > 1) return 'D';
-      if (n.den > 1) return 'F';
+      if (Math.abs(x.v) !== 1) return 'D';
+      if (n.den !== 1) return 'F';
       return 'done';
     }
     return 'C';
@@ -169,17 +188,19 @@
   function defaultHint() {
     if (!st || st.finished) return '';
     switch (st.phase) {
+      case 'J': return `В уравнении есть запятые. Возьми джокера и умножь обе части на 10, 100 или 1000 — на столько, чтобы запятых не осталось`;
+      case 'H': return 'Возьми гарпун и нажми на уравнение — запятые сдвинутся сами';
       case 'T': return 'Возьми вертолёт и перенеси слагаемые через барьер: x — влево, числа — вправо. За барьером знак слагаемого меняется на противоположный';
       case 'C': return 'Приведи подобные: возьми молнию и ударь по знаку между двумя слагаемыми одного вида';
-      case 'D': return `Перед x стоит ${Math.abs(st.sides.L[0].v)}. Возьми конвейер и нажми на это число — оно переедет через «=» и станет делителем`;
+      case 'D': return `Перед x стоит ${num(Math.abs(st.sides.L[0].v))}. Возьми конвейер и нажми на это число — оно переедет через «=» и станет делителем`;
       case 'F': return 'Осталось поделить: ударь молнией по дроби';
       default: return '';
     }
   }
   function autoTool() {
     if (!st || st.finished) return;
-    const map = { T: { heli: true }, C: { bolt: true }, D: { conveyor: true }, F: { bolt: true } }[st.phase];
-    if (map) window.MG.tools.auto('shift', map);
+    const map = { J: { joker: true }, H: { harpoon: true }, T: { heli: true }, C: { bolt: true }, D: { conveyor: true }, F: { bolt: true } }[st.phase];
+    if (map) window.MG.tools.auto(NAME, map);
   }
   function updateHint() {
     const t = defaultHint();
@@ -196,17 +217,26 @@
    * Раунд
    * ============================================================ */
   function newRound() {
-    const sp = pick();
-    lastKey = `${sp.a}.${sp.b}.${sp.c}.${sp.d}`;
+    window.dispatchEvent(new Event('mg:round'));
+    const sp = cfg.pick ? cfg.pick({ solved, lastKey }) : pick();
+    lastKey = cfg.pick ? sp.key : `${sp.a}.${sp.b}.${sp.c}.${sp.d}`;
+    if (st && st.held) { st.held.drop(false); st.held = null; }
+    const mkT = (side, kind, v) => {                    // '0,15' — число с запятой: dec — его запись
+      if (typeof v !== 'string') return mkTerm(side, kind, v);
+      const t = mkTerm(side, kind, DQ.val(v));
+      if (v.includes(',') && DEC) t.dec = v;          // без джокера число с запятой — обычное число (пишется через num)
+      return t;
+    };
     after.classList.remove('show');
     eqEl.style.visibility = '';
-    const L = [mkTerm('L', 'x', sp.a), mkTerm('L', 'n', sp.b)];
+    const L = [mkT('L', 'x', sp.a), mkT('L', 'n', sp.b)];
     if (!sp.lx) L.reverse();
-    const R = [mkTerm('R', 'n', sp.c), mkTerm('R', 'x', sp.d)];
+    const R = [mkT('R', 'n', sp.c), mkT('R', 'x', sp.d)];
     if (sp.rx) R.reverse();
-    st = { sp, sides: { L, R }, phase: 'T', busy: false, finished: false };
+    st = { sp, sides: { L, R }, phase: 'T', busy: false, finished: false, scaled: !DEC, mul: 0 };
     fitFont();
     render();
+    fitFont();
     [...stage.querySelectorAll('.sh-t, .sh-op:not(.hid)')].forEach((e, i) => popIn(e, i * 50));
     st.phase = computePhase();
     setStats(levelOf(solved), solved);
@@ -218,6 +248,7 @@
    * Барьер: «=» превращается в две вертикальные фиолетовые линии с вращающимися стрелками
    * ============================================================ */
   const sty = document.createElement('style');
+  if (!styled) {
   sty.textContent = `
     .sh-wall { position: fixed; left: 0; top: 0; width: 0; height: 100vh; z-index: 2; pointer-events: none; }
     .sh-wall > * { position: absolute; top: 0; height: 100%; translate: -50% 0; }
@@ -243,6 +274,8 @@
     @keyframes shRise { from { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 85% { opacity: .9; } to { transform: translateY(-100vh); opacity: 0; } }
   `;
   document.head.append(sty);
+  styled = true;
+  }
 
   /* «=» переворачивается на месте и превращается в два фиолетовых луча на всю высоту окна.
    * Всё идёт одним непрерывным кадровым рядом (поворот, растяжение, раздвижение, свечение — перекрываются),
@@ -360,10 +393,11 @@
 
   function onTermClick(t) {
     if (!st || st.finished || st.busy) return;
+    if (st.phase === 'J' || st.phase === 'H') return;     // клик всплывёт до уравнения (джокер, гарпун)
     const tools = window.MG.tools;
     if (st.phase === 'D' && t.kind === 'x') { divideStart(t); return; }
-    if (st.phase === 'F' && t.kind === 'n' && t.den > 1) { computeFraction(t); return; }
-    if (tools.current() === 'bolt' && !(t.kind === 'n' && t.den > 1)) {
+    if (st.phase === 'F' && t.kind === 'n' && t.den !== 1) { computeFraction(t); return; }
+    if (tools.current() === 'bolt' && !(t.kind === 'n' && t.den !== 1)) {
       flashHint('Молния бьёт по знаку между слагаемыми: нажми на «+» или «−» между двумя подобными');
     }
   }
@@ -372,6 +406,7 @@
     if (!st || st.finished || st.busy || e.button) return;
     const tools = window.MG.tools;
     if (tools.current() !== 'heli') return;                 // другими инструментами слагаемое не потащишь
+    if (st.phase === 'J' || st.phase === 'H') { flashHint('Сначала убери запятые: джокер, потом гарпун'); return; }
     e.preventDefault();
     const me = st;
     me.busy = true;
@@ -495,6 +530,7 @@
    * ============================================================ */
   function onOpClick(t) {
     if (!st || st.finished || st.busy) return;
+    if (st.phase === 'J' || st.phase === 'H') return;
     const tools = window.MG.tools;
     if (!tools.need('bolt')) return;
     const list = st.sides[t.side];
@@ -512,7 +548,7 @@
   async function merge(p, t) {
     const me = st;
     me.busy = true;
-    const sum = p.v + t.v;
+    const sum = R6(p.v + t.v);
     const list = me.sides[p.side];
     const i = list.indexOf(p);
     const els = [p.el, t.op, t.el];
@@ -599,7 +635,7 @@
     const me = st;
     if (!window.MG.tools.need('bolt')) return;
     me.busy = true;
-    const q = t.v / t.den;
+    const q = R6(t.v / t.den);
     t.v = q; t.den = 1;
     reflow(() => { render(); t.el.style.opacity = '0'; }, new Set([t.el]));
     await window.MG.lightning([t.el], { color: q < 0 ? '#fb923c' : '#fde047' });
@@ -609,6 +645,96 @@
     me.phase = computePhase();
     updateHint();
     checkDone();
+  }
+
+  /* ============================================================
+   * Режим с запятыми: джокер умножает обе части уравнения, гарпун сдвигает запятые в каждом слагаемом
+   * ============================================================ */
+  const eqnEl = $(`#${P}-eqn`);
+  const numStr = (t) => (t.dec !== undefined ? t.dec : String(Math.abs(t.v)));
+  const decStrs = () => all().map(numStr);
+  const longest = () => decStrs().reduce((a, b) => (DQ.decs(b) > DQ.decs(a) ? b : a));
+  function exprOf(side) {
+    return st.sides[side].map((t, i) => {
+      const neg = t.v < 0, a = numStr(t);
+      const body = t.kind === 'x' ? `${a === '1' ? '' : a}x` : a;
+      return i === 0 ? `${neg ? MINUS : ''}${body}` : ` ${neg ? MINUS : '+'} ${body}`;
+    }).join('');
+  }
+  if (eqnEl) eqnEl.addEventListener('click', () => decClick());
+  function decClick() {
+    const me = st;
+    if (!DEC || !me || me.finished || me.busy) return;
+    const tool = window.MG.tools.current();
+    if (me.phase === 'J') {
+      if (tool !== 'joker') { window.MG.tools.need('joker'); return; }
+      openTablet(me);
+    } else if (me.phase === 'H') {
+      if (tool !== 'harpoon') { window.MG.tools.need('harpoon'); return; }
+      runHarp(me);
+    }
+  }
+  async function openTablet(me) {
+    if (me.asking || window.MG.joker.holding()) return;
+    const L = exprOf('L'), R = exprOf('R');
+    const box = '<span class="pvb on mb"></span>';
+    const wrap = (side, e) => (st.sides[side].length > 1 ? `(${e})` : e);
+    me.asking = true;
+    me.held = await DQ.joker({
+      headHTML: `${L} = ${R}`, ansHTML: `${wrap('L', L)}·${box} = ${wrap('R', R)}·${box}`,
+      from: eqnEl, frac: () => eqnEl, need: DQ.need(decStrs()), longest: longest(),
+      alive: () => st === me,
+      say: (t) => flashHint(t),
+      onLay: (card, v) => { me.held = null; applyJoker(me, card, v); },
+      onDrop: () => { me.held = null; },
+    });
+    me.asking = false;
+  }
+  async function applyJoker(me, card, v) {
+    me.busy = true;
+    setHint('');
+    me.tags = new Map();
+    reflow(() => { all().forEach((t) => { const g = DQ.tag(v); t.el.append(g); me.tags.set(t, g); }); fitFont(); });
+    await DQ.lay(card, eqnEl, [...me.tags.values()], v);
+    if (st !== me) return;
+    me.mul = v;
+    me.busy = false;
+    me.phase = computePhase();
+    updateHint();
+  }
+  async function runHarp(me) {
+    me.busy = true;
+    setHint('');
+    const z = String(me.mul).length - 1;
+    await Promise.all(all().map(async (t, i) => {
+      await sleep(i * 220);
+      let el;
+      if (t.kind === 'x') {
+        el = t.el.querySelector('.co');
+        if (!el.textContent) {                          // x — это 1·x: единица проявляется и умножается
+          el.textContent = '1';
+          el.animate([{ opacity: 0, scale: '.3' }, { opacity: 1, scale: '1.2', offset: 0.6 }, { opacity: 1, scale: '1' }], { duration: T(380), easing: 'ease-out' });
+          await sleep(420);
+        }
+      } else {
+        const tn = [...t.el.childNodes].find((n) => n.nodeType === 3);
+        el = document.createElement('span');
+        el.textContent = tn ? tn.textContent : numStr(t);
+        if (tn) tn.replaceWith(el); else t.el.prepend(el);
+      }
+      const res = await DQ.harp(el, numStr(t), z, me.tags.get(t), { onGrow: fitFont });
+      t.v = Math.sign(t.v) * Number(res);
+      delete t.dec;
+    }));
+    if (st !== me) return;
+    me.scaled = true;
+    reflow(() => { render(); fitFont(); });
+    all().forEach((t) => bump(t.el));
+    await sleep(300);
+    if (st !== me) return;
+    me.busy = false;
+    me.phase = computePhase();
+    updateHint();
   }
 
   /* ============================================================
@@ -625,19 +751,67 @@
     resultText.innerHTML = `x = ${fmt(ans)}`;
     solved++;
     setStats(levelOf(solved), solved);
+    if (cfg.total && solved >= cfg.total) setTimeout(offerDone, T(1200));
     [...boxes.L.querySelectorAll('.sh-t'), ...boxes.R.querySelectorAll('.sh-t')].forEach((e) => burst(e, '#16a34a', 10));
     after.classList.add('show');
     setTimeout(() => nextBtn.focus({ preventScroll: true }), T(300));
   }
 
-  nextBtn.addEventListener('click', newRound);
+  const offerDone = () => DQ.offerDone(NAME, cfg.total, solved, cfg.done || 'Ты научился решать такие уравнения. Идём дальше.');
+  nextBtn.addEventListener('click', () => {
+    if (cfg.total && solved >= cfg.total) { offerDone(); return; }
+    const o = document.querySelector('.so-ov'); if (o) o.remove();
+    newRound();
+  });
 
-  window.MG.modes.shift = {
-    levelUp() { solved = (Math.floor(solved / 3) + 1) * 3; newRound(); },
+  const STEP = cfg.total ? 2 : 3;                       // задач на уровень
+  window.MG.modes[NAME] = {
+    total: cfg.total,
+    levelUp() {
+      solved = (Math.floor(solved / STEP) + 1) * STEP;
+      if (cfg.total && solved >= cfg.total) { solved = cfg.total; setStats(levelOf(solved), solved); offerDone(); return; }
+      newRound();
+    },
     start() {
       if (!st) newRound();
       else setStats(levelOf(solved), solved);
     },
-    skip: newRound,
+    skip() { if (cfg.total && solved >= cfg.total) { offerDone(); return; } newRound(); },
+    stop() { if (st && st.held) { st.held.drop(false); st.held = null; } },
+    /* подсказка-палец (coach.js): джокер → гарпун → вертолёт (тянуть) → молния → конвейер → молния */
+    coachStep() {
+      const me = st;
+      if (!me || me.finished || me.busy) return null;
+      const ph = me.phase;
+      if (ph === 'J') {
+        if (window.MG.joker.holding()) return { tool: 'joker', el: eqnEl, text: 'Положи карту на уравнение' };
+        const lg = longest(), cm = DQ.coachMul(DQ.need(decStrs()), DQ.decs(lg), lg);
+        if (cm) return cm;
+        if (me.asking) return null;
+        return { tool: 'joker', el: eqnEl, text: 'Нажми джокером на уравнение' };
+      }
+      if (ph === 'H') return { tool: 'harpoon', el: eqnEl, text: 'Нажми гарпуном на уравнение' };
+      if (ph === 'T') {
+        const t = all().find(movable);
+        if (!t) return null;
+        const to = t.side === 'L' ? 'R' : 'L';
+        return { tool: 'heli', el: t.el, to: boxes[to], text: `Перетащи ${t.kind === 'x' ? 'x' : 'число'} вертолётом через «=» — ${t.kind === 'x' ? 'влево' : 'вправо'}` };
+      }
+      if (ph === 'C') {
+        for (const side of ['L', 'R']) {
+          const list = me.sides[side];
+          for (let i = 1; i < list.length; i++) if (list[i - 1].kind === list[i].kind) return { tool: 'bolt', el: list[i].op, text: 'Ударь молнией по знаку между подобными' };
+        }
+        return null;
+      }
+      if (ph === 'D') { const x = me.sides.L[0]; return { tool: 'conveyor', el: x.el.querySelector('.co') || x.el, text: `Нажми конвейером на ${num(Math.abs(x.v))} — он станет делителем` }; }
+      if (ph === 'F') return { tool: 'bolt', el: me.sides.R[0].el, text: 'Ударь молнией по дроби' };
+      return null;
+    },
+    _state: () => st,
   };
+  }
+
+  build({ name: 'shift', p: 'sh' });
+  window.MG.shBuild = build;
 })();

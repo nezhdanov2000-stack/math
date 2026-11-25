@@ -519,32 +519,32 @@ body[data-tool="rain"] .stage, body[data-tool="rain"] .stage .token { cursor: va
 body[data-tool="teeth"] .stage, body[data-tool="teeth"] .stage .token { cursor: var(--cur-teeth, pointer) !important; }
 
 /* ---------- Пропорции ---------- */
-#mode-prop .pp-stage { font-size: 60px; font-weight: 900; max-width: 100%; display: flex; justify-content: center; }
-#mode-prop .pp-eqn { display: flex; align-items: center; justify-content: center; gap: .3em; }
-#mode-prop .fraction { width: auto; font-size: inherit; }
-#mode-prop .row { width: auto; }
-#mode-prop .pp-lf .row { gap: 0; }
-#mode-prop .bar { transition: none; }
-#mode-prop .pp-lf .token::before { content: none; }
-#mode-prop .fraction.nodots .token::before { opacity: 0 !important; }
-#mode-prop .pp-eq { width: .46em; height: .46em; flex: none; color: var(--ink); overflow: visible; margin: 0 .12em; }
-#mode-prop .pp-lf .token.var { font-style: italic; }
-#mode-prop .pp-lf .token.mv { cursor: pointer; }
-#mode-prop .pp-lf .token.new1 { color: #16a34a; }
-body[data-tool="conveyor"] #mode-prop .pp-lf .token.mv:hover { color: var(--accent); }
+#mode-prop .pp-stage, #mode-decprop .pp-stage { font-size: 60px; font-weight: 900; max-width: 100%; display: flex; justify-content: center; }
+#mode-prop .pp-eqn, #mode-decprop .pp-eqn { display: flex; align-items: center; justify-content: center; gap: .3em; }
+#mode-prop .fraction, #mode-decprop .fraction { width: auto; font-size: inherit; }
+#mode-prop .row, #mode-decprop .row { width: auto; }
+#mode-prop .pp-lf .row, #mode-decprop .pp-lf .row { gap: 0; }
+#mode-prop .bar, #mode-decprop .bar { transition: none; }
+#mode-prop .pp-lf .token::before, #mode-decprop .pp-lf .token::before { content: none; }
+#mode-prop .fraction.nodots .token::before, #mode-decprop .fraction.nodots .token::before { opacity: 0 !important; }
+#mode-prop .pp-eq, #mode-decprop .pp-eq { width: .46em; height: .46em; flex: none; color: var(--ink); overflow: visible; margin: 0 .12em; }
+#mode-prop .pp-lf .token.var, #mode-decprop .pp-lf .token.var { font-style: italic; }
+#mode-prop .pp-lf .token.mv, #mode-decprop .pp-lf .token.mv { cursor: pointer; }
+#mode-prop .pp-lf .token.new1, #mode-decprop .pp-lf .token.new1 { color: #16a34a; }
+body[data-tool="conveyor"] #mode-prop .pp-lf .token.mv:hover, body[data-tool="conveyor"] #mode-decprop .pp-lf .token.mv:hover { color: var(--accent); }
 body[data-tool="conveyor"] .stage, body[data-tool="conveyor"] .stage .token, body[data-tool="conveyor"] .stage .pp-eq { cursor: var(--cur-conveyor, pointer) !important; }
-#pp-rf .token::before { content: '×'; scale: .72; font-weight: 900; }
-#pp-rf .token:not(.lead)::before { opacity: .65; }
-#pp-rf .token.xwait::before { opacity: 0 !important; transition: none; }
-#mode-prop .pp-lf .token.xs { margin-left: .5em; }
-#mode-prop .pp-lf .token.xs::before { content: '×'; scale: .72; font-weight: 900; left: -.25em; opacity: .65; }
+#pp-rf .token::before, #dp-rf .token::before { content: '×'; scale: .72; font-weight: 900; }
+#pp-rf .token:not(.lead)::before, #dp-rf .token:not(.lead)::before { opacity: .65; }
+#pp-rf .token.xwait::before, #dp-rf .token.xwait::before { opacity: 0 !important; transition: none; }
+#mode-prop .pp-lf .token.xs, #mode-decprop .pp-lf .token.xs { margin-left: .5em; }
+#mode-prop .pp-lf .token.xs::before, #mode-decprop .pp-lf .token.xs::before { content: '×'; scale: .72; font-weight: 900; left: -.25em; opacity: .65; }
 
 /* ---------- Перенос через «=» ---------- */
-#mode-shift .sh-stage { font-size: 64px; font-weight: 900; max-width: 100%; display: flex; justify-content: center; user-select: none; }
+#mode-shift .sh-stage, #mode-decshift .sh-stage { font-size: 64px; font-weight: 900; max-width: 100%; display: flex; justify-content: center; user-select: none; }
 .sh-eqn { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: min(96vw, 1100px); min-height: 2.4em; }
 .sh-side { display: flex; align-items: center; min-width: .8em; }
-#sh-L { justify-content: flex-end; padding-right: .5em; }
-#sh-R { justify-content: flex-start; padding-left: .5em; }
+#sh-L, #ds-L { justify-content: flex-end; padding-right: .5em; }
+#sh-R, #ds-R { justify-content: flex-start; padding-left: .5em; }
 .sh-t { display: inline-flex; align-items: center; position: relative; padding: .06em .04em; line-height: 1.1; transition: opacity .2s, color .25s; }
 .sh-t .vx { font-style: italic; }
 .sh-t .co { font-weight: 900; }
@@ -561,9 +561,9 @@ body[data-tool="conveyor"] .stage, body[data-tool="conveyor"] .stage .token, bod
 .sh-eq { width: .46em; height: .46em; flex: none; color: var(--ink); overflow: visible; margin: 0 .12em; }
 .sh-ghost { position: fixed; z-index: 64; left: 0; top: 0; display: inline-flex; align-items: center; font-weight: 900; pointer-events: none; line-height: 1.1; }
 .sh-ghost .sh-t.neg, .sh-ghost .sh-op.neg { color: #dc2626; }
-body[data-tool="heli"] #mode-shift .sh-t, body[data-tool="heli"] #mode-shift .sh-t * { cursor: var(--cur-heli, grab) !important; }
-body[data-tool="bolt"] #mode-shift .sh-op, body[data-tool="bolt"] #mode-shift .sh-t { cursor: var(--cur-bolt, pointer) !important; }
-body[data-tool="conveyor"] #mode-shift .sh-t { cursor: var(--cur-conveyor, pointer) !important; }
+body[data-tool="heli"] #mode-shift .sh-t, body[data-tool="heli"] #mode-decshift .sh-t, body[data-tool="heli"] #mode-shift .sh-t *, body[data-tool="heli"] #mode-decshift .sh-t * { cursor: var(--cur-heli, grab) !important; }
+body[data-tool="bolt"] #mode-shift .sh-op, body[data-tool="bolt"] #mode-decshift .sh-op, body[data-tool="bolt"] #mode-shift .sh-t, body[data-tool="bolt"] #mode-decshift .sh-t { cursor: var(--cur-bolt, pointer) !important; }
+body[data-tool="conveyor"] #mode-shift .sh-t, body[data-tool="conveyor"] #mode-decshift .sh-t { cursor: var(--cur-conveyor, pointer) !important; }
 
 /* ---------- телефон: без выделения, лупы и зума по двойному тапу ---------- */
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }

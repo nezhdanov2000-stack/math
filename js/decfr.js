@@ -14,16 +14,23 @@
   const { $, T, sleep, ri, setStats, burst } = MG;
   const snd = (n, o) => { if (MG.snd && MG.snd.play) MG.snd.play(n, o); };
 
-  const view = $('#bf-view');
-  const world = $('#bf-world');
-  const after = $('#bf-after');
-  const resultText = $('#bf-resultText');
-  const nextBtn = $('#bf-next');
-  if (!view || !world) return;
-  const hint = MG.hinter($('#bf-hint'));
-  const NAME = 'decfr', TOOL = 'rain';
   const INK = '#1d1d1f';
+  let cssDone = false;
+  /* cfg.embed — облако внутри другого режима (MG.decfr.embed): свои view/world, одно число, без счёта и кнопок */
+  function build(cfg) {
+  const EMB = !!cfg.embed;
+  const view = EMB ? cfg.view : $('#bf-view');
+  const world = EMB ? cfg.world : $('#bf-world');
+  const after = EMB ? null : $('#bf-after');
+  const resultText = EMB ? null : $('#bf-resultText');
+  const nextBtn = EMB ? null : $('#bf-next');
+  if (!view || !world) return null;
+  const hint = EMB ? (cfg.hint || { set() {} }) : MG.hinter($('#bf-hint'));
+  const NAME = 'decfr', TOOL = 'rain';
+  let embStr = null, embDone = null;
 
+  if (!cssDone) {
+  cssDone = true;
   const css = document.createElement('style');
   css.textContent = `
     .bf-mode { justify-content: flex-start; gap: 6px; position: relative; }
@@ -48,6 +55,7 @@
     body[data-tool="rain"] .stage .bf-hit { cursor: var(--cur-rain, pointer) !important; }
   `;
   document.head.append(css);
+  }
 
   /* ---------- примеры ---------- */
   const TOTAL = 8;
@@ -57,7 +65,7 @@
   const dg = () => String(ri(0, 9));
 
   function makeTask(str) {
-    const [ip, fp] = str.split(',');
+    const [ip, fp = ''] = str.split(',');                           // целое (3) — облако выращивает под ним 1: 3/1
     const digits = (ip + fp).split('');
     const lead = Math.min(digits.length - 1, (digits.join('').match(/^0+/) || [''])[0].length);
     const num = digits.slice(lead).join(''), den = `1${'0'.repeat(fp.length)}`;
@@ -65,6 +73,7 @@
   }
   function pick() {
     const L = lvlOf(), second = solved % 2 === 1;
+    if (EMB) return makeTask(embStr);
     if (solved === 0 && !lastKey) return makeTask('0,5');
     for (let i = 0; i < 200; i++) {
       let s;
@@ -84,15 +93,17 @@
     const vw = Math.max(260, view.clientWidth), vh = Math.max(360, view.clientHeight);
     const N = tk.digits.length, W = Math.max(N, tk.F + 1) + 0.6;               // ширина дроби в клетках
     const leftU = tk.str.length - 1 + 0.45 + 1.2;                                // «1,267 =» в конце
-    const cw = Math.max(18, Math.floor(Math.min(64, (vw - 24) / (W + 0.6), (vh - 40) / 4.6)));
+    const cw = EMB && cfg.cw ? cfg.cw : Math.max(18, Math.floor(Math.min(64, (vw - 24) / (W + 0.6), (vh - 40) / 4.6)));
     const rh = Math.round(cw * 1.3);
     /* цифра в клетке высотой rh занимает примерно от 0,24·rh до 0,735·rh; зазор у черты ~0,27 шрифта */
     const fs = cw * 0.88, g = fs * 0.27, bt = Math.max(3, cw * 0.085);
     const H = rh * 2.1;
-    const numY = Math.max(16 + rh, Math.round(vh * 0.42 - H / 2));              // сверху — место для облака
+    const lift0 = Math.round(rh * 0.68);
+    const numY = EMB && cfg.numTop ? Math.round(cfg.numTop() - lift0) : Math.max(16 + rh, Math.round(vh * 0.42 - H / 2));   // сверху — место для облака; встроенное: число стоит там, где у режима
+    void H;
     const barY = Math.round(numY + rh * 0.735 + g);
     const denY = Math.round(barY + bt + g - rh * 0.24);
-    const Wc = W * cw, cx = Math.round(vw / 2);
+    const Wc = W * cw, cx = EMB && cfg.cx ? Math.round(cfg.cx()) : Math.round(vw / 2);
     return { vw, vh, cw, rh, fs, bt, numY, barY, denY, Wc, cx, W, leftU, botY: denY + rh, lift: Math.round(rh * 0.68) };   // lift: до дождя число стоит ниже — его поднимет растущая единица
   }
   const numX0 = (st) => G.cx - (st.dEls.length - (st.cut || 0)) * G.cw / 2;
@@ -117,30 +128,32 @@
     const bw = Math.max(nW, dn) * G.cw + G.cw * 0.3;                            // черта чуть шире самого длинного числа
     Object.assign(st.bar.style, { left: `${G.cx - bw / 2}px`, top: `${G.barY}px`, width: `${bw}px` });
     Object.assign(st.box.style, { left: `${G.cx - G.Wc / 2}px`, top: `${G.numY}px`, width: `${G.Wc}px`, height: `${G.botY - G.numY}px` });
-    view.parentElement.style.setProperty('--bf-after', `${view.offsetTop + G.botY + 22}px`);
+    if (!EMB) view.parentElement.style.setProperty('--bf-after', `${view.offsetTop + G.botY + 22}px`);
   }
   function layout(st) { G = geom(st.task); world.classList.add('snap'); placeAll(st); void world.offsetWidth; world.classList.remove('snap'); }
 
   /* ---------- раунд ---------- */
   function newRound() {
-    window.dispatchEvent(new Event('mg:round'));
+    if (!EMB) window.dispatchEvent(new Event('mg:round'));
     const task = pick();
     lastKey = task.str;
-    after.classList.remove('show');
+    if (after) after.classList.remove('show');
     world.replaceChildren();
     world.classList.add('bf-pre');
-    if (MG.tools.current()) MG.tools.clear();
+    if (!EMB && MG.tools.current()) MG.tools.clear();
     const st = { task, phase: 'pre', busy: false, denRight: true };
     state = st;
     st.frac = mk('bf-frac');
     st.bar = mk('bf-bar', undefined, st.frac);
     st.dEls = task.digits.map((d) => mk('bf-d', d, st.frac));
     st.comma = mk('bf-comma', ',', st.frac);
+    if (!task.F) { st.comma.style.visibility = 'hidden'; st.commaGone = true; }   // у целого числа запятой нет
     st.den = Array.from({ length: task.F + 1 }, (_, i) => { const e = mk('bf-den', i ? '0' : '1', st.frac); e.style.visibility = 'hidden'; return e; });
     st.hit = mk('bf-hit', undefined, st.frac);
     st.box = mk('fracs', undefined, st.frac); st.box.style.cssText = 'position:absolute;pointer-events:none;';   // рамка для подсказки-пальца
     layout(st);
     [...st.dEls, st.comma].forEach((e) => { e.style.translate = `0 ${G.lift}px`; });   // число стоит у земли: его поднимет единица
+    if (EMB) { rain(st); return; }                                   // встроенное: дождь сразу
     [...st.dEls, st.comma].forEach((e, i) => e.animate([{ opacity: 0, translate: '0 12px' }, { opacity: 1, translate: '0 0' }], { duration: T(350), delay: T(i * 30), easing: 'ease-out', fill: 'backwards' }));
     setStats(lvlOf(), solved);
     hint.set('Возьми облако и полей число дождём');
@@ -157,7 +170,7 @@
 
   world.addEventListener('pointerdown', (e) => {
     const st = state;
-    if (!st || st.busy || st.phase !== 'pre') return;
+    if (EMB || !st || st.busy || st.phase !== 'pre') return;
     if (!e.target.closest('.bf-hit, .bf-d, .bf-comma')) return;
     e.preventDefault();
     if (!MG.tools.need(TOOL)) return;
@@ -205,7 +218,7 @@
         mounds(st, lift);
       },
       setLift(rem, ms) { if (state === st) move(rem, ms); },      // единица рывками толкает черту с числом вверх
-      endLift() { if (state === st) { group.forEach((el) => { el.style.translate = ''; }); st.lv = { from: 0, to: 0, t0: 0, ms: 1 }; strike(st, cloudBottom); } },   // дробь выросла — молния выбивает запятую
+      endLift() { if (state === st) { group.forEach((el) => { el.style.translate = ''; }); st.lv = { from: 0, to: 0, t0: 0, ms: 1 }; if (st.task.F) strike(st, cloudBottom); } },   // дробь выросла — молния выбивает запятую
       onReveal() {
         if (state !== st) return;
         one.style.visibility = '';
@@ -338,6 +351,7 @@
     placeAll(st);
     await sleep(560);
     if (state !== st) return;
+    if (EMB) { const done = embDone; embDone = null; if (done) done({ num: Number(tk.num), den: Number(tk.den) }); return; }
     /* дробь отъезжает вправо, слева появляется исходный пример: 1,267 = 1267/1000 */
     const fw = Math.max(tk.num.length, tk.den.length) * G.cw + G.cw * 0.3;
     const sc = Math.min(1, (G.vw - 16) / (G.leftU * G.cw + fw));              // строка «1,267 = дробь» должна влезть в ширину
@@ -379,21 +393,30 @@
     });
   }
 
-  nextBtn.addEventListener('click', () => {
+  if (nextBtn) nextBtn.addEventListener('click', () => {
     if (solved >= TOTAL) { offerDone(); return; }
     const o = document.querySelector('.so-ov'); if (o) o.remove();
     newRound();
   });
   window.addEventListener('toolchange', (e) => {
-    if (MG.active !== MG.modes[NAME] || e.detail.tool !== TOOL || !state || state.phase !== 'pre') return;
+    if (EMB || MG.active !== MG.modes[NAME] || e.detail.tool !== TOOL || !state || state.phase !== 'pre') return;
     bubble('Нажми на число — дождь смоет красную краску, и она стечёт в знаменатель нулями', 3200);
   });
   let rt = 0;
   window.addEventListener('resize', () => {
     clearTimeout(rt);
-    rt = setTimeout(() => { if (MG.active === MG.modes[NAME] && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
+    rt = setTimeout(() => { if (!EMB && MG.active === MG.modes[NAME] && state && !state.busy && state.phase !== 'done') layout(state); }, 150);
   });
 
+  if (EMB) {
+    return {
+      /* одно число: облако, дождь, ростки — промис { num, den } (0,3 → 3/10; 3 → 3/1); результат остаётся в world до stop() */
+      run(str) { return new Promise((res) => { embStr = str; embDone = res; newRound(); }); },
+      stop() { state = null; embDone = null; world.replaceChildren(); },
+      geom: () => G,
+      state: () => state,
+    };
+  }
   MG.modes[NAME] = {
     total: TOTAL,
     levelUp() { solved = Math.min(TOTAL, (Math.floor(solved / 2) + 1) * 2); if (solved >= TOTAL) { setStats(lvlOf(), solved); offerDone(); return; } newRound(); },
@@ -411,4 +434,11 @@
     },
     _state: () => state,
   };
+  return null;
+  }
+
+  build({});
+  /* облако для других режимов: const c = MG.decfr.embed({ view, world, cw, cx: () => x, numTop: () => y, hint });
+     await c.run('0,3') → { num: 3, den: 10 }; c.geom() — размеры (numY, barY, denY, cw, rh); c.stop() — убрать */
+  MG.decfr = { embed: (o) => build({ embed: true, ...o }) };
 })();
